@@ -68,11 +68,15 @@ const Calendar = () => {
           Mois suivant &gt;
         </button>
       </div>
-      <div className="grid grid-cols-7 text-center font-bold text-gray-600">
+
+      {/* Jours de la semaine */}
+      <div className="grid grid-cols-7 text-center font-bold text-gray-600 text-xs sm:text-base">
         {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
           <div key={day}>{day}</div>
         ))}
       </div>
+
+      {/* Jours du calendrier */}
       <div className="grid grid-cols-7 gap-2 mt-2">
         {calendarDays.map((day, index) => {
           const isCurrentMonth = day.getMonth() === currentDate.getMonth();
@@ -84,7 +88,7 @@ const Calendar = () => {
           return (
             <div
               key={index}
-              className={`p-2 text-center rounded-lg ${
+              className={`p-2 text-center rounded-lg text-xs sm:text-base ${
                 isToday
                   ? "bg-[#A294F9] text-white font-bold"
                   : isCurrentMonth
