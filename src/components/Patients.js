@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase/firebaseConfig.js";
 import { collection, getDocs } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";  // Importer useNavigate
 
 const Patients = () => {
   const [patients, setPatients] = useState([]);
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const navigate = useNavigate();  // Initialiser useNavigate
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -20,6 +21,11 @@ const Patients = () => {
     fetchPatients();
   }, []);
 
+  // Fonction pour rediriger vers les détails du patient
+  const goToPatientDetails = (patientId) => {
+    navigate(`/patient/${patientId}`);  // Redirige vers la page de détails
+  };
+
   return (
     <div className="p-4 bg-white shadow-lg rounded-xl w-full mt-4">
       <h2 className="text-xl font-bold mb-4">Liste des Patients</h2>
@@ -28,25 +34,12 @@ const Patients = () => {
           <li
             key={patient.id}
             className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
-            onClick={() => setSelectedPatient(patient)}
+            onClick={() => goToPatientDetails(patient.id)}  // Redirige à la page de détails
           >
             {patient.nom} {patient.prenom}
           </li>
         ))}
       </ul>
-
-      {selectedPatient && (
-        <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-lg">
-          <h3 className="text-lg font-bold">{selectedPatient.nom} {selectedPatient.prenom}</h3>
-          <p>Date de naissance: {selectedPatient.dateNaissance}</p>
-          <button
-            className="mt-2 text-sm text-blue-500 underline"
-            onClick={() => setSelectedPatient(null)}
-          >
-            Fermer
-          </button>
-        </div>
-      )}
     </div>
   );
 };

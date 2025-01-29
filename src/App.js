@@ -7,6 +7,8 @@ import CalendarPage from './pages/CalendarPage.js';
 import PatientsPage from './pages/PatientsPage.js';
 import ActivitiesPage from './pages/ActivitiesPage.js';
 import ReportsPage from './pages/ReportsPage.js';
+import PatientDetails from "./components/PatientDetails.js";
+
 
 // Page d'accueil
 const HomePage = () => (
@@ -33,6 +35,7 @@ const App = () => {
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/patient/:patientId" element={<PatientDetails />} />
         </Routes>
       </div>
     </Router>
