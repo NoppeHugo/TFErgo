@@ -7,6 +7,8 @@ const PatientDetails = () => {
   const { patientId } = useParams();
   const [patient, setPatient] = useState(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [activeSubTab, setActiveSubTab] = useState("references");
+  const [activeMotif, setActiveMotif] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedPatient, setUpdatedPatient] = useState({});
   const navigate = useNavigate();
@@ -283,15 +285,137 @@ const PatientDetails = () => {
 
         {activeTab === "donnees" && (
           <div>
-            <h3 className="text-lg font-bold">Données client</h3>
-            {/* Affiche les données de santé et les contacts ici */}
+            <div className="flex space-x-4 mb-4">
+              <button
+                className={`py-2 px-4 rounded-lg ${activeSubTab === "references" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                onClick={() => setActiveSubTab("references")}
+              >
+                Références et contacts
+              </button>
+              <button
+                className={`py-2 px-4 rounded-lg ${activeSubTab === "sante" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                onClick={() => setActiveSubTab("sante")}
+              >
+                Données de santé
+              </button>
+            </div>
+
+            {activeSubTab === "references" && (
+              <div>
+                <h4 className="text-md font-semibold">Références et contacts</h4>
+                <div className="mt-2">
+                  <h5 className="text-sm font-semibold">Dispensateurs de soin</h5>
+                  <ul className="space-y-2">
+                    <li>Nom: {patient.dispensateurNom}</li>
+                    <li>Prénom: {patient.dispensateurPrenom}</li>
+                    <li>Type: {patient.dispensateurType}</li>
+                    <li>INAMI: {patient.dispensateurINAMI}</li>
+                    <li>Téléphone: {patient.dispensateurTelephone}</li>
+                    <li>Email: {patient.dispensateurEmail}</li>
+                  </ul>
+                </div>
+                <div className="mt-4">
+                  <h5 className="text-sm font-semibold">Autres contacts</h5>
+                  <ul className="space-y-2">
+                    <li>Nom: {patient.contactNom}</li>
+                    <li>Prénom: {patient.contactPrenom}</li>
+                    <li>Relation: {patient.contactRelation}</li>
+                    <li>Téléphone: {patient.contactTelephone}</li>
+                    <li>Email: {patient.contactEmail}</li>
+                    <li>Commentaire: {patient.contactCommentaire}</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === "sante" && (
+              <div>
+                <h4 className="text-md font-semibold">Données de santé</h4>
+                <ul className="space-y-2">
+                  <li>Diagnostic médical: {patient.diagnosticMedical}</li>
+                  <li>Titre du diagnostic: {patient.titreDiagnostic}</li>
+                  <li>Antécédents médicaux: {patient.antecedentsMedicaux}</li>
+                  <li>Texte avec les antécédents: {patient.texteAntecedents}</li>
+                  <li>Chronique de santé: {patient.chroniqueSante}</li>
+                  <li>Texte sur la vie du patient: {patient.texteViePatient}</li>
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === "dossier" && (
           <div>
             <h3 className="text-lg font-bold">Dossier Client</h3>
-            {/* Affiche les interventions, objectifs, etc. */}
+            <div className="mt-4">
+              <h4 className="text-md font-semibold">Motifs d'intervention</h4>
+              <ul className="space-y-2">
+                {patient.motifsIntervention?.map((motif, index) => (
+                  <li
+                    key={index}
+                    className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+                    onClick={() => setActiveMotif(motif)}
+                  >
+                    {motif.titre}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {activeMotif && (
+              <div className="mt-4">
+                <h4 className="text-md font-semibold">Résumé</h4>
+                <ul className="space-y-2">
+                  <li>Groupe cible: {activeMotif.groupeCible}</li>
+                  <li>Âge: {activeMotif.age}</li>
+                  <li>Motif d'intervention: {activeMotif.motifIntervention}</li>
+                  <li>Batteries code CIF: {activeMotif.batteriesCodeCIF}</li>
+                </ul>
+
+                <h4 className="text-md font-semibold mt-4">Situation personnelle</h4>
+                <ul className="space-y-2">
+                  <li>Personne: {activeMotif.situationPersonnelle?.personne}</li>
+                  <li>Occupation: {activeMotif.situationPersonnelle?.occupation}</li>
+                  <li>Environnement: {activeMotif.situationPersonnelle?.environnement}</li>
+                </ul>
+
+                <h4 className="text-md font-semibold mt-4">Perspective thérapeutique</h4>
+                <ul className="space-y-2">
+                  <li>Assesments: {activeMotif.perspectiveTherapeutique?.assesments}</li>
+                  <li>Synthèse de la phase d'évaluation: {activeMotif.perspectiveTherapeutique?.syntheseEvaluation}</li>
+                  <li>Restrictions de participations et souhaits occupationnels: {activeMotif.perspectiveTherapeutique?.restrictionsSouhaits}</li>
+                </ul>
+
+                <h4 className="text-md font-semibold mt-4">Objectifs long terme et court terme</h4>
+                <ul className="space-y-2">
+                  <li>Objectifs long terme: {activeMotif.objectifsLongTerme}</li>
+                  <li>Objectifs court terme:</li>
+                  {activeMotif.objectifsCourtTerme?.map((objectif, index) => (
+                    <ul key={index} className="ml-4 space-y-2">
+                      <li>Date: {objectif.date}</li>
+                      <li>Titre: {objectif.titre}</li>
+                      <li>Date de fin: {objectif.dateFin}</li>
+                      <li>Statut: {objectif.statut}</li>
+                      <li>Activités réalisées pour cet objectif: {objectif.activitesRealisees}</li>
+                    </ul>
+                  ))}
+                </ul>
+
+                <h4 className="text-md font-semibold mt-4">Diagnostic</h4>
+                <p>{activeMotif.diagnostic}</p>
+
+                <h4 className="text-md font-semibold mt-4">Compte rendu des interventions</h4>
+                {activeMotif.compteRenduInterventions?.map((intervention, index) => (
+                  <ul key={index} className="ml-4 space-y-2">
+                    <li>Date: {intervention.date}</li>
+                    <li>Texte: {intervention.texte}</li>
+                  </ul>
+                ))}
+
+                <h4 className="text-md font-semibold mt-4">Synthèse</h4>
+                <p>{activeMotif.synthese}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
