@@ -26,23 +26,36 @@ const Patients = () => {
     navigate(`/patient/${patientId}`);
   };
 
+  const goToAddPatientPage = () => {
+    navigate("/add-patient");
+  };
+
   return (
     <motion.div 
       className="p-4 bg-white shadow-lg rounded-xl w-full mt-4"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.3 } }}
     >
-      <h2 className="text-xl font-bold mb-4">Liste des Patients</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Liste des Patients</h2>
+        <button 
+          className="bg-[#A294F9] text-white px-4 py-2 rounded-lg hover:bg-[#8a7cf9]"
+          onClick={goToAddPatientPage}
+        >
+          Ajouter un patient
+        </button>
+      </div>
+
       <ul className="space-y-2">
         {patients.map(patient => (
           <motion.li
             key={patient.id}
-            className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+            className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200 flex justify-between items-center"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => goToPatientDetails(patient.id)}
           >
-            {patient.nom} {patient.prenom}
+            <span>{patient.nom} {patient.prenom}</span>
           </motion.li>
         ))}
       </ul>

@@ -9,6 +9,7 @@ import PatientsPage from './pages/PatientsPage.js';
 import ActivitiesPage from './pages/ActivitiesPage.js';
 import ReportsPage from './pages/ReportsPage.js';
 import PatientDetails from "./components/PatientDetails.js";
+import AddPatientPage from './pages/AddPatientPage.js';
 
 // Page d'accueil
 const HomePage = () => (
@@ -34,6 +35,7 @@ const AnimatedRoutes = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/calendrier" element={<CalendarPage />} />
         <Route path="/patients" element={<PatientsPage />} />
+        <Route path="/add-patient" element={<AddPatientPage />} />
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
 
