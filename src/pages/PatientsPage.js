@@ -1,5 +1,5 @@
 import React from 'react';
-import Patients from '../components/Patients';
+import Patients from '../components/Patients.js';
 
 const PatientsPage = () => {
   return (

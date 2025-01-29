@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Calendar from './components/Calendar';
-import Patients from './components/Patients';
-import Header from './components/Header';
-import CalendarPage from './pages/CalendarPage';
-import PatientsPage from './pages/PatientsPage';
-import ActivitiesPage from './pages/ActivitiesPage';
-import ReportsPage from './pages/ReportsPage';
+import Calendar from './components/Calendar.js';
+import Patients from './components/Patients.js';
+import Header from './components/Header.js';
+import CalendarPage from './pages/CalendarPage.js';
+import PatientsPage from './pages/PatientsPage.js';
+import ActivitiesPage from './pages/ActivitiesPage.js';
+import ReportsPage from './pages/ReportsPage.js';
 
 // Page d'accueil
 const HomePage = () => (
