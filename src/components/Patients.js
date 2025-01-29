@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase/firebaseConfig.js";
 import { collection, getDocs } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";  // Importer useNavigate
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const Patients = () => {
   const [patients, setPatients] = useState([]);
-  const navigate = useNavigate();  // Initialiser useNavigate
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -21,26 +22,31 @@ const Patients = () => {
     fetchPatients();
   }, []);
 
-  // Fonction pour rediriger vers les détails du patient
   const goToPatientDetails = (patientId) => {
-    navigate(`/patient/${patientId}`);  // Redirige vers la page de détails
+    navigate(`/patient/${patientId}`);
   };
 
   return (
-    <div className="p-4 bg-white shadow-lg rounded-xl w-full mt-4">
+    <motion.div 
+      className="p-4 bg-white shadow-lg rounded-xl w-full mt-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.3 } }}
+    >
       <h2 className="text-xl font-bold mb-4">Liste des Patients</h2>
       <ul className="space-y-2">
         {patients.map(patient => (
-          <li
+          <motion.li
             key={patient.id}
             className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
-            onClick={() => goToPatientDetails(patient.id)}  // Redirige à la page de détails
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => goToPatientDetails(patient.id)}
           >
             {patient.nom} {patient.prenom}
-          </li>
+          </motion.li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 };
 

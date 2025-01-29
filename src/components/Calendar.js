@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -9,8 +10,6 @@ const Calendar = () => {
     const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
     const startDayOfWeek = startOfMonth.getDay();
-    const endDayOfWeek = endOfMonth.getDay();
-
     const prevMonthDays = [];
     const startDatePrevMonth = new Date(startOfMonth);
     startDatePrevMonth.setDate(startDatePrevMonth.getDate() - (startDayOfWeek || 7) + 1);
@@ -47,7 +46,11 @@ const Calendar = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md w-full h-full">
+    <motion.div 
+      className="p-6 bg-white rounded-lg shadow-md w-full h-full"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.3 } }}
+    >
       <div className="flex justify-between items-center mb-4">
         <button
           className="text-[#A294F9] font-bold hover:underline"
@@ -86,22 +89,24 @@ const Calendar = () => {
             day.getFullYear() === today.getFullYear();
 
           return (
-            <div
+            <motion.div
               key={index}
-              className={`p-2 text-center rounded-lg text-xs sm:text-base ${
+              className={`p-2 text-center rounded-lg text-xs sm:text-base cursor-pointer transition-all ${
                 isToday
                   ? "bg-[#A294F9] text-white font-bold"
                   : isCurrentMonth
                   ? "bg-white text-gray-800 border border-gray-300"
                   : "bg-gray-100 text-gray-400"
-              } hover:bg-blue-100 cursor-pointer`}
+              } hover:bg-blue-100`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               {day.getDate()}
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
