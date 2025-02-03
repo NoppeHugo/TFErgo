@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { db } from "../firebase/firebaseConfig.js";
-import { collection, getDocs } from "firebase/firestore";
+import { getAllPatients } from "../firebase/patientsFirestore.js";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -11,8 +10,7 @@ const Patients = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "patients"));
-        const patientsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const patientsList = await getAllPatients();
         setPatients(patientsList);
       } catch (error) {
         console.error("Erreur lors de la récupération des patients :", error);

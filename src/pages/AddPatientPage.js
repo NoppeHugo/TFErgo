@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../firebase/firebaseConfig.js";
-import { collection, addDoc } from "firebase/firestore";
+import { addPatient } from "../firebase/patientsFirestore.js";
 
 const AddPatientPage = () => {
   const [newPatient, setNewPatient] = useState({
@@ -39,7 +38,7 @@ const AddPatientPage = () => {
     setSuccess("");
 
     try {
-      const docRef = await addDoc(collection(db, "patients"), newPatient);
+      await addPatient(newPatient);
       setSuccess("Patient ajouté avec succès !");
       setTimeout(() => {
         navigate("/patients");
@@ -64,148 +63,10 @@ const AddPatientPage = () => {
         {error && <div className="text-red-500 mb-2">{error}</div>}
         {success && <div className="text-green-500 mb-2">{success}</div>}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input 
-            type="text" 
-            name="nom"
-            placeholder="Nom" 
-            value={newPatient.nom} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="prenom"
-            placeholder="Prénom" 
-            value={newPatient.prenom} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="niss"
-            placeholder="NISS" 
-            value={newPatient.niss} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="date" 
-            name="dateNaissance"
-            placeholder="Date de Naissance" 
-            value={newPatient.dateNaissance} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="adresse"
-            placeholder="Adresse" 
-            value={newPatient.adresse} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="telephone1"
-            placeholder="Téléphone 1" 
-            value={newPatient.telephone1} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="telephone2"
-            placeholder="Téléphone 2" 
-            value={newPatient.telephone2} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="email" 
-            name="email"
-            placeholder="Email" 
-            value={newPatient.email} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="mutuelle"
-            placeholder="Mutuelle" 
-            value={newPatient.mutuelle} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="ct1_ct2"
-            placeholder="CT1/CT2" 
-            value={newPatient.ct1_ct2} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="tiersPayant"
-            placeholder="Tiers Payant" 
-            value={newPatient.tiersPayant} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="medecinFamille"
-            placeholder="Médecin de Famille" 
-            value={newPatient.medecinFamille} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="profession"
-            placeholder="Profession" 
-            value={newPatient.profession} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="number" 
-            name="nbrEnfants"
-            placeholder="Nombre d'Enfants" 
-            value={newPatient.nbrEnfants} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="facturerA"
-            placeholder="Facturer à" 
-            value={newPatient.facturerA} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="zoneResidence"
-            placeholder="Zone de Résidence" 
-            value={newPatient.zoneResidence} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
-          <input 
-            type="text" 
-            name="etatCivil"
-            placeholder="État Civil" 
-            value={newPatient.etatCivil} 
-            onChange={handleChange} 
-            className="border p-2 rounded" 
-          />
+          <input type="text" name="nom" placeholder="Nom" value={newPatient.nom} onChange={handleChange} className="border p-2 rounded" />
+          <input type="text" name="prenom" placeholder="Prénom" value={newPatient.prenom} onChange={handleChange} className="border p-2 rounded" />
         </div>
-        <button 
-          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 mt-4"
-          onClick={handleAddPatient}
-          disabled={loading}
-        >
+        <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 mt-4" onClick={handleAddPatient} disabled={loading}>
           {loading ? "Enregistrement..." : "Enregistrer"}
         </button>
       </div>

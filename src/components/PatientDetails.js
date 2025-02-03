@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase/firebaseConfig.js";
-import { doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { getPatient, deletePatient, updatePatient } from "../firebase/patientsFirestore.js";
 import PatientDetailsTab from "./PatientDetails/PatientDetailsTab.js";
 import PatientNotesTab from "./PatientDetails/PatientNotesTab.js";
 import PatientDataTab from "./PatientDetails/PatientDataTab.js";
@@ -13,29 +12,35 @@ const PatientDetails = () => {
   const [activeTab, setActiveTab] = useState("details");
   const [updatedPatient, setUpdatedPatient] = useState({});
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPatientData = async () => {
+      setLoading(true);
       try {
-        const docRef = doc(db, "patients", patientId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setPatient(docSnap.data());
-          setUpdatedPatient(docSnap.data());
+        console.log("Récupération du patient :", patientId);
+        const data = await getPatient(patientId);
+        if (data) {
+          console.log("Patient chargé :", data);
+          setPatient({ id: patientId, ...data });
         } else {
-          console.log("Aucune donnée trouvée pour ce patient");
+          console.error("Erreur : aucun patient trouvé");
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération des données du patient :", error);
+        console.error("Erreur lors du chargement :", error);
       }
+      setLoading(false);
     };
     fetchPatientData();
   }, [patientId]);
 
   const handleDelete = async () => {
+    const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer ce patient ?");
+    if (!confirmDelete) return;
+
     try {
-      await deleteDoc(doc(db, "patients", patientId));
+      await deletePatient(patientId);
       navigate("/patients");
     } catch (error) {
       console.error("Erreur lors de la suppression du patient :", error);
@@ -44,8 +49,9 @@ const PatientDetails = () => {
 
   const handleUpdate = async () => {
     try {
-      await updateDoc(doc(db, "patients", patientId), updatedPatient);
-      setPatient(updatedPatient);
+      await updatePatient(patientId, updatedPatient);
+      const updatedData = await getPatient(patientId); // Rechargement des données
+      setPatient(updatedData);
       setIsEditing(false);
     } catch (error) {
       console.error("Erreur lors de la mise à jour du patient :", error);
@@ -53,31 +59,21 @@ const PatientDetails = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUpdatedPatient({ ...updatedPatient, [name]: value });
+    setUpdatedPatient({ ...patient, [e.target.name]: e.target.value });
   };
 
-  if (!patient) return <div>Chargement des données...</div>;
+  if (loading) return <div>Chargement des données...</div>;
+  if (!patient) return <div>Aucun patient trouvé.</div>;
 
   return (
     <div className="p-4 bg-white shadow-lg rounded-xl w-full mt-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">{patient.nom} {patient.prenom}</h2>
-        <div className="flex space-x-2">
-          <button
-            className="bg-blue-500 text-white px-2 py-1 rounded-lg hover:bg-blue-600 text-sm"
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? "Annuler" : "Modifier"}
-          </button>
-          <button
-            className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 text-sm"
-            onClick={handleDelete}
-          >
-            Supprimer
-          </button>
-        </div>
-      </div>
+      <h2 className="text-xl font-bold">{patient.nom} {patient.prenom}</h2>
+      <button
+        className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 text-sm"
+        onClick={handleDelete}
+      >
+        Supprimer
+      </button>
 
       <div className="flex space-x-4 mb-6">
         <button
@@ -107,11 +103,22 @@ const PatientDetails = () => {
       </div>
 
       <div className="transition-all duration-500 ease-in-out">
-        {activeTab === "details" && <PatientDetailsTab patient={patient} isEditing={isEditing} updatedPatient={updatedPatient} handleChange={handleChange} handleUpdate={handleUpdate} />}
+        {activeTab === "details" && <PatientDetailsTab patient={patient} onChange={handleChange} />}
         {activeTab === "carnet" && <PatientNotesTab patient={patient} />}
         {activeTab === "donnees" && <PatientDataTab patient={patient} />}
         {activeTab === "dossier" && <PatientFileTab patient={patient} />}
       </div>
+
+      {isEditing && (
+        <div className="mt-4">
+          <button
+            className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 text-sm"
+            onClick={handleUpdate}
+          >
+            Sauvegarder les modifications
+          </button>
+        </div>
+      )}
     </div>
   );
 };
