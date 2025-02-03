@@ -10,6 +10,7 @@ import ActivitiesPage from './pages/ActivitiesPage.js';
 import ReportsPage from './pages/ReportsPage.js';
 import PatientDetails from "./components/PatientDetails.js";
 import AddPatientPage from './pages/AddPatientPage.js';
+import PatientLayout from './components/PatientLayout.js'; // Import du layout patient
 
 // Page d'accueil
 const HomePage = () => (
@@ -39,22 +40,27 @@ const AnimatedRoutes = () => {
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
 
-        {/* Ajout de l'effet d'apparition pour la fiche patient */}
-        <Route
-          path="/patient/:patientId"
-          element={
-            <motion.div
-              key={location.pathname}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              variants={patientTransition}
-              className="w-full"
-            >
-              <PatientDetails />
-            </motion.div>
-          }
-        />
+        {/* Layout pour les pages patients */}
+        <Route path="/patient/*" element={<PatientLayout />}>
+          <Route
+            path=":patientId"
+            element={
+              <motion.div
+                key={location.pathname}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                variants={patientTransition}
+                className="w-full"
+              >
+                <PatientDetails />
+              </motion.div>
+            }
+          />
+          <Route path=":patientId/notes" element={<PatientsPage />} />
+          <Route path=":patientId/donnees" element={<PatientsPage />} />
+          <Route path=":patientId/dossier" element={<PatientsPage />} />
+        </Route>
       </Routes>
     </AnimatePresence>
   );
