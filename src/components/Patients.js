@@ -30,7 +30,7 @@ const Patients = () => {
 
   return (
     <motion.div 
-      className="p-4 bg-white shadow-lg rounded-xl w-full mt-4"
+      className="p-4 bg-white shadow-lg rounded-xl w-full max-w-4xl h-[80vh] mt-4 overflow-y-auto custom-scrollbar"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.3 } }}
     >

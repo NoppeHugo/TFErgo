@@ -1,9 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import Calendar from './components/Calendar.js';
-import Patients from './components/Patients.js';
-import Header from './components/Header.js';
 import CalendarPage from './pages/CalendarPage.js';
 import PatientsPage from './pages/PatientsPage.js';
 import ActivitiesPage from './pages/ActivitiesPage.js';
@@ -11,12 +8,13 @@ import ReportsPage from './pages/ReportsPage.js';
 import PatientDetails from "./components/PatientDetails.js";
 import AddPatientPage from './pages/AddPatientPage.js';
 import PatientLayout from './components/PatientLayout.js'; // Import du layout patient
+import Header from './components/Header.js';
 
 // Page d'accueil
 const HomePage = () => (
   <div className="w-full flex-grow flex flex-col items-center">
-    <Calendar className="w-full h-full" />
-    <Patients className="w-full mt-4" />
+    <CalendarPage className="w-full h-full" />
+    <PatientsPage className="w-full mt-4" />
   </div>
 );
 
@@ -69,9 +67,11 @@ const AnimatedRoutes = () => {
 const App = () => {
   return (
     <Router>
-      <Header />
-      <div className="p-6 space-y-12 min-h-screen flex flex-col items-center bg-gray-100">
-        <AnimatedRoutes />
+      <div className="flex flex-col h-screen">
+        <Header />
+        <div className="flex-grow overflow-hidden">
+          <AnimatedRoutes />
+        </div>
       </div>
     </Router>
   );

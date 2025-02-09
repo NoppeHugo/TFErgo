@@ -30,9 +30,9 @@ const PatientSidebar = () => {
   };
 
   return (
-    <div className="w-64 h-screen bg-gray-100 p-4 shadow-lg fixed left-0 top-16 overflow-y-auto z-50">
+    <div className="h-full">
       <h3 className="text-lg font-bold mb-4">Liste des patients</h3>
-      <ul className="space-y-2">
+      <ul className="space-y-2 h-96 overflow-y-auto custom-scrollbar">
         {patients.map((patient) => (
           <li
             key={patient.id}
