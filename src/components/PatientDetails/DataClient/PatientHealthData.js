@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import LexicalEditor from "../../LexicalEditor.js"; // Ajuste le chemin selon ton projet
 
 const PatientHealthData = ({ patient, handleChange, handleSave }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -33,29 +34,23 @@ const PatientHealthData = ({ patient, handleChange, handleSave }) => {
           </div>
         </div>
 
-        {/* Section Antécédents Médicaux */}
+        {/* Section Antécédents Médicaux avec LexicalEditor */}
         <div>
           <label className="block text-gray-700 font-semibold">Antécédents Médicaux</label>
-          <textarea
-            name="antecedentsMedicaux"
-            placeholder="Antécédents médicaux"
-            value={patient.antecedentsMedicaux || ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full h-32"
-            disabled={!isEditing}
+          <LexicalEditor 
+            value={patient.antecedentsMedicaux || ""} 
+            onChange={(content) => handleChange({ target: { name: "antecedentsMedicaux", value: content } })}
+            readOnly={!isEditing}
           />
         </div>
 
-        {/* Section Chronique de Santé */}
+        {/* Section Chronique de Santé avec LexicalEditor */}
         <div>
           <label className="block text-gray-700 font-semibold">Chronique de santé</label>
-          <textarea
-            name="chroniqueSante"
-            placeholder="Chronique de santé"
-            value={patient.chroniqueSante || ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full h-24"
-            disabled={!isEditing}
+          <LexicalEditor 
+            value={patient.chroniqueSante || ""} 
+            onChange={(content) => handleChange({ target: { name: "chroniqueSante", value: content } })}
+            readOnly={!isEditing}
           />
         </div>
 
