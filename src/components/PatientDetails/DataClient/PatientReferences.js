@@ -37,6 +37,8 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
     setNewEntry({});
   };
 
+
+
   // 🟢 Gérer les changements dans le formulaire
   const handleEntryChange = (e) => {
     setNewEntry({ ...newEntry, [e.target.name]: e.target.value });
@@ -60,16 +62,25 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
     handleSave();
   };
 
+  // 🟢 Supprimer une entrée avec confirmation
+  const handleDelete = (index, type) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette entrée ?")) {
+      let updatedList = [...(patient[type] || [])];
+      updatedList.splice(index, 1);
+      handleChange({ target: { name: type, value: updatedList } });
+      handleSave();
+    }
+  };
+
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md h-[80vh] flex flex-col">
+    <div className="h-full overflow-y-auto w-full bg-white p-6 rounded-lg shadow-md">
       <h4 className="text-2xl font-bold text-gray-800 mb-6 text-center">Références et Contacts</h4>
 
       <div className="flex-grow overflow-auto p-2">
         {/* 🟦 Tableau des Dispensateurs de soin */}
         <div className="relative mb-8">
           <h5 className="text-lg font-semibold text-gray-700 mb-3">Références et Contacts</h5>
-          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" 
-            onClick={() => (editingType === "references" ? handleCancel() : handleEdit(null, "references"))}>
+          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => handleEdit(null, "references")}>
             {editingType === "references" ? "Annuler" : "Ajouter"}
           </button>
           <table className="w-full border-collapse border border-gray-300">
@@ -93,8 +104,9 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
                   <td className="px-4 py-2">{ref.dispensateurINAMI}</td>
                   <td className="px-4 py-2">{ref.dispensateurTelephone}</td>
                   <td className="px-4 py-2">{ref.dispensateurEmail}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 flex items-center space-x-2">
                     <button className="text-blue-500 hover:underline" onClick={() => handleEdit(index, "references")}>✏️</button>
+                    <button className="text-red-500 hover:underline" onClick={() => handleDelete(index, "references")}>🗑️</button>
                   </td>
                 </tr>
               ))}
@@ -112,6 +124,9 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
               <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={() => handleSaveEntry("references")}>
                 Enregistrer
               </button>
+              <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 ml-2" onClick={handleCancel}>
+                Annuler
+              </button>
             </div>
           )}
         </div>
@@ -119,8 +134,7 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
         {/* 🟦 Tableau des Autres Contacts */}
         <div className="relative">
           <h5 className="text-lg font-semibold text-gray-700 mb-3">Données Santé</h5>
-          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" 
-            onClick={() => (editingType === "contacts" ? handleCancel() : handleEdit(null, "contacts"))}>
+          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => handleEdit(null, "contacts")}>
             {editingType === "contacts" ? "Annuler" : "Ajouter"}
           </button>
           <table className="w-full border-collapse border border-gray-300">
@@ -132,6 +146,7 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
                 <th className="border border-gray-300 px-4 py-2">Téléphone</th>
                 <th className="border border-gray-300 px-4 py-2">Email</th>
                 <th className="border border-gray-300 px-4 py-2">Commentaire</th>
+                <th className="border border-gray-300 px-4 py-2">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -142,11 +157,16 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
                   <td className="px-4 py-2">{contact.contactRelation}</td>
                   <td className="px-4 py-2">{contact.contactTelephone}</td>
                   <td className="px-4 py-2">{contact.contactEmail}</td>
-                  <td className="px-4 py-2">{contact.contactCommentaire}</td>
+                  <td className="px-4 py-2 whitespace-pre-wrap break-words">{contact.contactCommentaire}</td>
+                  <td className="px-4 py-2 flex items-center space-x-2">
+                    <button className="text-blue-500 hover:underline" onClick={() => handleEdit(index, "contacts")}>✏️</button>
+                    <button className="text-red-500 hover:underline" onClick={() => handleDelete(index, "contacts")}>🗑️</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
           {editingType === "contacts" && (
             <div className="mt-4 p-4 bg-gray-100 rounded">
               <input type="text" name="contactNom" placeholder="Nom" value={newEntry.contactNom || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
@@ -157,6 +177,9 @@ const PatientReferences = ({ patient, handleChange, handleSave }) => {
               <textarea name="contactCommentaire" placeholder="Commentaire" value={newEntry.contactCommentaire || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" />
               <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={() => handleSaveEntry("contacts")}>
                 Enregistrer
+              </button>
+              <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 ml-2" onClick={handleCancel}>
+                Annuler
               </button>
             </div>
           )}
