@@ -9,6 +9,7 @@ import PatientDetails from "./components/PatientDetails.js";
 import AddPatientPage from './pages/AddPatientPage.js';
 import PatientLayout from './components/PatientLayout.js'; // Import du layout patient
 import Header from './components/Header.js';
+import './index.css';
 
 // Page d'accueil
 const HomePage = () => (
