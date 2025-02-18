@@ -53,11 +53,16 @@ const PatientFileTab = ({ patient }) => {
     });
   };
 
-  const handleUpdateMotifData = async (field, value) => {
+  const handleUpdateMotifData = async (updatedMotif) => {
     if (!selectedMotif) return;
-    const updatedMotif = { ...selectedMotif, [field]: value };
-    setSelectedMotif(updatedMotif);
-    await updateMotifIntervention(patient.id, selectedMotif.id, updatedMotif);
+    console.log("🟢 Tentative de mise à jour du motif :", updatedMotif);
+    try {
+      await updateMotifIntervention(patient.id, selectedMotif.id, updatedMotif);
+      console.log("✅ Motif mis à jour avec succès !");
+      setSelectedMotif(updatedMotif);
+    } catch (error) {
+      console.error("❌ Erreur lors de la mise à jour du motif :", error);
+    }
   };
 
   return (
@@ -117,7 +122,7 @@ const PatientFileTab = ({ patient }) => {
             </div>
 
             {/* Affichage du sous-onglet sélectionné */}
-            {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} />}
+            {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} patientId={patient.id} updateMotif={handleUpdateMotifData} />}
             {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} />}
             {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} />}
             {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} />}
