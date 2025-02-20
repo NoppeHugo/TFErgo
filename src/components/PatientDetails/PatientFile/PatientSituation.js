@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+import { updateMotifIntervention } from "../../../firebase/patientsFirestore.js"; // 🔹 Vérifie que cet import est correct
 
-const PatientSituation = ({ motif, patientId, updateMotif }) => {
+const PatientSituation = ({ motif, patientId }) => {
   const [editing, setEditing] = useState(false);
   const [newSituation, setNewSituation] = useState({
     personne: motif?.situationPersonnelle?.personne || "",
@@ -9,7 +11,6 @@ const PatientSituation = ({ motif, patientId, updateMotif }) => {
   });
 
   useEffect(() => {
-    console.log("🟢 Récupération des données du motif :", motif);
     setNewSituation({
       personne: motif?.situationPersonnelle?.personne || "",
       occupation: motif?.situationPersonnelle?.occupation || "",
@@ -17,12 +18,12 @@ const PatientSituation = ({ motif, patientId, updateMotif }) => {
     });
   }, [motif]);
 
-  // 🟢 Active le mode édition et charge les valeurs actuelles
+  // ✅ Active le mode édition
   const handleEdit = () => {
     setEditing(true);
   };
 
-  // 🟢 Annule l'édition et remet les valeurs initiales
+  // ❌ Annule l'édition et restaure les valeurs initiales
   const handleCancel = () => {
     setEditing(false);
     setNewSituation({
@@ -32,34 +33,49 @@ const PatientSituation = ({ motif, patientId, updateMotif }) => {
     });
   };
 
-  // 🟢 Met à jour localement les valeurs pendant la saisie
+  // ✏️ Met à jour localement les valeurs pendant la saisie
   const handleInputChange = (field, value) => {
     setNewSituation((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 🟢 Sauvegarde en Firestore
   const handleSave = async () => {
-    if (!motif || !patientId) return;
-
+    if (!motif || !patientId) {
+      console.error("❌ patientId ou motif est undefined !");
+      return;
+    }
+  
     const updatedMotif = {
       ...motif,
       situationPersonnelle: {
-        personne: newSituation.personne,
-        occupation: newSituation.occupation,
-        environnement: newSituation.environnement,
+        personne: newSituation.personne || "",
+        occupation: newSituation.occupation || "",
+        environnement: newSituation.environnement || "",
       },
     };
-
-    console.log("🟢 Tentative de mise à jour du motif :", updatedMotif);
-
+  
+    console.log("📤 Tentative d'enregistrement :", patientId, motif.id, updatedMotif);
+  
     try {
-      await updateMotif(updatedMotif);
-      console.log("✅ Motif mis à jour avec succès !");
-      setEditing(false);
+      const success = await updateMotifIntervention(patientId, motif.id, updatedMotif);
+  
+      if (success) {
+        console.log("✅ Mise à jour réussie !");
+        
+        // 🛑 Ajout : Mise à jour du `state` pour rafraîchir immédiatement l'affichage
+        setNewSituation(updatedMotif.situationPersonnelle);
+        
+        // 🛑 Ajout : Mise à jour du motif actuel
+        motif.situationPersonnelle = updatedMotif.situationPersonnelle;
+  
+        setEditing(false);
+      } else {
+        console.error("❌ Mise à jour échouée.");
+      }
     } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour du motif :", error);
+      console.error("❌ Erreur lors de la mise à jour :", error);
     }
   };
+  
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg">
@@ -68,33 +84,30 @@ const PatientSituation = ({ motif, patientId, updateMotif }) => {
       {/* ✅ Éditeur pour "Personne" */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Personne :</label>
-        <textarea
+        <QuillEditor
           value={newSituation.personne}
-          onChange={(e) => handleInputChange("personne", e.target.value)}
+          onChange={(value) => handleInputChange("personne", value)}
           readOnly={!editing}
-          className="w-full p-2 border rounded-lg"
         />
       </div>
 
       {/* ✅ Éditeur pour "Occupation" */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Occupation :</label>
-        <textarea
+        <QuillEditor
           value={newSituation.occupation}
-          onChange={(e) => handleInputChange("occupation", e.target.value)}
+          onChange={(value) => handleInputChange("occupation", value)}
           readOnly={!editing}
-          className="w-full p-2 border rounded-lg"
         />
       </div>
 
       {/* ✅ Éditeur pour "Environnement" */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700">Environnement :</label>
-        <textarea
+        <QuillEditor
           value={newSituation.environnement}
-          onChange={(e) => handleInputChange("environnement", e.target.value)}
+          onChange={(value) => handleInputChange("environnement", value)}
           readOnly={!editing}
-          className="w-full p-2 border rounded-lg"
         />
       </div>
 

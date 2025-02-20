@@ -76,10 +76,30 @@ export const getMotifsIntervention = async (patientId) => {
 
 // 🔹 Mettre à jour un motif d'intervention
 export const updateMotifIntervention = async (patientId, motifId, updatedData) => {
+  if (!patientId || !motifId) {
+    console.error("❌ Erreur: patientId ou motifId est undefined !");
+    return;
+  }
+
+  // 🛑 🔥 Correction : Remplace `undefined` par `null`
+  const sanitizeObject = (obj) => {
+    return Object.keys(obj).reduce((acc, key) => {
+      acc[key] = obj[key] === undefined ? null : obj[key];
+      return acc;
+    }, {});
+  };
+
+  const cleanedData = sanitizeObject(updatedData);
+
+  console.log(`📤 Mise à jour Firestore : patients/${patientId}/motifsIntervention/${motifId}`);
+  console.log("📤 Données envoyées :", cleanedData);
+
   try {
-    await updateDoc(doc(db, `patients/${patientId}/motifsIntervention/${motifId}`), updatedData);
-    console.log("✅ Motif mis à jour !");
+    await updateDoc(doc(db, `patients/${patientId}/motifsIntervention/${motifId}`), cleanedData);
+    console.log("✅ Mise à jour réussie !");
+    return true;
   } catch (error) {
-    console.error("❌ Erreur lors de la mise à jour du motif :", error);
+    console.error("❌ Erreur lors de la mise à jour Firestore :", error);
+    return false;
   }
 };
