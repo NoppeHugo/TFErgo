@@ -81,10 +81,10 @@ const PatientDetails = () => {
           Carnet de notes
         </button>
         <button className={`py-2 px-4 rounded-lg ${activeTab === "donnees" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("donnees")}>
-          Données client
+          Données patient
         </button>
         <button className={`py-2 px-4 rounded-lg ${activeTab === "dossier" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("dossier")}>
-          Dossier client
+          Dossier patient
         </button>
       </div>
 

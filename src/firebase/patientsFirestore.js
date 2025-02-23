@@ -1,14 +1,14 @@
 import { db } from "./firebaseConfig.js";
-import { collection, doc, setDoc, addDoc, getDoc, getDocs, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDoc, getDocs, deleteDoc, updateDoc } from "firebase/firestore";
 
 // 🔹 Ajouter un patient
 export const addPatient = async (patientData) => {
   try {
     const docRef = await addDoc(collection(db, "patients"), patientData);
-    console.log("Patient ajouté avec ID :", docRef.id);
+    console.log("✅ Patient ajouté avec ID :", docRef.id);
     return docRef.id;
   } catch (error) {
-    console.error("Erreur lors de l'ajout du patient :", error);
+    console.error("❌ Erreur lors de l'ajout du patient :", error);
   }
 };
 
@@ -18,7 +18,7 @@ export const getAllPatients = async () => {
     const patientsSnap = await getDocs(collection(db, "patients"));
     return patientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Erreur lors de la récupération des patients :", error);
+    console.error("❌ Erreur lors de la récupération des patients :", error);
   }
 };
 
@@ -26,9 +26,9 @@ export const getAllPatients = async () => {
 export const getPatient = async (patientId) => {
   try {
     const patientDoc = await getDoc(doc(db, "patients", patientId));
-    return patientDoc.exists() ? patientDoc.data() : null;
+    return patientDoc.exists() ? { id: patientDoc.id, ...patientDoc.data() } : null;
   } catch (error) {
-    console.error("Erreur lors de la récupération du patient :", error);
+    console.error("❌ Erreur lors de la récupération du patient :", error);
   }
 };
 
@@ -36,19 +36,39 @@ export const getPatient = async (patientId) => {
 export const deletePatient = async (patientId) => {
   try {
     await deleteDoc(doc(db, "patients", patientId));
-    console.log("Patient supprimé avec succès.");
+    console.log("✅ Patient supprimé avec succès.");
   } catch (error) {
-    console.error("Erreur lors de la suppression du patient :", error);
+    console.error("❌ Erreur lors de la suppression du patient :", error);
   }
 };
 
 // 🔹 Mettre à jour un patient
 export const updatePatient = async (patientId, updatedData) => {
+  if (!patientId) {
+    console.error("❌ Erreur: patientId est undefined !");
+    return false;
+  }
+
+  // 🔥 Correction : Remplace `undefined` par `null`
+  const sanitizeObject = (obj) => {
+    return Object.keys(obj).reduce((acc, key) => {
+      acc[key] = obj[key] === undefined ? null : obj[key];
+      return acc;
+    }, {});
+  };
+
+  const cleanedData = sanitizeObject(updatedData);
+
+  console.log(`📤 Mise à jour Firestore : patients/${patientId}`);
+  console.log("📤 Données envoyées :", cleanedData);
+
   try {
-    await updateDoc(doc(db, "patients", patientId), updatedData);
-    console.log("Patient mis à jour avec succès.");
+    await updateDoc(doc(db, `patients/${patientId}`), cleanedData);
+    console.log("✅ Mise à jour réussie !");
+    return true;
   } catch (error) {
-    console.error("Erreur lors de la mise à jour du patient :", error);
+    console.error("❌ Erreur lors de la mise à jour Firestore :", error);
+    return false;
   }
 };
 
@@ -78,10 +98,10 @@ export const getMotifsIntervention = async (patientId) => {
 export const updateMotifIntervention = async (patientId, motifId, updatedData) => {
   if (!patientId || !motifId) {
     console.error("❌ Erreur: patientId ou motifId est undefined !");
-    return;
+    return false;
   }
 
-  // 🛑 🔥 Correction : Remplace `undefined` par `null`
+  // 🔥 Correction : Remplace `undefined` par `null`
   const sanitizeObject = (obj) => {
     return Object.keys(obj).reduce((acc, key) => {
       acc[key] = obj[key] === undefined ? null : obj[key];

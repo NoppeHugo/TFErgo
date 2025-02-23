@@ -26,7 +26,7 @@ const PatientFileTab = ({ patient }) => {
 
   const handleCreateMotif = async () => {
     if (!newMotif.motifIntervention.trim()) return;
-    
+
     const addedMotif = await addMotifIntervention(patient.id, {
       ...newMotif,
       perspectiveTherapeutique: {
@@ -59,6 +59,11 @@ const PatientFileTab = ({ patient }) => {
     try {
       await updateMotifIntervention(patient.id, selectedMotif.id, updatedMotif);
       console.log("✅ Motif mis à jour avec succès !");
+      
+      // 🔥 Mise à jour immédiate de la liste des motifs pour voir le changement sans refresh
+      setMotifs((prevMotifs) =>
+        prevMotifs.map((m) => (m.id === selectedMotif.id ? updatedMotif : m))
+      );
       setSelectedMotif(updatedMotif);
     } catch (error) {
       console.error("❌ Erreur lors de la mise à jour du motif :", error);
@@ -68,9 +73,9 @@ const PatientFileTab = ({ patient }) => {
   return (
     <div className="flex space-x-4">
       {/* Liste des motifs d’intervention */}
-      <div className="w-1/4 bg-gray-100 p-4 rounded-lg shadow">
+      <div className="w-1/6 bg-gray-100 p-4 rounded-lg shadow">
         <h4 className="text-lg font-semibold mb-3">Motifs d’intervention</h4>
-        
+
         {/* Ajout d'un nouveau motif */}
         <div className="mb-4">
           <input
@@ -86,10 +91,12 @@ const PatientFileTab = ({ patient }) => {
         </div>
 
         <ul className="space-y-2">
-          {motifs.map((motif) => (
+          {motifs.map((motif, index) => ( // 🔹 Ajout de l'index pour éviter l'erreur si `motif.id` est absent
             <li
-              key={motif.id}
-              className={`cursor-pointer p-2 rounded-lg ${selectedMotif?.id === motif.id ? "bg-blue-500 text-white" : "bg-gray-200"} hover:bg-blue-300`}
+              key={motif.id || index} // 🔹 Correction ici
+              className={`cursor-pointer p-2 rounded-lg ${
+                selectedMotif?.id === motif.id ? "bg-blue-500 text-white" : "bg-gray-200"
+              } hover:bg-blue-300`}
               onClick={() => handleSelectMotif(motif)}
             >
               <strong>{motif.motifIntervention}</strong>
@@ -100,15 +107,17 @@ const PatientFileTab = ({ patient }) => {
         </ul>
       </div>
 
-      {/* Affichage des onglets du dossier client */}
-      <div className="w-3/4 bg-white p-4 rounded-lg shadow">
+      {/* Affichage des onglets du dossier patient */}
+      <div className="w-5/6 bg-white p-4 rounded-lg shadow">
         {selectedMotif ? (
           <>
             <div className="flex space-x-2 mb-4">
-              {["situation", "therapeutic", "objectives", "diagnosis", "interventions", "summary"].map((tab) => (
+              {["situation", "therapeutic", "objectives", "diagnosis", "interventions", "summary"].map((tab, index) => (
                 <button
-                  key={tab}
-                  className={`py-2 px-4 rounded-lg ${activeSubTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  key={tab || index} // 🔹 Correction ici
+                  className={`py-2 px-4 rounded-lg ${
+                    activeSubTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"
+                  }`}
                   onClick={() => setActiveSubTab(tab)}
                 >
                   {tab === "situation" ? "Situation Personnelle" : ""}
@@ -123,11 +132,11 @@ const PatientFileTab = ({ patient }) => {
 
             {/* Affichage du sous-onglet sélectionné */}
             {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} patientId={patient.id} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} />}
-            {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} />}
-            {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} />}
-            {activeSubTab === "interventions" && <PatientInterventions motif={selectedMotif} />}
-            {activeSubTab === "summary" && <PatientSummary motif={selectedMotif} />}
+            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} patientId={patient.id} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "interventions" && <PatientInterventions motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "summary" && <PatientSummary motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
           </>
         ) : (
           <p className="text-gray-500 text-center">Sélectionnez un motif d’intervention.</p>
