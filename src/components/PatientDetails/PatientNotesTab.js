@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getPatientNotes, addNoteToPatient, updateNote } from "../../firebase/notesFirestore.js";
+import { getPatientNotes, addNoteToPatient, updateNote, deleteNote } from "../../firebase/notesFirestore.js";
 
 const PatientNotesTab = ({ patient }) => {
   const [notes, setNotes] = useState([]);
@@ -80,6 +80,18 @@ const PatientNotesTab = ({ patient }) => {
       setEditingNoteId(null);
     } catch (error) {
       console.error("❌ Erreur lors de la mise à jour de la note :", error);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    const confirmed = window.confirm("Êtes-vous sûr de vouloir supprimer cette note ?");
+    if (!confirmed) return;
+
+    try {
+      await deleteNote(patient.id, noteId);
+      setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+    } catch (error) {
+      console.error("❌ Erreur lors de la suppression de la note :", error);
     }
   };
 
@@ -167,12 +179,20 @@ const PatientNotesTab = ({ patient }) => {
 
                     <p className="text-gray-700 text-sm">{note?.texte || "Pas de texte"}</p>
 
-                    <button
-                      className="mt-2 bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600"
-                      onClick={() => handleEdit(note)}
-                    >
-                      Modifier
-                    </button>
+                    <div className="flex space-x-2 mt-2">
+                      <button
+                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600"
+                        onClick={() => handleEdit(note)}
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </>
                 )}
               </li>

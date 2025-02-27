@@ -1,42 +1,44 @@
 import { db } from "./firebaseConfig.js";
-import { collection, doc, addDoc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, updateDoc, deleteDoc } from "firebase/firestore";
 
-// Ajouter une note pour un patient spécifique
+// 🔹 Ajouter une note à un patient
 export const addNoteToPatient = async (patientId, noteData) => {
-    try {
-      console.log("Tentative d'ajout de note pour le patient :", patientId);
-      console.log("Données envoyées :", noteData);
-  
-      const docRef = await addDoc(collection(db, "patients", patientId, "carnetNotes"), noteData);
-      
-      console.log("Note ajoutée dans Firestore avec ID :", docRef.id);
-    } catch (error) {
-      console.error("Erreur lors de l'ajout de la note :", error);
-    }
-  };
-  
+  try {
+    const docRef = await addDoc(collection(db, `patients/${patientId}/notes`), noteData);
+    return { id: docRef.id, ...noteData };
+  } catch (error) {
+    console.error("❌ Erreur lors de l'ajout de la note :", error);
+    return null;
+  }
+};
 
-// Récupérer les notes d'un patient spécifique
+// 🔹 Récupérer les notes d'un patient
 export const getPatientNotes = async (patientId) => {
   try {
-    console.log("Récupération des notes pour le patient :", patientId);
-    const notesSnap = await getDocs(collection(db, `patients/${patientId}/carnetNotes`));
-    const notes = notesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log("Notes récupérées :", notes);
-    return notes;
+    const snapshot = await getDocs(collection(db, `patients/${patientId}/notes`));
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
-    console.error("Erreur lors de la récupération des notes :", error);
+    console.error("❌ Erreur lors de la récupération des notes :", error);
     return [];
   }
 };
 
+// 🔹 Mettre à jour une note
 export const updateNote = async (patientId, noteId, updatedData) => {
   try {
-    const noteRef = doc(db, `patients/${patientId}/carnetNotes/${noteId}`);
-    await updateDoc(noteRef, updatedData);
+    await updateDoc(doc(db, `patients/${patientId}/notes/${noteId}`), updatedData);
     console.log("✅ Note mise à jour avec succès !");
   } catch (error) {
     console.error("❌ Erreur lors de la mise à jour de la note :", error);
   }
 };
 
+// 🔹 Supprimer une note
+export const deleteNote = async (patientId, noteId) => {
+  try {
+    await deleteDoc(doc(db, `patients/${patientId}/notes/${noteId}`));
+    console.log("✅ Note supprimée avec succès !");
+  } catch (error) {
+    console.error("❌ Erreur lors de la suppression de la note :", error);
+  }
+};
