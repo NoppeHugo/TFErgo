@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Therapist {
+  id           Int    @id @default(autoincrement())
+  name         String
+  email        String @unique
+  passwordHash String
+
+  patients     Patient[]
+  appointments Appointment[]
+  activities   Activity[]
+  notes        Note[]
+  reports      Report[]
+}
+
+model Patient {
+  id              Int       @id @default(autoincrement())
+  therapistId     Int
+  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  niss            String?   @unique
+  title           String?
+  sex             String?
+  language        String?
+  birthdate       DateTime?
+  nationality     String?
+  address         String?
+  phone1          String?
+  phone2          String?
+  email           String?
+  insurance       String?
+  ct1             String?
+  ct2             String?
+  thirdPartyPayer Boolean?
+  familyDoctor    String?
+  profession      String?
+  childrenCount   Int?
+  billingInfo     String?
+  residenceZone   String?
+  maritalStatus   String?
+  createdAt       DateTime  @default(now())
+
+  appointments        Appointment[]
+  interventionReasons InterventionReason[]
+  longTermObjectives  LongTermObjective[]
+  diagnostics         Diagnostic[]
+  interventionReports InterventionReport[]
+  syntheses           Synthesis[]
+  notes               Note[]
+  contacts            Contact[]
+  reports             Report[]
+}
+
+model Appointment {
+  id          Int       @id @default(autoincrement())
+  therapistId Int
+  patientId   Int
+  title       String
+  date        DateTime
+  duration    Int
+  imageUrl    String?
+  activityId  Int?
+  activity    Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  description String?
+  createdAt   DateTime  @default(now())
+
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  therapistId Int
+  name        String
+  description String?
+  link        String?
+  createdAt   DateTime @default(now())
+
+  therapist                  Therapist                    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  objectives                 ActivityObjectiveLink[]
+  images                     ActivityImage[]
+  Appointment                Appointment[]
+  ShortTermObjectiveActivity ShortTermObjectiveActivity[]
+}
+
+model ActivityObjective {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  activityLinks ActivityObjectiveLink[]
+}
+
+model ActivityObjectiveLink {
+  activityId  Int
+  objectiveId Int
+
+  activity  Activity          @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  objective ActivityObjective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, objectiveId])
+}
+
+model ActivityImage {
+  id         Int    @id @default(autoincrement())
+  activityId Int
+  imageUrl   String
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
+model InterventionReason {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientRecords PatientRecord[]
+}
+
+model PatientRecord {
+  id                     Int      @id @default(autoincrement())
+  interventionReasonId   Int
+  summary                String?
+  personalSituation      String?
+  therapeuticPerspective String?
+  createdAt              DateTime @default(now())
+
+  interventionReason InterventionReason @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
+  cifCodes           CifCode[]
+}
+
+model CifCode {
+  id              Int    @id @default(autoincrement())
+  patientRecordId Int
+  code            String
+  description     String
+
+  patientRecord PatientRecord @relation(fields: [patientRecordId], references: [id], onDelete: Cascade)
+}
+
+model LongTermObjective {
+  id        Int       @id @default(autoincrement())
+  patientId Int
+  title     String
+  startDate DateTime
+  endDate   DateTime?
+  status    String    @default("ouvert")
+  createdAt DateTime  @default(now())
+
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  shortTermObjectives ShortTermObjective[]
+}
+
+model ShortTermObjective {
+  id                  Int       @id @default(autoincrement())
+  longTermObjectiveId Int
+  title               String
+  startDate           DateTime
+  endDate             DateTime?
+  status              String    @default("ouvert")
+  createdAt           DateTime  @default(now())
+
+  longTermObjective LongTermObjective            @relation(fields: [longTermObjectiveId], references: [id], onDelete: Cascade)
+  activities        ShortTermObjectiveActivity[]
+}
+
+model ShortTermObjectiveActivity {
+  shortTermObjectiveId Int
+  activityId           Int
+
+  shortTermObjective ShortTermObjective @relation(fields: [shortTermObjectiveId], references: [id], onDelete: Cascade)
+  activity           Activity           @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([shortTermObjectiveId, activityId])
+}
+
+model Diagnostic {
+  id             Int      @id @default(autoincrement())
+  patientId      Int
+  diagnosticText String
+  createdAt      DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model InterventionReport {
+  id               Int      @id @default(autoincrement())
+  patientId        Int
+  date             DateTime @default(now())
+  interventionText String
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Synthesis {
+  id            Int      @id @default(autoincrement())
+  patientId     Int
+  synthesisText String
+  createdAt     DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id            Int      @id @default(autoincrement())
+  patientId     Int
+  therapistId   Int
+  reportDate    DateTime @default(now())
+  reportContent String
+
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  therapistId Int
+  title       String?
+  description String
+  noteDate    DateTime @default(now())
+
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+}
+
+model Contact {
+  id        Int     @id @default(autoincrement())
+  patientId Int
+  type      String
+  firstName String?
+  lastName  String?
+  relation  String?
+  inami     String?
+  phone     String?
+  email     String?
+  comment   String?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
