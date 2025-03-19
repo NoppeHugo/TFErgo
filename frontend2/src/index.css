@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 0px; /* Remove scrollbar space */
+  background: transparent; /* Optional: just make scrollbar invisible */
+}
+
+.custom-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Styles pour les boutons de la barre d'outils */
+.toolbar-button {
+  padding: 0.5rem 1rem;
+  background-color: #e2e8f0; /* bg-gray-200 */
+  border-radius: 0.25rem; /* rounded */
+  cursor: pointer;
+}
+
+.toolbar-button:hover {
+  background-color: #cbd5e0; /* hover:bg-gray-300 */
+}
+
+/* Styles pour le sélecteur de taille de texte */
+.text-size-select {
+  margin-left: 0.5rem; /* ml-2 */
+  border: 1px solid #e2e8f0; /* border */
+  padding: 0.25rem 0.5rem; /* px-2 py-1 */
+  border-radius: 0.25rem; /* rounded */
+}
