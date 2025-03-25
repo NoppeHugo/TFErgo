@@ -1,0 +1,143 @@
+
+
+const express = require('express')
+const cookieParser = require('cookie-parser')
+const cors = require('cors')
+require('dotenv').config()
+
+
+const app = express()
+
+console.log('PORT:', process.env.PORT)
+
+// Middlewares globaux
+app.use(express.json())
+app.use(cookieParser())
+
+// CORS 
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}))
+
+// Routes
+app.use('/auth', require('./routes/auth'))
+app.use('/patients', require('./routes/patients'))
+
+// Serveur 
+const PORT = process.env.PORT || 3001
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`))
+
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+const login = async (req, res) => {
+  const { email, password } = req.body
+
+  try {
+    const therapist = await prisma.therapist.findUnique({ where: { email } })
+    if (!therapist) {
+      return res.status(401).json({ message: 'Email incorrect' })
+    }
+
+    const valid = await bcrypt.compare(password, therapist.passwordHash)
+    if (!valid) {
+      return res.status(401).json({ message: 'Mot de passe incorrect' })
+    }
+
+    const token = jwt.sign({ id: therapist.id, email: therapist.email, name: therapist.name }, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    })
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false, // passe à true en prod avec HTTPS
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
+    res.json({ message: 'Connexion réussie ✅' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur serveur' })
+  }
+}
+
+// backend/src/controllers/authController.js
+
+const me = (req, res) => {
+    const token = req.cookies.token
+    if (!token) return res.status(401).json({ message: 'Non authentifié' })
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      res.json({ id: decoded.id, email: decoded.email, name: decoded.name })
+    } catch (err) {
+      res.status(401).json({ message: 'Token invalide' })
+    }
+  }
+
+const logout = (req, res) => {
+    res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false // true en prod avec HTTPS
+    })
+    res.json({ message: 'Déconnecté' })
+}
+  
+
+module.exports = { login, me, logout }
+
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+async function getMyPatients(req, res) {
+  const therapistId = req.user.id // ajouté par le middleware JWT
+  try {
+    const patients = await prisma.patient.findMany({
+      where: { therapistId },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json(patients)
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des patients' })
+  }
+}
+
+module.exports = { getMyPatients }
+const jwt = require('jsonwebtoken')
+
+function authenticateJWT(req, res, next) {
+  const token = req.cookies.token
+  if (!token) return res.status(401).json({ message: 'Token manquant' })
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    req.user = decoded
+    next()
+  } catch (err) {
+    return res.status(403).json({ message: 'Token invalide' })
+  }
+}
+
+module.exports = { authenticateJWT }
+const express = require('express')
+const router = express.Router()
+const { login, me, logout } = require('../controllers/authController.js')
+
+router.post('/login', login)
+router.get('/me', me)
+router.post('/logout', logout)
+
+module.exports = router
+const express = require('express')
+const router = express.Router()
+const { getMyPatients } = require('../controllers/patientController.js')
+const { authenticateJWT } = require('../middleware/authenticateJWT.js')
+
+router.get('/', authenticateJWT, getMyPatients)
+
+module.exports = router

@@ -10,6 +10,8 @@ import AddPatientPage from './pages/AddPatientPage.js';
 import PatientLayout from './components/PatientLayout.js'; // Import du layout patient
 import Header from './components/Header.js';
 import './index.css';
+import LoginPage from './pages/LoginPage.js';
+import RequireAuth from './components/RequireAuth.js';
 
 // Page d'accueil
 const HomePage = () => (
@@ -32,19 +34,20 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/calendrier" element={<CalendarPage />} />
-        <Route path="/patients" element={<PatientsPage />} />
-        <Route path="/add-patient" element={<AddPatientPage />} />
-        <Route path="/activities" element={<ActivitiesPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/" element={<RequireAuth><HomePage /></RequireAuth>} />
+        <Route path="/calendrier" element={<RequireAuth><CalendarPage /></RequireAuth>} />
+        <Route path="/patients" element={<RequireAuth><PatientsPage /></RequireAuth>} />
+        <Route path="/add-patient" element={<RequireAuth><AddPatientPage /></RequireAuth>} />
+        <Route path="/activities" element={<RequireAuth><ActivitiesPage /></RequireAuth>} />
+        <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
+        <Route path="/login" element={<LoginPage />} />
 
         {/* Layout pour les pages patients */}
-        <Route path="/patient/*" element={<PatientLayout />}>
+        <Route path="/patient/*" element={<RequireAuth><PatientLayout /></RequireAuth>}>
           <Route
             path=":patientId"
             element={
-              <motion.div
+              <RequireAuth><motion.div
                 key={location.pathname}
                 initial="initial"
                 animate="animate"
@@ -53,12 +56,12 @@ const AnimatedRoutes = () => {
                 className="w-full"
               >
                 <PatientDetails />
-              </motion.div>
+              </motion.div></RequireAuth>
             }
           />
-          <Route path=":patientId/notes" element={<PatientsPage />} />
-          <Route path=":patientId/donnees" element={<PatientsPage />} />
-          <Route path=":patientId/dossier" element={<PatientsPage />} />
+          <Route path=":patientId/notes" element={<RequireAuth><PatientsPage /></RequireAuth>} />
+          <Route path=":patientId/donnees" element={<RequireAuth><PatientsPage /></RequireAuth>} />
+          <Route path=":patientId/dossier" element={<RequireAuth><PatientsPage /></RequireAuth>} />
         </Route>
       </Routes>
     </AnimatePresence>
