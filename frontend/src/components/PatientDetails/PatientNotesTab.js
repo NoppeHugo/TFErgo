@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getPatientNotes, addNoteToPatient, updateNote, deleteNote } from "../../firebase/notesFirestore.js";
+import {
+  getPatientNotes,
+  addNoteToPatient,
+  updateNote,
+  deleteNote,
+} from "../../api/noteAPI.js";
 
 const PatientNotesTab = ({ patient }) => {
   const [notes, setNotes] = useState([]);
@@ -16,18 +21,11 @@ const PatientNotesTab = ({ patient }) => {
 
     const fetchNotes = async () => {
       try {
-        console.log("🔍 Récupération des notes pour le patient :", patient.id);
         const notesList = await getPatientNotes(patient.id);
-
-        // S'assurer que notesList est bien un tableau et filtrer les notes invalides
-        const validNotes = Array.isArray(notesList) ? notesList.filter(note => note && note.titre) : [];
-
-        console.log("📜 Notes récupérées :", validNotes);
-        setNotes(validNotes);
-        
+        setNotes(notesList || []);
       } catch (error) {
-        console.error("❌ Erreur lors du chargement des notes :", error);
-        setNotes([]); // 🔹 Évite un état undefined
+        console.error("Error loading notes:", error);
+        setNotes([]);
       }
     };
 
@@ -35,32 +33,61 @@ const PatientNotesTab = ({ patient }) => {
   }, [patient?.id]);
 
   const handleAddNote = async () => {
-    if (newTitle.trim() === "" || newText.trim() === "" || !patient?.id) return;
+    if (!newTitle.trim() || !newText.trim() || !patient?.id) return;
 
     setLoading(true);
     try {
       const noteData = {
-        titre: newTitle,
-        texte: newText || "Pas de texte",
-        date: new Date().toISOString(),
+        title: newTitle,
+        description: newText,
       };
 
-      await addNoteToPatient(patient.id, noteData);
-
-      setNotes((prevNotes) => [...prevNotes, noteData]);
+      const newNote = await addNoteToPatient(patient.id, noteData);
+      setNotes((prev) => [newNote, ...prev]);
       setNewTitle("");
       setNewText("");
       setShowForm(false);
     } catch (error) {
-      console.error("❌ Erreur lors de l'ajout de la note :", error);
+      console.error("Error adding note:", error);
     }
     setLoading(false);
   };
 
   const handleEdit = (note) => {
     setEditingNoteId(note.id);
-    setEditTitle(note.titre);
-    setEditText(note.texte);
+    setEditTitle(note.title);
+    setEditText(note.description);
+  };
+
+  const handleSaveEdit = async (noteId) => {
+    try {
+      await updateNote(noteId, {
+        title: editTitle,
+        description: editText,
+      });
+
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === noteId
+            ? { ...note, title: editTitle, description: editText }
+            : note
+        )
+      );
+      setEditingNoteId(null);
+    } catch (error) {
+      console.error("Error updating note:", error);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!window.confirm("Delete this note?")) return;
+
+    try {
+      await deleteNote(noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -69,41 +96,15 @@ const PatientNotesTab = ({ patient }) => {
     setEditText("");
   };
 
-  const handleSaveEdit = async (noteId) => {
-    try {
-      await updateNote(patient.id, noteId, { titre: editTitle, texte: editText });
-      setNotes((prevNotes) =>
-        prevNotes.map((note) =>
-          note.id === noteId ? { ...note, titre: editTitle, texte: editText } : note
-        )
-      );
-      setEditingNoteId(null);
-    } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour de la note :", error);
-    }
-  };
-
-  const handleDeleteNote = async (noteId) => {
-    const confirmed = window.confirm("Êtes-vous sûr de vouloir supprimer cette note ?");
-    if (!confirmed) return;
-
-    try {
-      await deleteNote(patient.id, noteId);
-      setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
-    } catch (error) {
-      console.error("❌ Erreur lors de la suppression de la note :", error);
-    }
-  };
-
   return (
     <div className="p-4 bg-white rounded-lg shadow">
-      <h3 className="text-lg font-bold mb-2">Carnet de notes</h3>
+      <h3 className="text-lg font-bold mb-4">Notes</h3>
 
       <button
         className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
         onClick={() => setShowForm(!showForm)}
       >
-        {showForm ? "Annuler" : "Ajouter une note"}
+        {showForm ? "Cancel" : "Add Note"}
       </button>
 
       {showForm && (
@@ -111,13 +112,13 @@ const PatientNotesTab = ({ patient }) => {
           <input
             type="text"
             className="w-full mb-2 border rounded-lg p-2"
-            placeholder="Titre de la note"
+            placeholder="Note title"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
           />
           <textarea
             className="w-full mb-2 border rounded-lg p-2"
-            placeholder="Écrire une note..."
+            placeholder="Note description"
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
           />
@@ -126,82 +127,73 @@ const PatientNotesTab = ({ patient }) => {
             onClick={handleAddNote}
             disabled={loading}
           >
-            {loading ? "Ajout..." : "Ajouter"}
+            {loading ? "Adding..." : "Add"}
           </button>
         </div>
       )}
 
-      <div className="mt-4">
-        {Array.isArray(notes) && notes.length > 0 ? (
-          <ul className="space-y-2">
-            {notes.map((note, index) => (
-              <li key={index} className="border-b py-2">
-                {editingNoteId === note.id ? (
-                  <div className="mb-2">
-                    <input
-                      type="text"
-                      className="w-full mb-2 border rounded-lg p-2"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                    />
-                    <textarea
-                      className="w-full mb-2 border rounded-lg p-2"
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                    />
-                    <div className="flex space-x-2">
-                      <button
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                        onClick={() => handleSaveEdit(note.id)}
-                      >
-                        Enregistrer
-                      </button>
-                      <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
-                        onClick={handleCancelEdit}
-                      >
-                        Annuler
-                      </button>
-                    </div>
+      {notes.length > 0 ? (
+        <ul className="space-y-4">
+          {notes.map((note) => (
+            <li key={note.id} className="border-b pb-4">
+              {editingNoteId === note.id ? (
+                <>
+                  <input
+                    className="w-full mb-2 border rounded-lg p-2"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                  />
+                  <textarea
+                    className="w-full mb-2 border rounded-lg p-2"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-green-500 text-white px-4 py-1 rounded-lg"
+                      onClick={() => handleSaveEdit(note.id)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="bg-gray-500 text-white px-4 py-1 rounded-lg"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </button>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold text-blue-600">{note?.titre || "Sans titre"}</span>
-                      <span className="text-gray-500 text-sm">
-                        {note?.date ? new Date(note.date).toLocaleDateString("fr-FR", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        }) : "Date inconnue"}
-                      </span>
-                    </div>
-
-                    <p className="text-gray-700 text-sm">{note?.texte || "Pas de texte"}</p>
-
-                    <div className="flex space-x-2 mt-2">
-                      <button
-                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600"
-                        onClick={() => handleEdit(note)}
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
-                        onClick={() => handleDeleteNote(note.id)}
-                      >
-                        Supprimer
-                      </button>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500">Aucune note pour ce patient.</p>
-        )}
-      </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-blue-600">{note.title}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(note.noteDate).toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <p className="text-gray-700">{note.description}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
+                      onClick={() => handleEdit(note)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-3 py-1 rounded-lg"
+                      onClick={() => handleDeleteNote(note.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">No notes available.</p>
+      )}
     </div>
   );
 };

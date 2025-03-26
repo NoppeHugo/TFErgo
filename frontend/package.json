@@ -7,6 +7,7 @@
     "@lexical/history": "^0.24.0",
     "@lexical/react": "^0.24.0",
     "@lexical/rich-text": "^0.24.0",
+    "axios": "^1.8.4",
     "cra-template": "1.2.0",
     "firebase": "^11.2.0",
     "framer-motion": "^12.0.6",

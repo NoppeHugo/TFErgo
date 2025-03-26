@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getAllPatients } from "../firebase/patientsFirestore.js";
 import { useNavigate } from "react-router-dom";
+import { getAllPatients } from "../api/patientAPI.js";
 import { motion } from "framer-motion";
 
 const Patients = () => {
@@ -53,7 +53,7 @@ const Patients = () => {
             whileTap={{ scale: 0.95 }}
             onClick={() => goToPatientDetails(patient.id)}
           >
-            <span>{patient.nom} {patient.prenom}</span>
+            <span>{patient.lastName} {patient.firstName}</span>
           </motion.li>
         ))}
       </ul>

@@ -16,32 +16,34 @@ const PatientDetailsTab = ({ patient, isEditing, updatedPatient, handleChange, h
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-gray-700">
+          <p><strong>Nom:</strong> {patient.lastName}</p>
+          <p><strong>Prénom:</strong> {patient.firstName}</p>
           <p><strong>NISS:</strong> {patient.niss}</p>
-          <p><strong>Titre:</strong> {patient.titre}</p>
-          <p><strong>Sexe:</strong> {patient.sexe}</p>
-          <p><strong>Langue:</strong> {patient.langue}</p>
-          <p><strong>Naissance:</strong> {patient.dateNaissance}</p>
-          <p><strong>Nationalité:</strong> {patient.nationalite}</p>
-          <p><strong>Adresse:</strong> {patient.adresse}</p>
-          <p><strong>Téléphone 1:</strong> {patient.telephone1}</p>
-          <p><strong>Téléphone 2:</strong> {patient.telephone2}</p>
+          <p><strong>Titre:</strong> {patient.title}</p>
+          <p><strong>Sexe:</strong> {patient.sex}</p>
+          <p><strong>Langue:</strong> {patient.language}</p>
+          <p><strong>Naissance:</strong> {patient.birthdate ? new Date(patient.birthdate).toISOString().split("T")[0] : "Non renseignée"}</p>
+          <p><strong>Nationalité:</strong> {patient.nationality}</p>
+          <p><strong>Adresse:</strong> {patient.address}</p>
+          <p><strong>Téléphone 1:</strong> {patient.phone1}</p>
+          <p><strong>Téléphone 2:</strong> {patient.phone2}</p>
           <p><strong>Email:</strong> {patient.email}</p>
-          <p><strong>Mutuelle:</strong> {patient.mutuelle}</p>
-          <p><strong>CT1/CT2:</strong> {patient.ct1_ct2}</p>
-          <p><strong>Tiers Payant:</strong> {patient.tiersPayant}</p>
-          <p><strong>Médecin de famille:</strong> {patient.medecinFamille}</p>
+          <p><strong>Mutuelle:</strong> {patient.insurance}</p>
+          <p><strong>Médecin de famille:</strong> {patient.familyDoctor}</p>
           <p><strong>Profession:</strong> {patient.profession}</p>
-          <p><strong>Nombre d'enfants:</strong> {patient.nbrEnfants}</p>
-          <p><strong>Facturer à:</strong> {patient.facturerA}</p>
-          <p><strong>Zone de résidence:</strong> {patient.zoneResidence}</p>
-          <p><strong>État civil:</strong> {patient.etatCivil}</p>
+          <p><strong>Nombre d'enfants:</strong> {patient.childrenCount}</p>
+          <p><strong>Facturer à:</strong> {patient.billingInfo}</p>
+          <p><strong>Zone de résidence:</strong> {patient.residenceZone}</p>
+          <p><strong>État civil:</strong> {patient.maritalStatus}</p>
         </div>
       )}
 
-      {/* 🟦 Bouton Modifier */}
       {!isEditing && (
         <div className="mt-6 flex justify-end">
-          <button className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600" onClick={() => setIsEditing(true)}>
+          <button
+            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+            onClick={() => setIsEditing(true)}
+          >
             Modifier
           </button>
         </div>

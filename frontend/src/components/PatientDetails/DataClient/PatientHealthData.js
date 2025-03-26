@@ -1,111 +1,118 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { updatePatient } from "../../../firebase/patientsFirestore.js";
+import { updatePatient } from "../../../api/patientAPI.js";
 
-const PatientHealthData = ({ patient, patientId, handleChange, handleSave }) => {
+const PatientHealthData = ({ patient, patientId }) => {
   const [editing, setEditing] = useState(false);
   const [healthData, setHealthData] = useState({
-    diagnosticMedical: patient?.diagnosticMedical || "",
-    antecedentsMedicaux: patient?.antecedentsMedicaux || "",
-    chroniqueSante: patient?.chroniqueSante || "",
+    medicalDiagnosis: "",
+    medicalHistory: "",
+    healthChronicle: "",
   });
 
   useEffect(() => {
     setHealthData({
-      diagnosticMedical: patient?.diagnosticMedical || "",
-      antecedentsMedicaux: patient?.antecedentsMedicaux || "",
-      chroniqueSante: patient?.chroniqueSante || "",
+      medicalDiagnosis: patient?.medicalDiagnosis || "",
+      medicalHistory: patient?.medicalHistory || "",
+      healthChronicle: patient?.healthChronicle || "",
     });
   }, [patient]);
-
-  const handleEdit = () => {
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditing(false);
-    setHealthData({
-      diagnosticMedical: patient?.diagnosticMedical || "",
-      antecedentsMedicaux: patient?.antecedentsMedicaux || "",
-      chroniqueSante: patient?.chroniqueSante || "",
-    });
-  };
 
   const handleInputChange = (field, value) => {
     setHealthData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveHealthData = async () => {
+  const handleSave = async () => {
     if (!patientId) {
-      console.error("❌ patientId est undefined !");
-      alert("Erreur : Impossible de sauvegarder, l'ID du patient est introuvable.");
+      alert("Erreur : ID patient manquant.");
       return;
     }
 
-    const updatedData = {
-      diagnosticMedical: healthData.diagnosticMedical || "",
-      antecedentsMedicaux: healthData.antecedentsMedicaux || "",
-      chroniqueSante: healthData.chroniqueSante || "",
-    };
-
-    console.log("📤 Sauvegarde des données :", patientId, updatedData);
-
     try {
-      await updatePatient(patientId, updatedData);
-      console.log("✅ Mise à jour réussie !");
-      handleSave(); // Rafraîchir les données
+      await updatePatient(patientId, healthData);
       setEditing(false);
-    } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour :", error);
+      alert("✅ Données de santé mises à jour !");
+    } catch (err) {
+      console.error("Erreur mise à jour des données de santé :", err);
+      alert("❌ Erreur de sauvegarde.");
     }
   };
 
+  const handleCancel = () => {
+    setHealthData({
+      medicalDiagnosis: patient?.medicalDiagnosis || "",
+      medicalHistory: patient?.medicalHistory || "",
+      healthChronicle: patient?.healthChronicle || "",
+    });
+    setEditing(false);
+  };
+
   return (
-    <div className="h-full overflow-y-auto w-full bg-white p-6 rounded-lg shadow-md">
-      <h4 className="text-lg font-semibold mb-4">Données de Santé</h4>
-      <div className="space-y-4">
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Données de Santé
+      </h3>
+
+      <div className="space-y-6">
+        {/* Diagnostic médical */}
         <div>
-          <label className="block text-gray-700 font-semibold">Diagnostic Médical</label>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Diagnostic Médical
+          </label>
           <input
             type="text"
-            name="diagnosticMedical"
-            placeholder="Diagnostic médical"
-            value={healthData.diagnosticMedical}
-            onChange={(e) => handleInputChange("diagnosticMedical", e.target.value)}
+            value={healthData.medicalDiagnosis}
+            onChange={(e) => handleInputChange("medicalDiagnosis", e.target.value)}
             className="border p-2 rounded w-full"
             disabled={!editing}
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Antécédents Médicaux</label>
+        {/* Antécédents médicaux */}
+        <div>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Antécédents Médicaux
+          </label>
           <QuillEditor
-            value={healthData.antecedentsMedicaux}
-            onChange={(value) => handleInputChange("antecedentsMedicaux", value)}
+            value={healthData.medicalHistory}
+            onChange={(value) => handleInputChange("medicalHistory", value)}
             readOnly={!editing}
           />
         </div>
 
-        <div className="mb-4">
-          <label className="block text-gray-700 font-semibold">Chronique de Santé</label>
+        {/* Chronique de santé */}
+        <div>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Chronique de Santé
+          </label>
           <QuillEditor
-            value={healthData.chroniqueSante}
-            onChange={(value) => handleInputChange("chroniqueSante", value)}
+            value={healthData.healthChronicle}
+            onChange={(value) => handleInputChange("healthChronicle", value)}
             readOnly={!editing}
           />
         </div>
 
-        <div className="flex space-x-2">
+        {/* Boutons d'action */}
+        <div className="flex justify-end space-x-2">
           {!editing ? (
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={handleEdit}>
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              onClick={() => setEditing(true)}
+            >
               Modifier
             </button>
           ) : (
             <>
-              <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSaveHealthData}>
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                onClick={handleSave}
+              >
                 Enregistrer
               </button>
-              <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
+              <button
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                onClick={handleCancel}
+              >
                 Annuler
               </button>
             </>

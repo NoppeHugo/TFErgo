@@ -22,6 +22,10 @@ app.use(cors({
 // Routes
 app.use('/auth', require('./routes/auth'))
 app.use('/patients', require('./routes/patients'))
+app.use('/notes', require('./routes/notes'))
+app.use("/contacts", require("./routes/contacts"));
+
+
 
 // Serveur 
 const PORT = process.env.PORT || 3001

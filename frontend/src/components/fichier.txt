@@ -184,7 +184,7 @@ const Header = () => {
 export default Header
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getPatient, deletePatient, updatePatient } from "../firebase/patientsFirestore.js";
+import { getPatient, updatePatient, deletePatient } from "../api/patientAPI.js";
 import PatientDetailsTab from "./PatientDetails/PatientDetailsTab.js";
 import PatientNotesTab from "./PatientDetails/PatientNotesTab.js";
 import PatientDataTab from "./PatientDetails/PatientDataTab.js";
@@ -200,46 +200,39 @@ const PatientDetails = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPatientData = async () => {
-      setLoading(true);
+    const fetchData = async () => {
       try {
-        console.log("Récupération du patient :", patientId);
         const data = await getPatient(patientId);
-        if (data) {
-          console.log("Patient chargé :", data);
-          setPatient({ id: patientId, ...data });
-          setUpdatedPatient({ id: patientId, ...data }); // Synchronisation pour l'édition
-        } else {
-          console.error("Erreur : aucun patient trouvé");
-        }
+        setPatient(data);
+        setUpdatedPatient(data);
       } catch (error) {
-        console.error("Erreur lors du chargement :", error);
+        console.error("Erreur de chargement du patient :", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchPatientData();
+    fetchData();
   }, [patientId]);
 
   const handleDelete = async () => {
-    const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer ce patient ?");
-    if (!confirmDelete) return;
-
+    const confirmed = window.confirm("Supprimer ce patient ?");
+    if (!confirmed) return;
     try {
       await deletePatient(patientId);
       navigate("/patients");
-    } catch (error) {
-      console.error("Erreur lors de la suppression du patient :", error);
+    } catch (err) {
+      console.error("Erreur suppression :", err);
     }
   };
 
   const handleUpdate = async () => {
     try {
       await updatePatient(patientId, updatedPatient);
-      const updatedData = await getPatient(patientId);
-      setPatient(updatedData);
+      const refreshed = await getPatient(patientId);
+      setPatient(refreshed);
       setIsEditing(false);
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du patient :", error);
+    } catch (err) {
+      console.error("Erreur mise à jour :", err);
     }
   };
 
@@ -247,8 +240,8 @@ const PatientDetails = () => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
   };
 
-  if (loading) return <div>Chargement des données...</div>;
-  if (!patient) return <div>Aucun patient trouvé.</div>;
+  if (loading) return <div>Chargement...</div>;
+  if (!patient) return <div>Patient introuvable</div>;
 
   return (
     <div className="p-4 bg-white shadow-lg rounded-xl w-full h-full">
@@ -258,18 +251,15 @@ const PatientDetails = () => {
       </button>
 
       <div className="flex space-x-4 mb-6">
-        <button className={`py-2 px-4 rounded-lg ${activeTab === "details" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("details")}>
-          Détails
-        </button>
-        <button className={`py-2 px-4 rounded-lg ${activeTab === "carnet" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("carnet")}>
-          Carnet de notes
-        </button>
-        <button className={`py-2 px-4 rounded-lg ${activeTab === "donnees" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("donnees")}>
-          Données patient
-        </button>
-        <button className={`py-2 px-4 rounded-lg ${activeTab === "dossier" ? "bg-blue-500 text-white" : "bg-gray-200"}`} onClick={() => setActiveTab("dossier")}>
-          Dossier patient
-        </button>
+        {["details", "carnet", "donnees", "dossier"].map((tab) => (
+          <button
+            key={tab}
+            className={`py-2 px-4 rounded-lg ${activeTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab === "details" ? "Détails" : tab === "carnet" ? "Carnet de notes" : tab === "donnees" ? "Données patient" : "Dossier patient"}
+          </button>
+        ))}
       </div>
 
       <div className="transition-all duration-500 ease-in-out h-full overflow-y-auto">
@@ -305,8 +295,8 @@ const PatientLayout = () => {
 
 export default PatientLayout;
 import { useEffect, useState } from "react";
-import { getAllPatients } from "../firebase/patientsFirestore.js";
 import { useNavigate } from "react-router-dom";
+import { getAllPatients } from "../api/patientAPI.js";
 import { motion } from "framer-motion";
 
 const Patients = () => {
@@ -368,9 +358,9 @@ const Patients = () => {
 };
 
 export default Patients;
-import React, { useEffect, useState } from "react";
-import { getAllPatients } from "../firebase/patientsFirestore.js";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { getAllPatients } from "../api/patientAPI.js";
 
 const PatientSidebar = () => {
   const [patients, setPatients] = useState([]);
@@ -380,23 +370,20 @@ const PatientSidebar = () => {
 
   useEffect(() => {
     const fetchPatients = async () => {
-      const patientsList = await getAllPatients();
-      setPatients(patientsList);
+      try {
+        const patientsList = await getAllPatients();
+        setPatients(patientsList);
+      } catch (err) {
+        console.error("Erreur chargement patients sidebar", err);
+      }
     };
-
     fetchPatients();
   }, []);
 
   const handlePatientChange = (newPatientId) => {
     if (!newPatientId || newPatientId === patientId) return;
-
-    // Récupère l'onglet actif (ex: "/patient/michel/carnet")
-    const currentPath = location.pathname;
-    const pathParts = currentPath.split("/");
-    const currentTab = pathParts.length > 3 ? `/${pathParts[3]}` : "";
-
-    // Naviguer vers le même onglet pour le nouveau patient
-    navigate(`/patient/${newPatientId}${currentTab}`);
+    const currentTab = location.pathname.split("/")[3] || "";
+    navigate(`/patient/${newPatientId}/${currentTab}`);
   };
 
   return (
@@ -500,35 +487,26 @@ export default function RequireAuth({ children }) {
 
   return children
 }
-import React, { useState } from "react";
+import { useState } from "react";
 import PatientReferences from "./DataClient/PatientReferences.js";
 import PatientHealthData from "./DataClient/PatientHealthData.js";
-import { updatePatient } from "../../firebase/patientsFirestore.js";
+import { updatePatient } from "../../api/patientAPI.js";
 
 const PatientDataTab = ({ patient }) => {
   const [activeSubTab, setActiveSubTab] = useState("references");
   const [updatedPatient, setUpdatedPatient] = useState({ ...patient });
-
-  // Vérification du patientId
-  console.log("📌 PatientDataTab reçoit :", patient);
 
   const handleChange = (e) => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
   };
 
   const handleSave = async () => {
-    if (!patient?.id) {
-      console.error("❌ ERREUR: patientId est undefined !");
-      alert("Erreur : Impossible de sauvegarder, l'ID du patient est introuvable.");
-      return;
-    }
-
     try {
       await updatePatient(patient.id, updatedPatient);
-      alert("Données mises à jour avec succès !");
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour des données :", error);
-      alert("Erreur lors de la mise à jour des données.");
+      alert("✅ Données mises à jour !");
+    } catch (err) {
+      console.error("❌ Erreur mise à jour :", err);
+      alert("❌ Erreur de sauvegarde.");
     }
   };
 
@@ -561,7 +539,7 @@ const PatientDataTab = ({ patient }) => {
         {activeSubTab === "health" && (
           <PatientHealthData
             patient={updatedPatient}
-            patientId={patient.id}  // ✅ Ajout du patientId ici
+            patientId={patient.id}
             handleChange={handleChange}
             handleSave={handleSave}
           />
@@ -1070,7 +1048,7 @@ const PatientNotesTab = ({ patient }) => {
 export default PatientNotesTab;
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { updatePatient } from "../../../firebase/patientsFirestore.js";
+import { updatePatient } from "../../../api/patientAPI.js";
 
 const PatientHealthData = ({ patient, patientId, handleChange, handleSave }) => {
   const [editing, setEditing] = useState(false);

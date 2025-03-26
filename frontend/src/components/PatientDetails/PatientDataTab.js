@@ -1,32 +1,23 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PatientReferences from "./DataClient/PatientReferences.js";
 import PatientHealthData from "./DataClient/PatientHealthData.js";
-import { updatePatient } from "../../firebase/patientsFirestore.js";
+import { updatePatient } from "../../api/patientAPI.js";
 
 const PatientDataTab = ({ patient }) => {
   const [activeSubTab, setActiveSubTab] = useState("references");
   const [updatedPatient, setUpdatedPatient] = useState({ ...patient });
-
-  // Vérification du patientId
-  console.log("📌 PatientDataTab reçoit :", patient);
 
   const handleChange = (e) => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
   };
 
   const handleSave = async () => {
-    if (!patient?.id) {
-      console.error("❌ ERREUR: patientId est undefined !");
-      alert("Erreur : Impossible de sauvegarder, l'ID du patient est introuvable.");
-      return;
-    }
-
     try {
       await updatePatient(patient.id, updatedPatient);
-      alert("Données mises à jour avec succès !");
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour des données :", error);
-      alert("Erreur lors de la mise à jour des données.");
+      alert("✅ Données mises à jour !");
+    } catch (err) {
+      console.error("❌ Erreur mise à jour :", err);
+      alert("❌ Erreur de sauvegarde.");
     }
   };
 
@@ -59,7 +50,7 @@ const PatientDataTab = ({ patient }) => {
         {activeSubTab === "health" && (
           <PatientHealthData
             patient={updatedPatient}
-            patientId={patient.id}  // ✅ Ajout du patientId ici
+            patientId={patient.id}
             handleChange={handleChange}
             handleSave={handleSave}
           />

@@ -1,189 +1,206 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  getPatientContacts,
+  addContact,
+  updateContact,
+  deleteContact,
+} from "../../../api/contactAPI.js";
 
-const PatientReferences = ({ patient, handleChange, handleSave }) => {
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [editingType, setEditingType] = useState(null);
-  const [newEntry, setNewEntry] = useState({});
+const PatientReferences = ({ patient }) => {
+  const [contacts, setContacts] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [isNew, setIsNew] = useState(false);
+  const [formType, setFormType] = useState("reference"); // Pour savoir dans quel tableau afficher le formulaire
 
-  // 🟢 Activer l'édition pour une entrée spécifique ou ajouter une nouvelle entrée
-  const handleEdit = (index, type) => {
-    setEditingIndex(index);
-    setEditingType(type);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    relation: "",
+    inami: "",
+    phone: "",
+    email: "",
+    comment: "",
+  });
 
-    if (index !== null) {
-      setNewEntry(type === "references" ? patient.references[index] : patient.contacts[index]);
+  useEffect(() => {
+    if (patient?.id) loadContacts();
+  }, [patient]);
+
+  const loadContacts = async () => {
+    try {
+      const data = await getPatientContacts(patient.id);
+      setContacts(data);
+    } catch (err) {
+      console.error("Erreur chargement contacts:", err);
+    }
+  };
+
+  const startEdit = (contact = null, type = "reference") => {
+    setFormType(type);
+    if (contact) {
+      setForm(contact);
+      setEditing(contact.id);
+      setIsNew(false);
     } else {
-      setNewEntry({
-        dispensateurNom: "",
-        dispensateurPrenom: "",
-        dispensateurType: "",
-        dispensateurINAMI: "",
-        dispensateurTelephone: "",
-        dispensateurEmail: "",
-        contactNom: "",
-        contactPrenom: "",
-        contactRelation: "",
-        contactTelephone: "",
-        contactEmail: "",
-        contactCommentaire: ""
+      setForm({
+        firstName: "",
+        lastName: "",
+        relation: "",
+        inami: "",
+        phone: "",
+        email: "",
+        comment: "",
       });
+      setEditing(null);
+      setIsNew(true);
     }
   };
 
-  // 🟢 Fermer le formulaire quand on clique sur "Annuler"
-  const handleCancel = () => {
-    setEditingIndex(null);
-    setEditingType(null);
-    setNewEntry({});
+  const cancelEdit = () => {
+    setEditing(null);
+    setIsNew(false);
+    setForm({});
   };
 
-
-
-  // 🟢 Gérer les changements dans le formulaire
-  const handleEntryChange = (e) => {
-    setNewEntry({ ...newEntry, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🟢 Enregistrer une nouvelle entrée ou modification
-  const handleSaveEntry = (type) => {
-    let updatedList = [...(patient[type] || [])];
+  const saveContact = async () => {
+    const contactData = { ...form, type: formType };
 
-    if (editingIndex !== null) {
-      updatedList[editingIndex] = newEntry;
-    } else {
-      updatedList.push(newEntry);
-    }
-
-    handleChange({ target: { name: type, value: updatedList } });
-
-    setEditingIndex(null);
-    setEditingType(null);
-    setNewEntry({});
-    handleSave();
-  };
-
-  // 🟢 Supprimer une entrée avec confirmation
-  const handleDelete = (index, type) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette entrée ?")) {
-      let updatedList = [...(patient[type] || [])];
-      updatedList.splice(index, 1);
-      handleChange({ target: { name: type, value: updatedList } });
-      handleSave();
+    try {
+      if (isNew) {
+        await addContact(patient.id, contactData);
+      } else {
+        await updateContact(editing, contactData);
+      }
+      await loadContacts();
+      cancelEdit();
+    } catch (err) {
+      console.error("Erreur sauvegarde contact:", err);
     }
   };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Supprimer ce contact ?")) {
+      try {
+        await deleteContact(id);
+        await loadContacts();
+      } catch (err) {
+        console.error("Erreur suppression contact:", err);
+      }
+    }
+  };
+
+  const references = contacts.filter((c) => c.type === "reference");
+  const personals = contacts.filter((c) => c.type === "personal");
 
   return (
-    <div className="h-full overflow-y-auto w-full bg-white p-6 rounded-lg shadow-md">
-      <h4 className="text-2xl font-bold text-gray-800 mb-6 text-center">Références et Contacts</h4>
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Références et Contacts
+      </h3>
 
-      <div className="flex-grow overflow-auto p-2">
-        {/* 🟦 Tableau des Dispensateurs de soin */}
-        <div className="relative mb-8">
-          <h5 className="text-lg font-semibold text-gray-700 mb-3">Références et Contacts</h5>
-          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => handleEdit(null, "references")}>
-            {editingType === "references" ? "Annuler" : "Ajouter"}
-          </button>
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="border border-gray-300 px-4 py-2">Nom</th>
-                <th className="border border-gray-300 px-4 py-2">Prénom</th>
-                <th className="border border-gray-300 px-4 py-2">Type</th>
-                <th className="border border-gray-300 px-4 py-2">INAMI</th>
-                <th className="border border-gray-300 px-4 py-2">Téléphone</th>
-                <th className="border border-gray-300 px-4 py-2">Email</th>
-                <th className="border border-gray-300 px-4 py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(patient.references || []).map((ref, index) => (
-                <tr key={index} className="border border-gray-300">
-                  <td className="px-4 py-2">{ref.dispensateurNom}</td>
-                  <td className="px-4 py-2">{ref.dispensateurPrenom}</td>
-                  <td className="px-4 py-2">{ref.dispensateurType}</td>
-                  <td className="px-4 py-2">{ref.dispensateurINAMI}</td>
-                  <td className="px-4 py-2">{ref.dispensateurTelephone}</td>
-                  <td className="px-4 py-2">{ref.dispensateurEmail}</td>
-                  <td className="px-4 py-2 flex items-center space-x-2">
-                    <button className="text-blue-500 hover:underline" onClick={() => handleEdit(index, "references")}>✏️</button>
-                    <button className="text-red-500 hover:underline" onClick={() => handleDelete(index, "references")}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {editingType === "references" && (
-            <div className="mt-4 p-4 bg-gray-100 rounded">
-              <input type="text" name="dispensateurNom" placeholder="Nom" value={newEntry.dispensateurNom || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="dispensateurPrenom" placeholder="Prénom" value={newEntry.dispensateurPrenom || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="dispensateurType" placeholder="Type" value={newEntry.dispensateurType || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="dispensateurINAMI" placeholder="INAMI" value={newEntry.dispensateurINAMI || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" />
-              <input type="text" name="dispensateurTelephone" placeholder="Téléphone" value={newEntry.dispensateurTelephone || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="dispensateurEmail" placeholder="Email" value={newEntry.dispensateurEmail || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" />
-              <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={() => handleSaveEntry("references")}>
-                Enregistrer
-              </button>
-              <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 ml-2" onClick={handleCancel}>
-                Annuler
-              </button>
-            </div>
+      {/* Formulaire affiché en haut du bon tableau */}
+      {(editing !== null || isNew) && (
+        <div className="bg-gray-100 p-4 rounded mb-6 space-y-2">
+          <input name="firstName" value={form.firstName || ""} onChange={handleChange} placeholder="Prénom" className="w-full p-2 border rounded" />
+          <input name="lastName" value={form.lastName || ""} onChange={handleChange} placeholder="Nom" className="w-full p-2 border rounded" />
+          {formType === "personal" && (
+            <input name="relation" value={form.relation || ""} onChange={handleChange} placeholder="Relation" className="w-full p-2 border rounded" />
           )}
-        </div>
-
-        {/* 🟦 Tableau des Autres Contacts */}
-        <div className="relative">
-          <h5 className="text-lg font-semibold text-gray-700 mb-3">Données Santé</h5>
-          <button className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => handleEdit(null, "contacts")}>
-            {editingType === "contacts" ? "Annuler" : "Ajouter"}
-          </button>
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="border border-gray-300 px-4 py-2">Nom</th>
-                <th className="border border-gray-300 px-4 py-2">Prénom</th>
-                <th className="border border-gray-300 px-4 py-2">Relation</th>
-                <th className="border border-gray-300 px-4 py-2">Téléphone</th>
-                <th className="border border-gray-300 px-4 py-2">Email</th>
-                <th className="border border-gray-300 px-4 py-2">Commentaire</th>
-                <th className="border border-gray-300 px-4 py-2">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(patient.contacts || []).map((contact, index) => (
-                <tr key={index} className="border border-gray-300">
-                  <td className="px-4 py-2">{contact.contactNom}</td>
-                  <td className="px-4 py-2">{contact.contactPrenom}</td>
-                  <td className="px-4 py-2">{contact.contactRelation}</td>
-                  <td className="px-4 py-2">{contact.contactTelephone}</td>
-                  <td className="px-4 py-2">{contact.contactEmail}</td>
-                  <td className="px-4 py-2 whitespace-pre-wrap break-words">{contact.contactCommentaire}</td>
-                  <td className="px-4 py-2 flex items-center space-x-2">
-                    <button className="text-blue-500 hover:underline" onClick={() => handleEdit(index, "contacts")}>✏️</button>
-                    <button className="text-red-500 hover:underline" onClick={() => handleDelete(index, "contacts")}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {editingType === "contacts" && (
-            <div className="mt-4 p-4 bg-gray-100 rounded">
-              <input type="text" name="contactNom" placeholder="Nom" value={newEntry.contactNom || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="contactPrenom" placeholder="Prénom" value={newEntry.contactPrenom || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="contactRelation" placeholder="Relation" value={newEntry.contactRelation || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="contactTelephone" placeholder="Téléphone" value={newEntry.contactTelephone || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" required />
-              <input type="text" name="contactEmail" placeholder="Email" value={newEntry.contactEmail || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" />
-              <textarea name="contactCommentaire" placeholder="Commentaire" value={newEntry.contactCommentaire || ""} onChange={handleEntryChange} className="border p-2 rounded w-full mb-2" />
-              <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={() => handleSaveEntry("contacts")}>
-                Enregistrer
-              </button>
-              <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 ml-2" onClick={handleCancel}>
-                Annuler
-              </button>
-            </div>
+          {formType === "reference" && (
+            <input name="inami" value={form.inami || ""} onChange={handleChange} placeholder="INAMI" className="w-full p-2 border rounded" />
           )}
+          <input name="phone" value={form.phone || ""} onChange={handleChange} placeholder="Téléphone" className="w-full p-2 border rounded" />
+          <input name="email" value={form.email || ""} onChange={handleChange} placeholder="Email" className="w-full p-2 border rounded" />
+          <textarea name="comment" value={form.comment || ""} onChange={handleChange} placeholder="Commentaire" className="w-full p-2 border rounded" />
+
+          <div className="flex justify-end space-x-2 mt-2">
+            <button onClick={saveContact} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Enregistrer</button>
+            <button onClick={cancelEdit} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annuler</button>
+          </div>
         </div>
+      )}
+
+      {/* Références */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-700">Références et Contacts</h4>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "reference")}>
+            Ajouter Référence
+          </button>
+        </div>
+        <table className="w-full border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="p-2">Nom</th>
+              <th className="p-2">Prénom</th>
+              <th className="p-2">Type</th>
+              <th className="p-2">INAMI</th>
+              <th className="p-2">Téléphone</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {references.map((c) => (
+              <tr key={c.id} className="border-t">
+                <td className="p-2">{c.lastName}</td>
+                <td className="p-2">{c.firstName}</td>
+                <td className="p-2">{c.type}</td>
+                <td className="p-2">{c.inami}</td>
+                <td className="p-2">{c.phone}</td>
+                <td className="p-2">{c.email}</td>
+                <td className="p-2">
+                  <button className="text-blue-600" onClick={() => startEdit(c, "reference")}>✏️</button>
+                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Contacts personnels */}
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-700">Contacts Personnels</h4>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "personal")}>
+            Ajouter Contact Personnel
+          </button>
+        </div>
+        <table className="w-full border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="p-2">Nom</th>
+              <th className="p-2">Prénom</th>
+              <th className="p-2">Relation</th>
+              <th className="p-2">Téléphone</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Commentaire</th>
+              <th className="p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {personals.map((c) => (
+              <tr key={c.id} className="border-t">
+                <td className="p-2">{c.lastName}</td>
+                <td className="p-2">{c.firstName}</td>
+                <td className="p-2">{c.relation}</td>
+                <td className="p-2">{c.phone}</td>
+                <td className="p-2">{c.email}</td>
+                <td className="p-2">{c.comment}</td>
+                <td className="p-2">
+                  <button className="text-blue-600" onClick={() => startEdit(c, "personal")}>✏️</button>
+                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ model Patient {
   id              Int       @id @default(autoincrement())
   therapistId     Int
   therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  firstName       String?   
+  lastName        String?   
   niss            String?   @unique
   title           String?
   sex             String?
@@ -34,10 +36,6 @@ model Patient {
   phone1          String?
   phone2          String?
   email           String?
-  insurance       String?
-  ct1             String?
-  ct2             String?
-  thirdPartyPayer Boolean?
   familyDoctor    String?
   profession      String?
   childrenCount   Int?
