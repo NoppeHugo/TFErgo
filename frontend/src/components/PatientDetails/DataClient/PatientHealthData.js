@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { updatePatient } from "../../../api/patientAPI.js";
+import { getPatientHealthData, updatePatientHealthData } from "../../../api/healthDataApi.js";
 
 const PatientHealthData = ({ patient, patientId }) => {
   const [editing, setEditing] = useState(false);
@@ -11,39 +11,37 @@ const PatientHealthData = ({ patient, patientId }) => {
   });
 
   useEffect(() => {
-    setHealthData({
-      medicalDiagnosis: patient?.medicalDiagnosis || "",
-      medicalHistory: patient?.medicalHistory || "",
-      healthChronicle: patient?.healthChronicle || "",
-    });
-  }, [patient]);
+    if (patientId) {
+      loadHealthData();
+    }
+  }, [patientId]);
+
+  const loadHealthData = async () => {
+    try {
+      const data = await getPatientHealthData(patientId);
+      setHealthData(data);
+    } catch (err) {
+      console.error("Erreur chargement santé:", err);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setHealthData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
-    if (!patientId) {
-      alert("Erreur : ID patient manquant.");
-      return;
-    }
-
     try {
-      await updatePatient(patientId, healthData);
+      await updatePatientHealthData(patientId, healthData);
       setEditing(false);
-      alert("✅ Données de santé mises à jour !");
+      alert("✅ Données mises à jour !");
     } catch (err) {
-      console.error("Erreur mise à jour des données de santé :", err);
-      alert("❌ Erreur de sauvegarde.");
+      console.error("Erreur mise à jour:", err);
+      alert("❌ Erreur sauvegarde.");
     }
   };
 
   const handleCancel = () => {
-    setHealthData({
-      medicalDiagnosis: patient?.medicalDiagnosis || "",
-      medicalHistory: patient?.medicalHistory || "",
-      healthChronicle: patient?.healthChronicle || "",
-    });
+    loadHealthData();
     setEditing(false);
   };
 
@@ -54,7 +52,6 @@ const PatientHealthData = ({ patient, patientId }) => {
       </h3>
 
       <div className="space-y-6">
-        {/* Diagnostic médical */}
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
             Diagnostic Médical
@@ -68,7 +65,6 @@ const PatientHealthData = ({ patient, patientId }) => {
           />
         </div>
 
-        {/* Antécédents médicaux */}
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
             Antécédents Médicaux
@@ -80,7 +76,6 @@ const PatientHealthData = ({ patient, patientId }) => {
           />
         </div>
 
-        {/* Chronique de santé */}
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
             Chronique de Santé
@@ -92,27 +87,17 @@ const PatientHealthData = ({ patient, patientId }) => {
           />
         </div>
 
-        {/* Boutons d'action */}
         <div className="flex justify-end space-x-2">
           {!editing ? (
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              onClick={() => setEditing(true)}
-            >
+            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setEditing(true)}>
               Modifier
             </button>
           ) : (
             <>
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                onClick={handleSave}
-              >
+              <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={handleSave}>
                 Enregistrer
               </button>
-              <button
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                onClick={handleCancel}
-              >
+              <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={handleCancel}>
                 Annuler
               </button>
             </>

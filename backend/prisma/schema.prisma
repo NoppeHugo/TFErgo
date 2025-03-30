@@ -44,6 +44,10 @@ model Patient {
   maritalStatus   String?
   createdAt       DateTime  @default(now())
 
+  medicalDiagnosis   String?
+  medicalHistory     String?
+  healthChronicle    String?
+
   appointments        Appointment[]
   interventionReasons InterventionReason[]
   longTermObjectives  LongTermObjective[]
@@ -120,21 +124,33 @@ model InterventionReason {
   description String?
   createdAt   DateTime @default(now())
 
-  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  patientRecords PatientRecord[]
+  diagnostic       String?       
+  synthese         String?       
+  situation        Json?         
+  therapeutic      Json?         
+  interventions    Json?         
+  objectives       Json?         
+
+  groupeCible     String?   
+  age             String?   
+  batteriesCodeCIF String?
+
+  patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientRecords   PatientRecord[]
 }
 
 model PatientRecord {
   id                     Int      @id @default(autoincrement())
   interventionReasonId   Int
   summary                String?
-  personalSituation      String?
-  therapeuticPerspective String?
+  personalSituation      Json?
+  therapeuticPerspective Json?
   createdAt              DateTime @default(now())
 
   interventionReason InterventionReason @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
   cifCodes           CifCode[]
 }
+
 
 model CifCode {
   id              Int    @id @default(autoincrement())
