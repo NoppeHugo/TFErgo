@@ -1,38 +1,23 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { updateMotifIntervention } from "../../../firebase/patientsFirestore.js";
 
 const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   const [editing, setEditing] = useState(false);
   const [therapeuticData, setTherapeuticData] = useState({
-    assesments: motif?.perspectiveTherapeutique?.assesments || "",
-    syntheseEvaluation: motif?.perspectiveTherapeutique?.syntheseEvaluation || "",
-    restrictionsSouhaits: motif?.perspectiveTherapeutique?.restrictionsSouhaits || "",
-    diagnosticOccupationnel: motif?.perspectiveTherapeutique?.diagnosticOccupationnel || "",
+    assesments: motif?.therapeutic?.assesments || "",
+    syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+    restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+    diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
   });
 
   useEffect(() => {
     setTherapeuticData({
-      assesments: motif?.perspectiveTherapeutique?.assesments || "",
-      syntheseEvaluation: motif?.perspectiveTherapeutique?.syntheseEvaluation || "",
-      restrictionsSouhaits: motif?.perspectiveTherapeutique?.restrictionsSouhaits || "",
-      diagnosticOccupationnel: motif?.perspectiveTherapeutique?.diagnosticOccupationnel || "",
+      assesments: motif?.therapeutic?.assesments || "",
+      syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+      restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+      diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
     });
   }, [motif]);
-
-  const handleEdit = () => {
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditing(false);
-    setTherapeuticData({
-      assesments: motif?.perspectiveTherapeutique?.assesments || "",
-      syntheseEvaluation: motif?.perspectiveTherapeutique?.syntheseEvaluation || "",
-      restrictionsSouhaits: motif?.perspectiveTherapeutique?.restrictionsSouhaits || "",
-      diagnosticOccupationnel: motif?.perspectiveTherapeutique?.diagnosticOccupationnel || "",
-    });
-  };
 
   const handleInputChange = (field, value) => {
     setTherapeuticData((prev) => ({ ...prev, [field]: value }));
@@ -46,7 +31,7 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
 
     const updatedMotif = {
       ...motif,
-      perspectiveTherapeutique: {
+      therapeutic: {
         assesments: therapeuticData.assesments || "",
         syntheseEvaluation: therapeuticData.syntheseEvaluation || "",
         restrictionsSouhaits: therapeuticData.restrictionsSouhaits || "",
@@ -54,67 +39,51 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
       },
     };
 
-    console.log("📤 Sauvegarde des données thérapeutiques :", patientId, updatedMotif);
-
     try {
-      await updateMotifIntervention(patientId, motif.id, updatedMotif);
-      console.log("✅ Mise à jour réussie !");
+      await updateMotif(updatedMotif);
       setEditing(false);
-      updateMotif(updatedMotif); // Update the parent component's state
     } catch (error) {
       console.error("❌ Erreur lors de la mise à jour :", error);
     }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setTherapeuticData({
+      assesments: motif?.therapeutic?.assesments || "",
+      syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+      restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+      diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
+    });
   };
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg">
       <h4 className="text-lg font-semibold mb-4">Perspective Thérapeutique</h4>
 
-      <div className="mb-4 p-3 border border-gray-300 bg-gray-100 rounded-lg">
-        <h5 className="text-md font-semibold text-gray-700">Batteries Code CIF</h5>
-        <p className="text-gray-600">{therapeuticData.assesments || "Non défini"}</p>
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Synthèse de l'évaluation :</label>
-        <QuillEditor
-          value={therapeuticData.syntheseEvaluation}
-          onChange={(value) => handleInputChange("syntheseEvaluation", value)}
-          readOnly={!editing}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Restrictions de participation :</label>
-        <QuillEditor
-          value={therapeuticData.restrictionsSouhaits}
-          onChange={(value) => handleInputChange("restrictionsSouhaits", value)}
-          readOnly={!editing}
-        />
-      </div>
-
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Diagnostic Occupationnel :</label>
-        <QuillEditor
-          value={therapeuticData.diagnosticOccupationnel}
-          onChange={(value) => handleInputChange("diagnosticOccupationnel", value)}
-          readOnly={!editing}
-        />
-      </div>
+      {[
+        { label: "Batteries Code CIF", field: "assesments" },
+        { label: "Synthèse de l'évaluation", field: "syntheseEvaluation" },
+        { label: "Restrictions de participation", field: "restrictionsSouhaits" },
+        { label: "Diagnostic occupationnel", field: "diagnosticOccupationnel" },
+      ].map(({ label, field }) => (
+        <div key={field} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">{label} :</label>
+          <QuillEditor
+            value={therapeuticData[field]}
+            onChange={(value) => handleInputChange(field, value)}
+            readOnly={!editing}
+          />
+        </div>
+      ))}
 
       <div className="flex space-x-2">
         {!editing ? (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={handleEdit}>
-            Modifier
-          </button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
         ) : (
           <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
-              Enregistrer
-            </button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
-              Annuler
-            </button>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
           </>
         )}
       </div>

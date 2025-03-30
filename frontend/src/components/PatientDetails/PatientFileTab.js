@@ -128,7 +128,7 @@ const PatientFileTab = ({ patient }) => {
             </div>
 
             {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} patientId={patient?.id} updateMotif={handleUpdateMotifData}/>}
             {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
             {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
             {activeSubTab === "interventions" && <PatientInterventions motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
