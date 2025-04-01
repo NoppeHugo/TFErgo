@@ -50,7 +50,6 @@ model Patient {
 
   appointments        Appointment[]
   interventionReasons InterventionReason[]
-  longTermObjectives  LongTermObjective[]
   diagnostics         Diagnostic[]
   interventionReports InterventionReport[]
   syntheses           Synthesis[]
@@ -117,6 +116,16 @@ model ActivityImage {
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 }
 
+model ActivityFile {
+  id         Int    @id @default(autoincrement())
+  activityId Int
+  fileUrl    String // base64 ou chemin VPS (à adapter plus tard)
+  fileType   String // "pdf", "audio", "video", "image", etc.
+  fileName   String
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
 model InterventionReason {
   id          Int      @id @default(autoincrement())
   patientId   Int
@@ -131,12 +140,16 @@ model InterventionReason {
   interventions    Json?         
   objectives       Json?         
 
-  groupeCible     String?   
-  age             String?   
+  groupeCible      String?   
+  age              String?   
   batteriesCodeCIF String?
+
+  compteRenduInterventions Json?
+
 
   patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
   patientRecords   PatientRecord[]
+  longTermObjectives LongTermObjective[] 
 }
 
 model PatientRecord {
@@ -162,17 +175,18 @@ model CifCode {
 }
 
 model LongTermObjective {
-  id        Int       @id @default(autoincrement())
-  patientId Int
-  title     String
-  startDate DateTime
-  endDate   DateTime?
-  status    String    @default("ouvert")
-  createdAt DateTime  @default(now())
+  id                  Int       @id @default(autoincrement())
+  interventionReasonId Int     // <- nouveau champ
+  title               String
+  startDate           DateTime
+  endDate             DateTime?
+  status              String    @default("ouvert")
+  createdAt           DateTime  @default(now())
 
-  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  interventionReason InterventionReason @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
   shortTermObjectives ShortTermObjective[]
 }
+
 
 model ShortTermObjective {
   id                  Int       @id @default(autoincrement())

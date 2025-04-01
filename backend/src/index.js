@@ -26,6 +26,8 @@ app.use('/notes', require('./routes/notes'))
 app.use("/contacts", require("./routes/contacts"));
 app.use('/health', require('./routes/healthData'))
 app.use("/motifs", require("./routes/motifs"));
+app.use("/objectives", require("./routes/objectives"));
+
 
 
 

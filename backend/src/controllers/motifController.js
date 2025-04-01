@@ -44,15 +44,20 @@ async function addMotif(req, res) {
   }
 }
 
-
-
 // PATCH mise à jour d’un motif (et son dossier)
 async function updateMotif(req, res) {
   const { id } = req.params;
   const data = req.body;
 
   try {
-    const { patientRecords, ...safeData } = data;
+    // on ignore les champs non modifiables
+    const {
+      id: _,
+      createdAt: __,
+      patientId: ___,
+      patientRecords,
+      ...safeData
+    } = data;
 
     const updated = await prisma.interventionReason.update({
       where: { id: parseInt(id) },
@@ -65,6 +70,5 @@ async function updateMotif(req, res) {
     res.status(500).json({ error: "Erreur update motif" });
   }
 }
-
 
 module.exports = { getMotifs, addMotif, updateMotif };
