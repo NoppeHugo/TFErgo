@@ -12,6 +12,10 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const [goals, setGoals] = useState([]);
   const [files, setFiles] = useState([]);
   const [newGoalName, setNewGoalName] = useState('');
+  const [errors, setErrors] = useState({});
+  const [fadeErrors, setFadeErrors] = useState(false);
+  const [goalError, setGoalError] = useState('');
+  const [fadeGoalError, setFadeGoalError] = useState(false);
 
   const loadGoals = () => {
     getGoals().then(res => setGoals(res.data));
@@ -21,13 +25,30 @@ const ActivityForm = ({ onCreated, showToast }) => {
     loadGoals();
   }, []);
 
+  const goalOptions = goals.map(goal => ({ value: goal.id, label: goal.name }));
+
   const handleFileChange = (e) => setFiles([...e.target.files]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!name.trim()) newErrors.name = 'Le nom est requis.';
+    if (selectedGoals.length === 0) newErrors.goals = 'Veuillez sélectionner au moins un objectif.';
+    return newErrors;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setFadeErrors(false);
+      setTimeout(() => setFadeErrors(true), 2500);
+      setTimeout(() => setErrors({}), 3000);
+      return;
+    }
 
     const newActivity = await createActivity({
-      therapistId: 1, // À rendre dynamique si besoin
+      therapistId: 1,
       name,
       description,
       link,
@@ -52,8 +73,9 @@ const ActivityForm = ({ onCreated, showToast }) => {
     });
 
     await Promise.all(uploads);
-    onCreated();
+
     showToast && showToast("Activité ajoutée !");
+    onCreated();
 
     // Reset
     setName('');
@@ -62,10 +84,17 @@ const ActivityForm = ({ onCreated, showToast }) => {
     setSelectedGoals([]);
     setFiles([]);
     setVisible(false);
+    setErrors({});
   };
 
   const handleAddGoal = async () => {
-    if (!newGoalName.trim()) return;
+    if (!newGoalName.trim()) {
+      setGoalError("Veuillez écrire un objectif avant de l’ajouter.");
+      setFadeGoalError(false);
+      setTimeout(() => setFadeGoalError(true), 2500);
+      setTimeout(() => setGoalError(''), 3000);
+      return;
+    }
     await createGoal({ name: newGoalName });
     setNewGoalName('');
     loadGoals();
@@ -73,29 +102,39 @@ const ActivityForm = ({ onCreated, showToast }) => {
     showToast && showToast("Objectif ajouté !");
   };
 
-  const goalOptions = goals.map(goal => ({ value: goal.id, label: goal.name }));
-
   if (!visible) {
     return (
       <div className="flex gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newGoalName}
-            onChange={(e) => setNewGoalName(e.target.value)}
-            placeholder="Nouvel objectif"
-            className="border px-2 py-1 rounded text-sm shadow-sm"
-          />
-          <button
-            onClick={handleAddGoal}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition"
-          >
-            + Objectif
-          </button>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newGoalName}
+              onChange={(e) => setNewGoalName(e.target.value)}
+              placeholder="Nouvel objectif"
+              className="border px-2 py-1 rounded text-sm shadow-sm"
+            />
+            <button
+              onClick={handleAddGoal}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition"
+            >
+              + Objectif
+            </button>
+          </div>
+          {goalError && (
+            <div
+              className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${
+                fadeGoalError ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              {goalError}
+            </div>
+          )}
         </div>
+
         <button
           onClick={() => setVisible(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition"
         >
           + Ajouter une activité
         </button>
@@ -104,15 +143,22 @@ const ActivityForm = ({ onCreated, showToast }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow p-6 rounded space-y-4 max-w-xl border">
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Nom de l’activité"
-        className="w-full border px-3 py-2 rounded"
-        required
-      />
+    <form onSubmit={handleSubmit} className="bg-white shadow p-6 rounded space-y-4 max-w-xl border animate-fade-in transition-all">
+      <div className="flex flex-col gap-1">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nom de l’activité"
+          className="w-full border px-3 py-2 rounded"
+        />
+        {errors.name && (
+          <div className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
+            {errors.name}
+          </div>
+        )}
+      </div>
+
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
@@ -128,9 +174,8 @@ const ActivityForm = ({ onCreated, showToast }) => {
         className="w-full border px-3 py-2 rounded"
       />
 
-      {/* Select Objectifs avec react-select */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Objectifs liés :</label>
+      <div className="flex flex-col gap-1">
+        <label className="block text-sm font-medium text-gray-700">Objectifs liés :</label>
         <Select
           options={goalOptions}
           isMulti
@@ -139,6 +184,11 @@ const ActivityForm = ({ onCreated, showToast }) => {
           className="text-sm"
           placeholder="Sélectionner des objectifs"
         />
+        {errors.goals && (
+          <div className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
+            {errors.goals}
+          </div>
+        )}
       </div>
 
       <div>

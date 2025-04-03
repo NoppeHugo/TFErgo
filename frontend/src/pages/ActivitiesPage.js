@@ -33,7 +33,12 @@ const ActivitiesPage = () => {
         </div>
 
         <div className="flex-1">
-          <ActivityList filters={filters} refresh={refresh} />
+        <ActivityList
+        filters={filters}
+        refresh={refresh}
+        onEditActivity={(activity) => {
+          console.log("Modifier activité :", activity);
+        }}/>
         </div>
       </div>
 

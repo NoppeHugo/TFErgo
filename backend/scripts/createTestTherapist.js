@@ -14,7 +14,7 @@ async function main() {
   const therapist = await prisma.therapist.create({
     data: {
       name: 'Thera Test',
-      email: 'thera@example.com',
+      email: 'theraa@example.com',
       passwordHash: hash
     }
   })
