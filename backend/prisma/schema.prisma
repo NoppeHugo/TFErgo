@@ -86,9 +86,11 @@ model Activity {
   therapist                  Therapist                    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   objectives                 ActivityObjectiveLink[]
   images                     ActivityImage[]
+  files                      ActivityFile[] 
   Appointment                Appointment[]
   ShortTermObjectiveActivity ShortTermObjectiveActivity[]
 }
+
 
 model ActivityObjective {
   id          Int     @id @default(autoincrement())

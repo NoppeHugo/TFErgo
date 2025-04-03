@@ -8,7 +8,7 @@ const ActivityFileViewer = ({ file }) => {
 
   return (
     <div className="mt-2">
-      <p className="font-medium">{file.fileName}</p>
+      <p className="text-sm font-medium text-gray-700">{file.fileName}</p>
       {isImage && <img src={file.fileUrl} alt={file.fileName} className="max-w-full h-auto" />}
       {isPdf && <iframe src={file.fileUrl} title={file.fileName} className="w-full h-64" />}
       {isAudio && <audio controls src={file.fileUrl} className="w-full" />}

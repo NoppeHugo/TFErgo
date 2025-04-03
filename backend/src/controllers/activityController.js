@@ -30,7 +30,7 @@ const getActivityById = async (req, res) => {
           include: { objective: true }
         },
         images: true,
-        ActivityFile: true
+        files: true
       }
     });
     if (!activity) return res.status(404).json({ error: 'Activity not found' });
@@ -97,19 +97,34 @@ const deleteActivity = async (req, res) => {
 };
 
 const searchActivities = async (req, res) => {
-  const { name, objectives, fileType } = req.query;
+  const { name, description, objectives, fileType } = req.query;
+
+  let objectiveArray = [];
+  if (objectives) {
+    try {
+      objectiveArray = typeof objectives === 'string'
+        ? objectives.split(',').map(Number)
+        : Array.isArray(objectives) ? objectives.map(Number) : [];
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid objectives format' });
+    }
+  }
+
   try {
     const activities = await prisma.activity.findMany({
       where: {
         name: { contains: name || '', mode: 'insensitive' },
-        objectives: objectives
+        description: description
+          ? { contains: description, mode: 'insensitive' }
+          : undefined,
+        objectives: objectiveArray.length > 0
           ? {
               some: {
-                objectiveId: { in: objectives.split(',').map(Number) }
+                objectiveId: { in: objectiveArray }
               }
             }
           : undefined,
-        ActivityFile: fileType
+        files: fileType
           ? {
               some: { fileType: fileType }
             }
@@ -117,11 +132,14 @@ const searchActivities = async (req, res) => {
       },
       include: {
         objectives: { include: { objective: true } },
-        ActivityFile: true
-      }
+        files: true
+      },
+      orderBy: { createdAt: 'desc' }
     });
+
     res.json(activities);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to search activities' });
   }
 };

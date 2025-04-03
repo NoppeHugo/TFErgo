@@ -1,0 +1,339 @@
+import React from 'react';
+import ActivityFileViewer from './ActivityFileViewer.js';
+
+const ActivityCard = ({ activity }) => {
+  return (
+    <div className="bg-white rounded shadow-sm p-4 border hover:shadow-md transition">
+      <h2 className="text-xl font-bold text-gray-800">{activity.name}</h2>
+      {<p className="text-gray-600 text-sm mt-1 whitespace-pre-line">{activity.description}</p>}
+      {activity.link && (
+        <a href={activity.link} className="text-blue-600 text-sm underline mt-2 inline-block" target="_blank" rel="noopener noreferrer">
+          Lien externe
+        </a>
+      )}
+      <div className="mt-3">
+        <p className="text-sm font-semibold text-gray-700">Objectifs :</p>
+        {activity.objectives?.length ? (
+          <ul className="list-disc list-inside text-sm text-gray-700">
+            {activity.objectives.map(o => <li key={o.objective.id}>{o.objective.name}</li>)}
+          </ul>
+        ) : <p className="text-sm text-gray-400">Aucun</p>}
+      </div>
+      <div className="mt-3">
+        <p className="text-sm font-semibold text-gray-700">Fichiers :</p>
+        {activity.files?.length ? activity.files.map(file => (
+          <ActivityFileViewer key={file.id} file={file} />
+        )) : <p className="text-sm text-gray-400">Aucun fichier</p>}
+      </div>
+    </div>
+  );
+};
+
+export default ActivityCard;
+import React from 'react';
+
+const ActivityFileViewer = ({ file }) => {
+  const isImage = file.fileType.startsWith('image/');
+  const isPdf = file.fileType === 'application/pdf';
+  const isAudio = file.fileType.startsWith('audio/');
+  const isVideo = file.fileType.startsWith('video/');
+
+  return (
+    <div className="mt-2">
+      <p className="text-sm font-medium text-gray-700">{file.fileName}</p>
+      {isImage && <img src={file.fileUrl} alt={file.fileName} className="max-w-full h-auto" />}
+      {isPdf && <iframe src={file.fileUrl} title={file.fileName} className="w-full h-64" />}
+      {isAudio && <audio controls src={file.fileUrl} className="w-full" />}
+      {isVideo && <video controls src={file.fileUrl} className="w-full" />}
+    </div>
+  );
+};
+
+export default ActivityFileViewer;
+import React, { useEffect, useState } from 'react';
+import { getGoals } from '../../api/goalAPI.js';
+
+const ActivityFilters = ({ filters, setFilters, onCreated }) => {
+  const [goals, setGoals] = useState([]);
+
+  const loadGoals = () => {
+    getGoals().then(res => setGoals(res.data));
+  };
+
+  useEffect(() => {
+    loadGoals();
+  }, [onCreated]); 
+
+  const handleChangeObjective = (index, value) => {
+    const updated = [...filters.objectives];
+    updated[index] = Number(value);
+    setFilters({ ...filters, objectives: updated });
+  };
+
+  const handleAddObjectiveField = () => {
+    setFilters({ ...filters, objectives: [...filters.objectives, null] });
+  };
+
+  const handleRemoveObjective = (index) => {
+    const updated = [...filters.objectives];
+    updated.splice(index, 1);
+    setFilters({ ...filters, objectives: updated });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Nom & Description */}
+      <div className="flex flex-col gap-2">
+        <input
+          type="text"
+          placeholder="Rechercher par nom"
+          className="border px-3 py-2 rounded w-full text-sm"
+          value={filters.name}
+          onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Rechercher par description"
+          className="border px-3 py-2 rounded w-full text-sm"
+          value={filters.description}
+          onChange={(e) => setFilters({ ...filters, description: e.target.value })}
+        />
+      </div>
+
+      {/* Objectifs */}
+      <div>
+        <label className="text-sm font-semibold text-gray-700 mb-1 block">
+          Filtrer par objectifs :
+        </label>
+        <div className="flex flex-col gap-2">
+          {filters.objectives.map((id, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <select
+                className="border px-2 py-1 rounded flex-grow text-sm"
+                value={id || ''}
+                onChange={(e) => handleChangeObjective(index, e.target.value)}
+              >
+                <option value="">Objectif {index + 1}</option>
+                {goals.map(goal => (
+                  <option key={goal.id} value={goal.id}>
+                    {goal.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => handleRemoveObjective(index)}
+                className="text-red-500 text-lg hover:text-red-700"
+                title="Supprimer ce filtre"
+              >
+                −
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={handleAddObjectiveField}
+            type="button"
+            className="text-blue-600 text-sm hover:underline mt-1"
+          >
+            + Ajouter un objectif
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ActivityFilters;
+import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
+import { createActivity, uploadFileToActivity } from '../../api/activityAPI.js';
+import { getGoals, createGoal } from '../../api/goalAPI.js';
+
+const ActivityForm = ({ onCreated, showToast }) => {
+  const [visible, setVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [link, setLink] = useState('');
+  const [selectedGoals, setSelectedGoals] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [newGoalName, setNewGoalName] = useState('');
+
+  const loadGoals = () => {
+    getGoals().then(res => setGoals(res.data));
+  };
+
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  const handleFileChange = (e) => setFiles([...e.target.files]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const newActivity = await createActivity({
+      therapistId: 1, // À rendre dynamique si besoin
+      name,
+      description,
+      link,
+      objectiveIds: selectedGoals.map(g => g.value),
+    });
+
+    const activityId = newActivity.data.id;
+
+    const uploads = files.map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          await uploadFileToActivity(activityId, {
+            fileUrl: reader.result,
+            fileType: file.type,
+            fileName: file.name,
+          });
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    await Promise.all(uploads);
+    onCreated();
+    showToast && showToast("Activité ajoutée !");
+
+    // Reset
+    setName('');
+    setDescription('');
+    setLink('');
+    setSelectedGoals([]);
+    setFiles([]);
+    setVisible(false);
+  };
+
+  const handleAddGoal = async () => {
+    if (!newGoalName.trim()) return;
+    await createGoal({ name: newGoalName });
+    setNewGoalName('');
+    loadGoals();
+    onCreated();
+    showToast && showToast("Objectif ajouté !");
+  };
+
+  const goalOptions = goals.map(goal => ({ value: goal.id, label: goal.name }));
+
+  if (!visible) {
+    return (
+      <div className="flex gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={newGoalName}
+            onChange={(e) => setNewGoalName(e.target.value)}
+            placeholder="Nouvel objectif"
+            className="border px-2 py-1 rounded text-sm shadow-sm"
+          />
+          <button
+            onClick={handleAddGoal}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition"
+          >
+            + Objectif
+          </button>
+        </div>
+        <button
+          onClick={() => setVisible(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+        >
+          + Ajouter une activité
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white shadow p-6 rounded space-y-4 max-w-xl border">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nom de l’activité"
+        className="w-full border px-3 py-2 rounded"
+        required
+      />
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Description"
+        className="w-full border px-3 py-2 rounded"
+        rows={3}
+      />
+      <input
+        type="text"
+        value={link}
+        onChange={(e) => setLink(e.target.value)}
+        placeholder="Lien externe"
+        className="w-full border px-3 py-2 rounded"
+      />
+
+      {/* Select Objectifs avec react-select */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Objectifs liés :</label>
+        <Select
+          options={goalOptions}
+          isMulti
+          value={selectedGoals}
+          onChange={setSelectedGoals}
+          className="text-sm"
+          placeholder="Sélectionner des objectifs"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Fichiers :</label>
+        <input type="file" multiple onChange={handleFileChange} />
+      </div>
+
+      <div className="flex gap-4 pt-2">
+        <button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+        >
+          Créer
+        </button>
+        <button
+          type="button"
+          onClick={() => setVisible(false)}
+          className="text-gray-600 hover:underline"
+        >
+          Annuler
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default ActivityForm;
+// src/components/activities/ActivityList.js
+import React, { useEffect, useState } from 'react';
+import { searchActivities } from '../../api/activityAPI.js';
+import ActivityCard from './ActivityCard.js';
+
+const ActivityList = ({ filters, refresh }) => {
+  const [activities, setActivities] = useState([]);
+
+  useEffect(() => {
+    searchActivities({
+      name: filters.name || '',
+      description: filters.description || '',
+      objectives: filters.objectives?.join(',') || '',
+    }).then(res => setActivities(res.data));
+  }, [filters, refresh]);
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {activities.map(activity => (
+        <ActivityCard key={activity.id} activity={activity} />
+      ))}
+    </div>
+  );
+};
+
+export default ActivityList;
