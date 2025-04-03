@@ -1,10 +1,10 @@
-import express from 'express';
-import {
+const express = require('express');
+const {
   getGoals,
   createGoal,
   updateGoal,
   deleteGoal
-} from '../controllers/goalController.js';
+} = require('../controllers/goalController');
 
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.post('/', createGoal);
 router.patch('/:id', updateGoal);
 router.delete('/:id', deleteGoal);
 
-export default router;
+module.exports = router;

@@ -1,7 +1,7 @@
-// backend/src/controllers/activityController.js
-import prisma from '../prisma/client.js';
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-export const getAllActivities = async (req, res) => {
+const getAllActivities = async (req, res) => {
   try {
     const activities = await prisma.activity.findMany({
       include: {
@@ -20,7 +20,7 @@ export const getAllActivities = async (req, res) => {
   }
 };
 
-export const getActivityById = async (req, res) => {
+const getActivityById = async (req, res) => {
   const { id } = req.params;
   try {
     const activity = await prisma.activity.findUnique({
@@ -40,7 +40,7 @@ export const getActivityById = async (req, res) => {
   }
 };
 
-export const createActivity = async (req, res) => {
+const createActivity = async (req, res) => {
   const { therapistId, name, description, link, objectiveIds } = req.body;
   try {
     const activity = await prisma.activity.create({
@@ -62,7 +62,7 @@ export const createActivity = async (req, res) => {
   }
 };
 
-export const updateActivity = async (req, res) => {
+const updateActivity = async (req, res) => {
   const { id } = req.params;
   const { name, description, link, objectiveIds } = req.body;
   try {
@@ -86,7 +86,7 @@ export const updateActivity = async (req, res) => {
   }
 };
 
-export const deleteActivity = async (req, res) => {
+const deleteActivity = async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.activity.delete({ where: { id: Number(id) } });
@@ -96,7 +96,7 @@ export const deleteActivity = async (req, res) => {
   }
 };
 
-export const searchActivities = async (req, res) => {
+const searchActivities = async (req, res) => {
   const { name, objectives, fileType } = req.query;
   try {
     const activities = await prisma.activity.findMany({
@@ -124,4 +124,13 @@ export const searchActivities = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to search activities' });
   }
+};
+
+module.exports = {
+  getAllActivities,
+  getActivityById,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  searchActivities
 };

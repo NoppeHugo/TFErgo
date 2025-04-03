@@ -1,7 +1,7 @@
-// backend/src/controllers/goalController.js
-import prisma from '../prisma/client.js';
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-export const getGoals = async (req, res) => {
+const getGoals = async (req, res) => {
   try {
     const goals = await prisma.activityObjective.findMany();
     res.json(goals);
@@ -10,7 +10,7 @@ export const getGoals = async (req, res) => {
   }
 };
 
-export const createGoal = async (req, res) => {
+const createGoal = async (req, res) => {
   const { name, description } = req.body;
   try {
     const newGoal = await prisma.activityObjective.create({
@@ -22,7 +22,7 @@ export const createGoal = async (req, res) => {
   }
 };
 
-export const updateGoal = async (req, res) => {
+const updateGoal = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
   try {
@@ -36,7 +36,7 @@ export const updateGoal = async (req, res) => {
   }
 };
 
-export const deleteGoal = async (req, res) => {
+const deleteGoal = async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.activityObjective.delete({ where: { id: Number(id) } });
@@ -44,4 +44,11 @@ export const deleteGoal = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete goal' });
   }
+};
+
+module.exports = {
+  getGoals,
+  createGoal,
+  updateGoal,
+  deleteGoal
 };

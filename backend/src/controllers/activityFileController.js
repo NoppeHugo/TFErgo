@@ -1,7 +1,7 @@
-// backend/src/controllers/activityFileController.js
-import prisma from '../prisma/client.js';
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-export const addFileToActivity = async (req, res) => {
+const addFileToActivity = async (req, res) => {
   const { id } = req.params;
   const { fileUrl, fileType, fileName } = req.body;
   try {
@@ -19,7 +19,7 @@ export const addFileToActivity = async (req, res) => {
   }
 };
 
-export const deleteFile = async (req, res) => {
+const deleteFile = async (req, res) => {
   const { fileId } = req.params;
   try {
     await prisma.activityFile.delete({ where: { id: Number(fileId) } });
@@ -27,4 +27,9 @@ export const deleteFile = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete file' });
   }
+};
+
+module.exports = {
+  addFileToActivity,
+  deleteFile
 };

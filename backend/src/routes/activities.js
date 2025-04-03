@@ -1,13 +1,13 @@
-// backend/src/routes/activities.js
-import express from 'express';
-import {
+const express = require('express');
+const {
   getAllActivities,
   getActivityById,
   createActivity,
   updateActivity,
   deleteActivity,
   searchActivities
-} from '../controllers/activityController.js';
+} = require('../controllers/activityController');
+
 const router = express.Router();
 
 router.get('/', getAllActivities);
@@ -17,4 +17,4 @@ router.post('/', createActivity);
 router.patch('/:id', updateActivity);
 router.delete('/:id', deleteActivity);
 
-export default router;
+module.exports = router;
