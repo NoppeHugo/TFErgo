@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { FiMoreVertical } from 'react-icons/fi';
 import ActivityFileViewer from './ActivityFileViewer.js';
 
-const ActivityCard = ({ activity, onEdit, onDelete }) => {
+const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition">
+    <div
+      className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition cursor-pointer"
+      onClick={() => onOpen(activity)}
+    >
       {/* Menu bouton 3 points */}
-      <div className="absolute top-2 right-2">
+      <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => setMenuOpen(prev => !prev)}
           className="text-gray-500 hover:text-gray-800"
@@ -16,7 +19,7 @@ const ActivityCard = ({ activity, onEdit, onDelete }) => {
           <FiMoreVertical size={18} />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 mt-1 bg-white border rounded shadow w-32 z-10 animate-fade-in">
+          <div className="absolute right-0 mt-1 bg-white border rounded shadow w-32 z-30 animate-fade-in">
             <button
               onClick={() => { setMenuOpen(false); onEdit(); }}
               className="block w-full text-left px-4 py-2 text-sm hover:bg-purple-100"
@@ -42,6 +45,7 @@ const ActivityCard = ({ activity, onEdit, onDelete }) => {
           className="text-purple-600 text-sm underline mt-2 inline-block"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
         >
           Lien externe
         </a>

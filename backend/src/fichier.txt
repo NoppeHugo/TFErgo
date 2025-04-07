@@ -1,0 +1,1063 @@
+
+// backend/app.js ou backend/server.js
+
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+
+// Debug port
+console.log('PORT:', process.env.PORT);
+
+// 🔐 Middlewares globaux
+app.use(express.json());
+app.use(cookieParser());
+
+// 🌐 CORS (frontend en localhost:3000)
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
+// 📦 Routes existantes
+app.use('/auth', require('./routes/auth'));
+app.use('/patients', require('./routes/patients'));
+app.use('/notes', require('./routes/notes'));
+app.use('/contacts', require('./routes/contacts'));
+app.use('/health', require('./routes/healthData'));
+app.use('/motifs', require('./routes/motifs'));
+app.use('/objectives', require('./routes/objectives')); // Objectifs thérapeutiques des patients
+
+// 🆕 Routes Activités thérapeutiques
+app.use('/activities', require('./routes/activities'));     // GET, POST, PATCH, DELETE, /search
+app.use('/goals', require('./routes/goals'));               // Objectifs liés aux activités
+app.use('/files', require('./routes/activityFiles'));       // Upload/suppression de fichiers liés
+
+// ✅ Middleware pour test de disponibilité
+app.get('/', (req, res) => {
+  res.send('Ergogo backend is up and running ✅');
+});
+
+// 🚀 Démarrage du serveur
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+const getAllActivities = async (req, res) => {
+  try {
+    const activities = await prisma.activity.findMany({
+      include: {
+        objectives: {
+          include: { objective: true }
+        },
+        images: true,
+        Appointment: true,
+        ShortTermObjectiveActivity: true,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch activities' });
+  }
+};
+
+const getActivityById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const activity = await prisma.activity.findUnique({
+      where: { id: Number(id) },
+      include: {
+        objectives: {
+          include: { objective: true }
+        },
+        images: true,
+        files: true
+      }
+    });
+    if (!activity) return res.status(404).json({ error: 'Activity not found' });
+    res.json(activity);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch activity' });
+  }
+};
+
+const createActivity = async (req, res) => {
+  const { therapistId, name, description, link, objectiveIds } = req.body;
+  try {
+    const activity = await prisma.activity.create({
+      data: {
+        therapistId,
+        name,
+        description,
+        link,
+        objectives: {
+          create: objectiveIds.map((id) => ({
+            objective: { connect: { id: Number(id) } }
+          }))
+        }
+      }
+    });
+    res.status(201).json(activity);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create activity' });
+  }
+};
+
+const updateActivity = async (req, res) => {
+  const { id } = req.params;
+  const { name, description, link, objectiveIds } = req.body;
+  try {
+    const updated = await prisma.activity.update({
+      where: { id: Number(id) },
+      data: {
+        name,
+        description,
+        link,
+        objectives: {
+          deleteMany: {},
+          create: objectiveIds.map((id) => ({
+            objective: { connect: { id: Number(id) } }
+          }))
+        }
+      }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update activity' });
+  }
+};
+
+const deleteActivity = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.activity.delete({ where: { id: Number(id) } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete activity' });
+  }
+};
+
+const searchActivities = async (req, res) => {
+  const { name, description, objectives, fileType } = req.query;
+
+  let objectiveArray = [];
+  if (objectives) {
+    try {
+      objectiveArray = typeof objectives === 'string'
+        ? objectives.split(',').map(Number)
+        : Array.isArray(objectives) ? objectives.map(Number) : [];
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid objectives format' });
+    }
+  }
+
+  try {
+    const activities = await prisma.activity.findMany({
+      where: {
+        name: { contains: name || '', mode: 'insensitive' },
+        description: description
+          ? { contains: description, mode: 'insensitive' }
+          : undefined,
+        objectives: objectiveArray.length > 0
+          ? {
+              some: {
+                objectiveId: { in: objectiveArray }
+              }
+            }
+          : undefined,
+        files: fileType
+          ? {
+              some: { fileType: fileType }
+            }
+          : undefined
+      },
+      include: {
+        objectives: { include: { objective: true } },
+        files: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(activities);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to search activities' });
+  }
+};
+
+module.exports = {
+  getAllActivities,
+  getActivityById,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  searchActivities
+};
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+const addFileToActivity = async (req, res) => {
+  const { id } = req.params;
+  const { fileUrl, fileType, fileName } = req.body;
+  try {
+    const file = await prisma.activityFile.create({
+      data: {
+        activityId: Number(id),
+        fileUrl,
+        fileType,
+        fileName
+      }
+    });
+    res.status(201).json(file);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
+};
+
+const deleteFile = async (req, res) => {
+  const { fileId } = req.params;
+  try {
+    await prisma.activityFile.delete({ where: { id: Number(fileId) } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+};
+
+module.exports = {
+  addFileToActivity,
+  deleteFile
+};
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+const login = async (req, res) => {
+  const { email, password } = req.body
+
+  try {
+    const therapist = await prisma.therapist.findUnique({ where: { email } })
+    if (!therapist) {
+      return res.status(401).json({ message: 'Email incorrect' })
+    }
+
+    const valid = await bcrypt.compare(password, therapist.passwordHash)
+    if (!valid) {
+      return res.status(401).json({ message: 'Mot de passe incorrect' })
+    }
+
+    const token = jwt.sign({ id: therapist.id, email: therapist.email, name: therapist.name }, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    })
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false, // passe à true en prod avec HTTPS
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+
+    res.json({ message: 'Connexion réussie ✅' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur serveur' })
+  }
+}
+
+// backend/src/controllers/authController.js
+
+const me = (req, res) => {
+    const token = req.cookies.token
+    if (!token) return res.status(401).json({ message: 'Non authentifié' })
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      res.json({ id: decoded.id, email: decoded.email, name: decoded.name })
+    } catch (err) {
+      res.status(401).json({ message: 'Token invalide' })
+    }
+  }
+
+const logout = (req, res) => {
+    res.clearCookie('token', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: false // true en prod avec HTTPS
+    })
+    res.json({ message: 'Déconnecté' })
+}
+  
+
+module.exports = { login, me, logout }
+
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+// GET /contacts/:patientId
+async function getContacts(req, res) {
+  const { patientId } = req.params;
+  const therapistId = req.user.id;
+
+  try {
+    const contacts = await prisma.contact.findMany({
+      where: { patientId: parseInt(patientId) },
+      orderBy: { id: "desc" }
+    });
+    res.json(contacts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur lors du chargement des contacts" });
+  }
+}
+
+// POST /contacts/:patientId
+async function addContact(req, res) {
+  const { patientId } = req.params;
+  const data = req.body;
+
+  try {
+    const contact = await prisma.contact.create({
+      data: { ...data, patientId: parseInt(patientId) }
+    });
+    res.status(201).json(contact);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur lors de la création du contact" });
+  }
+}
+
+// PATCH /contacts/:id
+async function updateContact(req, res) {
+  const { id } = req.params;
+  const data = req.body;
+
+  try {
+    const updated = await prisma.contact.update({
+      where: { id: parseInt(id) },
+      data
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur mise à jour contact" });
+  }
+}
+
+// DELETE /contacts/:id
+async function deleteContact(req, res) {
+  const { id } = req.params;
+
+  try {
+    await prisma.contact.delete({ where: { id: parseInt(id) } });
+    res.json({ message: "Contact supprimé" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur suppression contact" });
+  }
+}
+
+module.exports = { getContacts, addContact, updateContact, deleteContact };
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+const getGoals = async (req, res) => {
+  try {
+    const goals = await prisma.activityObjective.findMany();
+    res.json(goals);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch goals' });
+  }
+};
+
+const createGoal = async (req, res) => {
+  const { name, description } = req.body;
+  try {
+    const newGoal = await prisma.activityObjective.create({
+      data: { name, description }
+    });
+    res.status(201).json(newGoal);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create goal' });
+  }
+};
+
+const updateGoal = async (req, res) => {
+  const { id } = req.params;
+  const { name, description } = req.body;
+  try {
+    const updated = await prisma.activityObjective.update({
+      where: { id: Number(id) },
+      data: { name, description }
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update goal' });
+  }
+};
+
+const deleteGoal = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.activityObjective.delete({ where: { id: Number(id) } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete goal' });
+  }
+};
+
+module.exports = {
+  getGoals,
+  createGoal,
+  updateGoal,
+  deleteGoal
+};
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+const updateHealthData = async (req, res) => {
+  const { id } = req.params;
+  const { medicalDiagnosis, medicalHistory, healthChronicle } = req.body;
+
+  try {
+    const patient = await prisma.patient.update({
+      where: { id: Number(id) },
+      data: { medicalDiagnosis, medicalHistory, healthChronicle },
+    });
+    res.json(patient);
+  } catch (err) {
+    console.error('Erreur update health data:', err);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour.' });
+  }
+};
+
+const getHealthData = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        medicalDiagnosis: true,
+        medicalHistory: true,
+        healthChronicle: true,
+      },
+    });
+    res.json(patient);
+  } catch (err) {
+    console.error('Erreur get health data:', err);
+    res.status(500).json({ error: 'Erreur lors de la récupération.' });
+  }
+};
+
+module.exports = {
+  updateHealthData,
+  getHealthData,
+};
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+// GET motifs d’un patient
+async function getMotifs(req, res) {
+  const { patientId } = req.params;
+  try {
+    const motifs = await prisma.interventionReason.findMany({
+      where: { patientId: parseInt(patientId) },
+      include: { patientRecords: true },
+      orderBy: { id: "desc" },
+    });
+    res.json(motifs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur chargement motifs" });
+  }
+}
+
+// POST nouveau motif
+async function addMotif(req, res) {
+  const { patientId } = req.params;
+  const data = req.body;
+
+  try {
+    const newMotif = await prisma.interventionReason.create({
+      data: {
+        title: data.title, 
+        groupeCible: data.groupeCible || "",
+        age: data.age || "",
+        batteriesCodeCIF: data.batteriesCodeCIF || "",
+        therapeutic: data.perspectiveTherapeutique || {
+          assesments: "",
+          syntheseEvaluation: "",
+          restrictionsSouhaits: "",
+        },
+        patientId: parseInt(patientId),
+      },
+    });
+    res.status(201).json(newMotif);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur création motif" });
+  }
+}
+
+// PATCH mise à jour d’un motif (et son dossier)
+async function updateMotif(req, res) {
+  const { id } = req.params;
+  const data = req.body;
+
+  try {
+    // on ignore les champs non modifiables
+    const {
+      id: _,
+      createdAt: __,
+      patientId: ___,
+      patientRecords,
+      ...safeData
+    } = data;
+
+    const updated = await prisma.interventionReason.update({
+      where: { id: parseInt(id) },
+      data: safeData,
+    });
+
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur update motif" });
+  }
+}
+
+module.exports = { getMotifs, addMotif, updateMotif };
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+// Récupérer toutes les notes d’un patient
+async function getPatientNotes(req, res) {
+  const { patientId } = req.params
+  const therapistId = req.user.id
+
+  try {
+    const notes = await prisma.note.findMany({
+      where: { patientId: parseInt(patientId), therapistId },
+      orderBy: { noteDate: 'desc' },
+    })
+    res.json(notes)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur chargement des notes' })
+  }
+}
+
+// Ajouter une note
+async function addNote(req, res) {
+  const { patientId } = req.params
+  const therapistId = req.user.id
+  const { title, description } = req.body
+
+  try {
+    const note = await prisma.note.create({
+      data: {
+        title,
+        description,
+        patientId: parseInt(patientId),
+        therapistId,
+      }
+    })
+    res.status(201).json(note)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur ajout de note' })
+  }
+}
+
+// Modifier une note
+async function updateNote(req, res) {
+  const { id } = req.params
+  const therapistId = req.user.id
+  const { title, description } = req.body
+
+  try {
+    const note = await prisma.note.updateMany({
+      where: { id: parseInt(id), therapistId },
+      data: { title, description }
+    })
+    if (note.count === 0) return res.status(404).json({ message: 'Note non trouvée' })
+    res.json({ message: 'Note mise à jour' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur update note' })
+  }
+}
+
+// Supprimer une note
+async function deleteNote(req, res) {
+  const { id } = req.params
+  const therapistId = req.user.id
+
+  try {
+    const deleted = await prisma.note.deleteMany({
+      where: { id: parseInt(id), therapistId }
+    })
+    if (deleted.count === 0) return res.status(404).json({ message: 'Note non trouvée' })
+    res.json({ message: 'Note supprimée' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Erreur suppression note' })
+  }
+}
+
+module.exports = { getPatientNotes, addNote, updateNote, deleteNote }
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+async function addLongTermObjective(req, res) {
+    const { motifId } = req.params;
+    const { title, startDate, endDate, status } = req.body;
+  
+    try {
+      // 1. Retrouver le motif
+      const motif = await prisma.interventionReason.findUnique({
+        where: { id: parseInt(motifId) },
+        select: { patientId: true },
+      });
+  
+      if (!motif) return res.status(404).json({ error: "Motif introuvable" });
+  
+      // 2. Créer l’objectif avec le bon patientId
+      const newObjective = await prisma.longTermObjective.create({
+        data: {
+          interventionReasonId: parseInt(motifId),
+          title,
+          startDate: new Date(startDate),
+          endDate: endDate ? new Date(endDate) : null,
+          status: status || "ouvert",
+        },
+      });      
+  
+      res.status(201).json(newObjective);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Erreur création objectif long terme" });
+    }
+  }
+  
+
+async function addShortTermObjective(req, res) {
+  const { longTermObjectiveId } = req.params;
+  const { title, startDate, endDate, status } = req.body;
+
+  try {
+    const newObjective = await prisma.shortTermObjective.create({
+      data: {
+        longTermObjectiveId: parseInt(longTermObjectiveId),
+        title,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        status: status || "ouvert",
+      },
+    });
+
+    res.status(201).json(newObjective);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur création objectif court terme" });
+  }
+}
+
+async function getMotifWithObjectives(req, res) {
+    const { id } = req.params;
+    try {
+      const motif = await prisma.interventionReason.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          longTermObjectives: {
+            include: {
+              shortTermObjectives: true
+            }
+          }
+        }
+      });
+      res.json(motif);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Erreur fetch objectif complet" });
+    }
+  }
+
+module.exports = {
+  addLongTermObjective,
+  addShortTermObjective,
+  getMotifWithObjectives
+};
+const { PrismaClient } = require('@prisma/client')
+const prisma = new PrismaClient()
+
+async function getMyPatients(req, res) {
+  const therapistId = req.user.id // ajouté par le middleware JWT
+  try {
+    const patients = await prisma.patient.findMany({
+      where: { therapistId },
+      orderBy: { createdAt: 'desc' }
+    })
+    res.json(patients)
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des patients' })
+  }
+}
+
+async function getPatientById(req, res) {
+    const { id } = req.params
+    const therapistId = req.user.id
+  
+    try {
+      const patient = await prisma.patient.findFirst({
+        where: { id: parseInt(id), therapistId },
+      })
+  
+      if (!patient) return res.status(404).json({ message: 'Patient introuvable' })
+  
+      res.json(patient)
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ message: "Erreur lors de la récupération du patient" })
+    }
+}
+
+async function createPatient(req, res) {
+  const therapistId = req.user.id
+  const data = req.body
+  
+  try {
+    const patient = await prisma.patient.create({
+      data: {
+        ...data,
+        therapistId,
+      },
+    })
+
+    res.status(201).json(patient)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Erreur lors de la création du patient" })
+  }
+}
+
+async function updatePatient(req, res) {
+    const { id } = req.params
+    const therapistId = req.user.id
+    const data = req.body
+  
+    try {
+      const patient = await prisma.patient.updateMany({
+        where: { id: parseInt(id), therapistId },
+        data,
+      })
+  
+      if (patient.count === 0) return res.status(404).json({ message: 'Patient non trouvé ou non autorisé' })
+  
+      res.json({ message: 'Patient mis à jour' })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ message: "Erreur lors de la mise à jour du patient" })
+    }
+}
+
+async function deletePatient(req, res) {
+    const { id } = req.params
+    const therapistId = req.user.id
+  
+    try {
+      const deleted = await prisma.patient.deleteMany({
+        where: { id: parseInt(id), therapistId },
+      })
+  
+      if (deleted.count === 0) return res.status(404).json({ message: 'Patient non trouvé ou non autorisé' })
+  
+      res.json({ message: 'Patient supprimé' })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ message: "Erreur lors de la suppression du patient" })
+    }
+}
+  
+module.exports = { getMyPatients, getPatientById, createPatient, updatePatient, deletePatient }
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+const handlebars = require('handlebars');
+
+const generatePatientReport = async (req, res) => {
+  const { patientId } = req.params;
+  const { selectedSections } = req.body; // tableau: ['patientInfo', 'notes', 'diagnostic', ...]
+
+  try {
+    const patient = await prisma.patient.findUnique({
+      where: { id: parseInt(patientId) },
+      include: {
+        notes: true,
+        diagnostics: true,
+        syntheses: true,
+        interventionReports: true,
+        appointments: true,
+        interventionReasons: {
+          include: {
+            longTermObjectives: {
+              include: {
+                shortTermObjectives: true
+              }
+            },
+            patientRecords: true
+          }
+        }
+      }
+    });
+
+    if (!patient) return res.status(404).json({ message: 'Patient introuvable' });
+
+    const sections = {
+      patientInfo: {
+        title: 'Informations patient',
+        content: `${patient.firstName} ${patient.lastName}\nSexe: ${patient.sex}\nDate de naissance: ${patient.birthdate?.toLocaleDateString()}`
+      },
+      notes: {
+        title: 'Notes du thérapeute',
+        content: patient.notes.map(n => `\n- ${n.title || ''} (${new Date(n.noteDate).toLocaleDateString()}): ${n.description}`).join('\n')
+      },
+      diagnostic: {
+        title: 'Diagnostics',
+        content: patient.diagnostics.map(d => `\n- ${new Date(d.createdAt).toLocaleDateString()} : ${d.diagnosticText}`).join('\n')
+      },
+      synthese: {
+        title: 'Synthèses',
+        content: patient.syntheses.map(s => `\n- ${new Date(s.createdAt).toLocaleDateString()} : ${s.synthesisText}`).join('\n')
+      },
+      interventions: {
+        title: 'Interventions',
+        content: patient.interventionReports.map(i => `\n- ${new Date(i.date).toLocaleDateString()} : ${i.interventionText}`).join('\n')
+      },
+      objectifs: {
+        title: 'Objectifs thérapeutiques',
+        content: patient.interventionReasons.map(motif => {
+          const longTerms = motif.longTermObjectives.map(l => `\n  ➤ ${l.title} (${l.status})` +
+            l.shortTermObjectives.map(s => `\n     ↳ ${s.title} (${s.status})`).join('')).join('');
+          return `\n🟢 ${motif.title}${longTerms}`;
+        }).join('\n')
+      }
+    };
+
+    const reportContent = selectedSections.map(key => ({
+      title: sections[key]?.title || '',
+      content: sections[key]?.content || ''
+    }));
+
+    const templatePath = path.join(__dirname, '../templates/reportTemplate.hbs');
+    const templateHtml = fs.readFileSync(templatePath, 'utf8');
+    const compiledTemplate = handlebars.compile(templateHtml);
+    const html = compiledTemplate({ reportContent });
+
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setContent(html);
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+    await browser.close();
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename=rapport_patient.pdf'
+    });
+    res.send(pdfBuffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur lors de la génération du rapport' });
+  }
+};
+
+module.exports = { generatePatientReport };
+const jwt = require('jsonwebtoken')
+
+function authenticateJWT(req, res, next) {
+  const token = req.cookies.token
+  if (!token) return res.status(401).json({ message: 'Token manquant' })
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    req.user = decoded
+    next()
+  } catch (err) {
+    return res.status(403).json({ message: 'Token invalide' })
+  }
+}
+
+module.exports = { authenticateJWT }
+const express = require('express');
+const {
+  getAllActivities,
+  getActivityById,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  searchActivities
+} = require('../controllers/activityController');
+
+const router = express.Router();
+
+router.get('/', getAllActivities);
+router.get('/search', searchActivities);
+router.get('/:id', getActivityById);
+router.post('/', createActivity);
+router.patch('/:id', updateActivity);
+router.delete('/:id', deleteActivity);
+
+module.exports = router;
+const express = require('express');
+const { addFileToActivity, deleteFile } = require('../controllers/activityFileController');
+
+const router = express.Router();
+
+router.post('/:id/files', addFileToActivity);
+router.delete('/file/:fileId', deleteFile);
+
+module.exports = router;
+const express = require('express')
+const router = express.Router()
+const { login, me, logout } = require('../controllers/authController.js')
+
+router.post('/login', login)
+router.get('/me', me)
+router.post('/logout', logout)
+
+module.exports = router
+const express = require("express");
+const router = express.Router();
+const { authenticateJWT } = require("../middleware/authenticateJWT");
+const {
+  getContacts,
+  addContact,
+  updateContact,
+  deleteContact
+} = require("../controllers/contactController");
+
+router.use(authenticateJWT);
+
+router.get("/:patientId", getContacts);
+router.post("/:patientId", addContact);
+router.patch("/:id", updateContact);
+router.delete("/:id", deleteContact);
+
+module.exports = router;
+const express = require('express');
+const {
+  getGoals,
+  createGoal,
+  updateGoal,
+  deleteGoal
+} = require('../controllers/goalController');
+
+const router = express.Router();
+
+router.get('/', getGoals);
+router.post('/', createGoal);
+router.patch('/:id', updateGoal);
+router.delete('/:id', deleteGoal);
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+
+const { authenticateJWT } = require('../middleware/authenticateJWT');
+const {
+  updateHealthData,
+  getHealthData
+} = require('../controllers/healthDataController');
+
+router.use(authenticateJWT);
+
+router.get('/:id', getHealthData);
+router.patch('/:id', updateHealthData);
+
+module.exports = router;
+const express = require('express');
+const router = express.Router();
+const { authenticateJWT } = require("../middleware/authenticateJWT");
+const {
+  getMotifs,
+  addMotif,
+  updateMotif,
+} = require("../controllers/motifController");
+
+router.use(authenticateJWT);
+
+router.get("/:patientId", getMotifs);
+router.post("/:patientId", addMotif);
+router.patch("/:id", updateMotif);
+
+module.exports = router;
+const express = require('express')
+const router = express.Router()
+const { authenticateJWT } = require('../middleware/authenticateJWT')
+const {
+  getPatientNotes,
+  addNote,
+  updateNote,
+  deleteNote
+} = require('../controllers/noteController')
+
+router.use(authenticateJWT)
+
+router.get('/:patientId', getPatientNotes)
+router.post('/:patientId', addNote)
+router.patch('/:id', updateNote)
+router.delete('/:id', deleteNote)
+
+module.exports = router
+const express = require("express");
+const router = express.Router();
+const { authenticateJWT } = require("../middleware/authenticateJWT");
+const {
+  addLongTermObjective,
+  addShortTermObjective,
+  getMotifWithObjectives
+} = require("../controllers/objectiveController");
+
+router.use(authenticateJWT);
+
+router.post("/long/:motifId", addLongTermObjective);
+router.post("/short/:longTermObjectiveId", addShortTermObjective);
+router.get("/:id/objectives", getMotifWithObjectives);
+
+module.exports = router;
+const express = require('express')
+const router = express.Router()
+const {
+  getMyPatients,
+  getPatientById,
+  createPatient,
+  updatePatient,
+  deletePatient
+} = require('../controllers/patientController')
+const { authenticateJWT } = require('../middleware/authenticateJWT')
+
+router.use(authenticateJWT)
+
+router.get('/', getMyPatients)
+router.get('/:id', getPatientById)
+router.post('/', createPatient)
+router.patch('/:id', updatePatient)
+router.delete('/:id', deletePatient)
+
+module.exports = router
+const express = require('express');
+const router = express.Router();
+const { authenticateJWT } = require('../middleware/authenticateJWT');
+const { generatePatientReport } = require('../controllers/reportController');
+
+router.post('/:patientId', authenticateJWT, generatePatientReport);
+
+module.exports = router;

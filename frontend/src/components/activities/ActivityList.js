@@ -1,12 +1,13 @@
-// src/components/activities/ActivityList.js
 import React, { useEffect, useState } from 'react';
 import { searchActivities, deleteActivity } from '../../api/activityAPI.js';
 import ActivityCard from './ActivityCard.js';
 import EditActivityForm from './EditActivityForm.js';
+import FullscreenActivityView from './FullscreenActivityView.js';
 
 const ActivityList = ({ filters, refresh }) => {
   const [activities, setActivities] = useState([]);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [fullscreenActivity, setFullscreenActivity] = useState(null); // 👈 NEW
 
   useEffect(() => {
     searchActivities({
@@ -50,9 +51,18 @@ const ActivityList = ({ filters, refresh }) => {
               activity={activity}
               onEdit={() => setEditingActivity(activity)}
               onDelete={() => handleDelete(activity.id)}
+              onOpen={setFullscreenActivity} // 👈 NEW
             />
           ))}
         </div>
+      )}
+
+      {/* Vue plein écran si sélectionnée */}
+      {fullscreenActivity && (
+        <FullscreenActivityView
+          activity={fullscreenActivity}
+          onClose={() => setFullscreenActivity(null)}
+        />
       )}
     </>
   );

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      line-height: 1.6;
+      font-size: 14px;
+      color: #111;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-size: 24px;
+    }
+    h2 {
+      margin-top: 32px;
+      font-size: 18px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+    pre {
+      white-space: pre-wrap;
+      font-family: inherit;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rapport thérapeutique du patient</h1>
+  {{#each reportContent}}
+    <h2>{{this.title}}</h2>
+    <pre>{{this.content}}</pre>
+  {{/each}}
+</body>
+</html>

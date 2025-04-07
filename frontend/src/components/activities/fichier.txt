@@ -369,7 +369,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white shadow p-6 rounded space-y-4 max-w-xl border animate-fade-in transition-all">
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded border shadow space-y-4 animate-fade-in w-full">
       <div className="flex flex-col gap-1">
         <input
           type="text"

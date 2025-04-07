@@ -32,7 +32,10 @@ app.use('/objectives', require('./routes/objectives')); // Objectifs thérapeuti
 // 🆕 Routes Activités thérapeutiques
 app.use('/activities', require('./routes/activities'));     // GET, POST, PATCH, DELETE, /search
 app.use('/goals', require('./routes/goals'));               // Objectifs liés aux activités
-app.use('/files', require('./routes/activityFiles'));       // Upload/suppression de fichiers liés
+app.use('/files', require('./routes/activityFiles'));       // Upload/suppression de fichiers lié
+
+app.use('/reports', require('./routes/reports'));
+
 
 // ✅ Middleware pour test de disponibilité
 app.get('/', (req, res) => {
