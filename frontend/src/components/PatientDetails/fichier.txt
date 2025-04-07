@@ -1,0 +1,1548 @@
+import { useState } from "react";
+import PatientReferences from "./DataClient/PatientReferences.js";
+import PatientHealthData from "./DataClient/PatientHealthData.js";
+import { updatePatient } from "../../api/patientAPI.js";
+
+const PatientDataTab = ({ patient }) => {
+  const [activeSubTab, setActiveSubTab] = useState("references");
+  const [updatedPatient, setUpdatedPatient] = useState({ ...patient });
+
+  const handleChange = (e) => {
+    setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
+  };
+
+  const handleSave = async () => {
+    try {
+      await updatePatient(patient.id, updatedPatient);
+      alert("✅ Données mises à jour !");
+    } catch (err) {
+      console.error("❌ Erreur mise à jour :", err);
+      alert("❌ Erreur de sauvegarde.");
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md h-full w-full max-w-8xl mx-auto">
+      <h3 className="text-2xl font-bold mb-6 text-gray-800">Données Patient</h3>
+      <div className="flex space-x-4 mb-6">
+        <button
+          className={`py-2 px-4 rounded-lg ${activeSubTab === "references" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+          onClick={() => setActiveSubTab("references")}
+        >
+          Références et Contacts
+        </button>
+        <button
+          className={`py-2 px-4 rounded-lg ${activeSubTab === "health" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+          onClick={() => setActiveSubTab("health")}
+        >
+          Données de Santé
+        </button>
+      </div>
+
+      <div className="transition-all duration-500 ease-in-out h-full overflow-y-auto">
+        {activeSubTab === "references" && (
+          <PatientReferences
+            patient={updatedPatient}
+            handleChange={handleChange}
+            handleSave={handleSave}
+          />
+        )}
+        {activeSubTab === "health" && (
+          <PatientHealthData
+            patient={updatedPatient}
+            patientId={patient.id}
+            handleChange={handleChange}
+            handleSave={handleSave}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientDataTab;
+import React from "react";
+import PatientForm from "./PatientForm.js";
+
+const PatientDetailsTab = ({ patient, isEditing, updatedPatient, handleChange, handleUpdate, setIsEditing }) => {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-2xl font-bold mb-6 text-gray-800">Détails du Patient</h3>
+
+      {isEditing ? (
+        <PatientForm
+          patientData={updatedPatient}
+          handleChange={handleChange}
+          handleSubmit={handleUpdate}
+          isEditing={true}
+          setIsEditing={setIsEditing}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-gray-700">
+          <p><strong>Nom:</strong> {patient.lastName}</p>
+          <p><strong>Prénom:</strong> {patient.firstName}</p>
+          <p><strong>NISS:</strong> {patient.niss}</p>
+          <p><strong>Titre:</strong> {patient.title}</p>
+          <p><strong>Sexe:</strong> {patient.sex}</p>
+          <p><strong>Langue:</strong> {patient.language}</p>
+          <p><strong>Naissance:</strong> {patient.birthdate ? new Date(patient.birthdate).toISOString().split("T")[0] : "Non renseignée"}</p>
+          <p><strong>Nationalité:</strong> {patient.nationality}</p>
+          <p><strong>Adresse:</strong> {patient.address}</p>
+          <p><strong>Téléphone 1:</strong> {patient.phone1}</p>
+          <p><strong>Téléphone 2:</strong> {patient.phone2}</p>
+          <p><strong>Email:</strong> {patient.email}</p>
+          <p><strong>Mutuelle:</strong> {patient.insurance}</p>
+          <p><strong>Médecin de famille:</strong> {patient.familyDoctor}</p>
+          <p><strong>Profession:</strong> {patient.profession}</p>
+          <p><strong>Nombre d'enfants:</strong> {patient.childrenCount}</p>
+          <p><strong>Facturer à:</strong> {patient.billingInfo}</p>
+          <p><strong>Zone de résidence:</strong> {patient.residenceZone}</p>
+          <p><strong>État civil:</strong> {patient.maritalStatus}</p>
+        </div>
+      )}
+
+      {!isEditing && (
+        <div className="mt-6 flex justify-end">
+          <button
+            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+            onClick={() => setIsEditing(true)}
+          >
+            Modifier
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PatientDetailsTab;
+import React, { useEffect, useState } from "react";
+import { getMotifsByPatient, createMotif, updateMotif } from "../../api/motifAPI.js";
+import PatientSituation from "./PatientFile/PatientSituation.js";
+import PatientTherapeutic from "./PatientFile/PatientTherapeutic.js";
+import PatientObjectives from "./PatientFile/PatientObjectives.js";
+import PatientDiagnosis from "./PatientFile/PatientDiagnosis.js";
+import PatientInterventions from "./PatientFile/PatientInterventions.js";
+import PatientSummary from "./PatientFile/PatientSummary.js";
+
+const PatientFileTab = ({ patient }) => {
+  const [motifs, setMotifs] = useState([]);
+  const [selectedMotif, setSelectedMotif] = useState(null);
+  const [activeSubTab, setActiveSubTab] = useState("situation");
+  const [newMotif, setNewMotif] = useState({ title: "", groupeCible: "", age: "", batteriesCodeCIF: "" });
+
+  useEffect(() => {
+    if (!patient?.id) return;
+
+    const fetchMotifs = async () => {
+      const motifsList = await getMotifsByPatient(patient.id);
+      setMotifs(motifsList);
+    };
+
+    fetchMotifs();
+  }, [patient?.id]);
+
+  const handleCreateMotif = async () => {
+    if (!newMotif.title.trim()) return;
+
+    const addedMotif = await createMotif(patient.id, {
+      ...newMotif,
+      therapeutic: {
+        assesments: "",
+        syntheseEvaluation: "",
+        restrictionsSouhaits: "",
+      },
+    });
+
+    if (addedMotif) {
+      setMotifs([...motifs, addedMotif]);
+      setNewMotif({ title: "", groupeCible: "", age: "", batteriesCodeCIF: "" });
+      setSelectedMotif({
+        ...addedMotif,
+        therapeutic: addedMotif.therapeutic || {
+          assesments: "",
+          syntheseEvaluation: "",
+          restrictionsSouhaits: "",
+        },
+      });
+    }
+  };
+
+  const handleSelectMotif = (motif) => {
+    setSelectedMotif({
+      ...motif,
+      therapeutic: motif.therapeutic || {
+        assesments: "",
+        syntheseEvaluation: "",
+        restrictionsSouhaits: "",
+      },
+    });
+  };
+
+  const handleUpdateMotifData = async (updatedMotif) => {
+    if (!selectedMotif) return;
+    try {
+      await updateMotif(selectedMotif.id, updatedMotif);
+      setMotifs((prevMotifs) =>
+        prevMotifs.map((m) => (m.id === selectedMotif.id ? updatedMotif : m))
+      );
+      setSelectedMotif(updatedMotif);
+    } catch (error) {
+      console.error("❌ Erreur lors de la mise à jour du motif :", error);
+    }
+  };
+
+  return (
+    <div className="flex space-x-4">
+      <div className="w-1/6 bg-gray-100 p-4 rounded-lg shadow">
+        <h4 className="text-lg font-semibold mb-3">Motifs d’intervention</h4>
+
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Motif d'intervention"
+            value={newMotif.title}
+            onChange={(e) => setNewMotif({ ...newMotif, title: e.target.value })}
+            className="w-full p-2 border rounded-lg mb-2"
+          />
+          <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleCreateMotif}>
+            Ajouter
+          </button>
+        </div>
+
+        <ul className="space-y-2">
+          {motifs.map((motif, index) => (
+            <li
+              key={motif.id || index}
+              className={`cursor-pointer p-2 rounded-lg ${selectedMotif?.id === motif.id ? "bg-blue-500 text-white" : "bg-gray-200"} hover:bg-blue-300`}
+              onClick={() => handleSelectMotif(motif)}
+            >
+              <strong>{motif.title}</strong>
+              <p className="text-sm">Groupe: {motif.groupeCible} | Âge: {motif.age}</p>
+              <p className="text-xs">Batteries: {motif.batteriesCodeCIF}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="w-5/6 bg-white p-4 rounded-lg shadow">
+        {selectedMotif ? (
+          <>
+            <div className="flex space-x-2 mb-4">
+              {["situation", "therapeutic", "objectives", "diagnosis", "interventions", "summary"].map((tab) => (
+                <button
+                  key={tab}
+                  className={`py-2 px-4 rounded-lg ${activeSubTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  onClick={() => setActiveSubTab(tab)}
+                >
+                  {tab === "situation" && "Situation Personnelle"}
+                  {tab === "therapeutic" && "Perspective Thérapeutique"}
+                  {tab === "objectives" && "Objectifs"}
+                  {tab === "diagnosis" && "Diagnostic"}
+                  {tab === "interventions" && "Compte Rendu"}
+                  {tab === "summary" && "Synthèse"}
+                </button>
+              ))}
+            </div>
+
+            {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} patientId={patient?.id} updateMotif={handleUpdateMotifData}/>}
+            {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "interventions" && <PatientInterventions motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {activeSubTab === "summary" && <PatientSummary motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+          </>
+        ) : (
+          <p className="text-gray-500 text-center">Sélectionnez un motif d’intervention.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientFileTab;
+import React from "react";
+
+const PatientForm = ({ patientData, handleChange, handleSubmit, isEditing, setIsEditing }) => {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-bold mb-4">{isEditing ? "Modifier le Patient" : "Ajouter un Patient"}</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input
+          type="text"
+          name="firstName"
+          placeholder="Prénom"
+          value={patientData.firstName || ""}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+        <input
+          type="text"
+          name="lastName"
+          placeholder="Nom"
+          value={patientData.lastName || ""}
+          onChange={handleChange}
+          className="border p-2 rounded"
+        />
+        
+        <input type="text" name="niss" placeholder="NISS" value={patientData.niss || ""} onChange={handleChange} className="border p-2 rounded" />
+
+        <select name="title" value={patientData.title || ""} onChange={handleChange} className="border p-2 rounded">
+          <option value="">Titre</option>
+          <option value="M.">M.</option>
+          <option value="Mme">Mme</option>
+          <option value="Dr">Dr</option>
+        </select>
+
+        <select name="sex" value={patientData.sex || ""} onChange={handleChange} className="border p-2 rounded">
+          <option value="">Sexe</option>
+          <option value="Homme">Homme</option>
+          <option value="Femme">Femme</option>
+          <option value="Autre">Autre</option>
+        </select>
+
+        <input type="text" name="language" placeholder="Langue" value={patientData.language || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="date" name="birthdate" placeholder="Naissance" value={patientData.birthdate || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="nationality" placeholder="Nationalité" value={patientData.nationality || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="address" placeholder="Adresse" value={patientData.address || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="phone1" placeholder="Téléphone 1" value={patientData.phone1 || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="phone2" placeholder="Téléphone 2" value={patientData.phone2 || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="email" name="email" placeholder="Email" value={patientData.email || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="familyDoctor" placeholder="Médecin de famille" value={patientData.familyDoctor || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="profession" placeholder="Profession" value={patientData.profession || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="number" name="childrenCount" placeholder="Nombre d'enfants" value={patientData.childrenCount || ""} onChange={handleChange} className="border p-2 rounded" />
+        <input type="text" name="billingInfo" placeholder="Facturer à" value={patientData.billingInfo || ""} onChange={handleChange} className="border p-2 rounded" />
+
+        <select name="residenceZone" value={patientData.residenceZone || ""} onChange={handleChange} className="border p-2 rounded">
+          <option value="">Zone de résidence</option>
+          <option value="Bruxelles">Bruxelles</option>
+          <option value="Wallonie">Wallonie</option>
+          <option value="Flandre">Flandre</option>
+          <option value="Autre">Autre</option>
+        </select>
+
+        <select name="maritalStatus" value={patientData.maritalStatus || ""} onChange={handleChange} className="border p-2 rounded">
+          <option value="">État civil</option>
+          <option value="Célibataire">Célibataire</option>
+          <option value="Marié(e)">Marié(e)</option>
+          <option value="Divorcé(e)">Divorcé(e)</option>
+          <option value="Veuf(ve)">Veuf(ve)</option>
+        </select>
+      </div>
+
+      <div className="mt-4 flex space-x-4">
+        <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSubmit}>
+          {isEditing ? "Enregistrer" : "Ajouter"}
+        </button>
+        {isEditing && (
+          <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={() => setIsEditing(false)}>
+            Annuler
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientForm;
+import React, { useEffect, useState } from "react";
+import {
+  getPatientNotes,
+  addNoteToPatient,
+  updateNote,
+  deleteNote,
+} from "../../api/noteAPI.js";
+
+const PatientNotesTab = ({ patient }) => {
+  const [notes, setNotes] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newText, setNewText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editText, setEditText] = useState("");
+
+  useEffect(() => {
+    if (!patient?.id) return;
+
+    const fetchNotes = async () => {
+      try {
+        const notesList = await getPatientNotes(patient.id);
+        setNotes(notesList || []);
+      } catch (error) {
+        console.error("Error loading notes:", error);
+        setNotes([]);
+      }
+    };
+
+    fetchNotes();
+  }, [patient?.id]);
+
+  const handleAddNote = async () => {
+    if (!newTitle.trim() || !newText.trim() || !patient?.id) return;
+
+    setLoading(true);
+    try {
+      const noteData = {
+        title: newTitle,
+        description: newText,
+      };
+
+      const newNote = await addNoteToPatient(patient.id, noteData);
+      setNotes((prev) => [newNote, ...prev]);
+      setNewTitle("");
+      setNewText("");
+      setShowForm(false);
+    } catch (error) {
+      console.error("Error adding note:", error);
+    }
+    setLoading(false);
+  };
+
+  const handleEdit = (note) => {
+    setEditingNoteId(note.id);
+    setEditTitle(note.title);
+    setEditText(note.description);
+  };
+
+  const handleSaveEdit = async (noteId) => {
+    try {
+      await updateNote(noteId, {
+        title: editTitle,
+        description: editText,
+      });
+
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === noteId
+            ? { ...note, title: editTitle, description: editText }
+            : note
+        )
+      );
+      setEditingNoteId(null);
+    } catch (error) {
+      console.error("Error updating note:", error);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!window.confirm("Delete this note?")) return;
+
+    try {
+      await deleteNote(noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditTitle("");
+    setEditText("");
+  };
+
+  return (
+    <div className="p-4 bg-white rounded-lg shadow">
+      <h3 className="text-lg font-bold mb-4">Notes</h3>
+
+      <button
+        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        onClick={() => setShowForm(!showForm)}
+      >
+        {showForm ? "Cancel" : "Add Note"}
+      </button>
+
+      {showForm && (
+        <div className="mb-4 border p-4 rounded-lg bg-gray-100">
+          <input
+            type="text"
+            className="w-full mb-2 border rounded-lg p-2"
+            placeholder="Note title"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+          />
+          <textarea
+            className="w-full mb-2 border rounded-lg p-2"
+            placeholder="Note description"
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+          />
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+            onClick={handleAddNote}
+            disabled={loading}
+          >
+            {loading ? "Adding..." : "Add"}
+          </button>
+        </div>
+      )}
+
+      {notes.length > 0 ? (
+        <ul className="space-y-4">
+          {notes.map((note) => (
+            <li key={note.id} className="border-b pb-4">
+              {editingNoteId === note.id ? (
+                <>
+                  <input
+                    className="w-full mb-2 border rounded-lg p-2"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                  />
+                  <textarea
+                    className="w-full mb-2 border rounded-lg p-2"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-green-500 text-white px-4 py-1 rounded-lg"
+                      onClick={() => handleSaveEdit(note.id)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="bg-gray-500 text-white px-4 py-1 rounded-lg"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-blue-600">{note.title}</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(note.noteDate).toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <p className="text-gray-700">{note.description}</p>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
+                      onClick={() => handleEdit(note)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-3 py-1 rounded-lg"
+                      onClick={() => handleDeleteNote(note.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">No notes available.</p>
+      )}
+    </div>
+  );
+};
+
+export default PatientNotesTab;
+import { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+import { getPatientHealthData, updatePatientHealthData } from "../../../api/healthDataApi.js";
+
+const PatientHealthData = ({ patient, patientId }) => {
+  const [editing, setEditing] = useState(false);
+  const [healthData, setHealthData] = useState({
+    medicalDiagnosis: "",
+    medicalHistory: "",
+    healthChronicle: "",
+  });
+
+  useEffect(() => {
+    if (patientId) {
+      loadHealthData();
+    }
+  }, [patientId]);
+
+  const loadHealthData = async () => {
+    try {
+      const data = await getPatientHealthData(patientId);
+      setHealthData(data);
+    } catch (err) {
+      console.error("Erreur chargement santé:", err);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setHealthData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await updatePatientHealthData(patientId, healthData);
+      setEditing(false);
+      alert("✅ Données mises à jour !");
+    } catch (err) {
+      console.error("Erreur mise à jour:", err);
+      alert("❌ Erreur sauvegarde.");
+    }
+  };
+
+  const handleCancel = () => {
+    loadHealthData();
+    setEditing(false);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Données de Santé
+      </h3>
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Diagnostic Médical
+          </label>
+          <input
+            type="text"
+            value={healthData.medicalDiagnosis}
+            onChange={(e) => handleInputChange("medicalDiagnosis", e.target.value)}
+            className="border p-2 rounded w-full"
+            disabled={!editing}
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Antécédents Médicaux
+          </label>
+          <QuillEditor
+            value={healthData.medicalHistory}
+            onChange={(value) => handleInputChange("medicalHistory", value)}
+            readOnly={!editing}
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-semibold mb-1">
+            Chronique de Santé
+          </label>
+          <QuillEditor
+            value={healthData.healthChronicle}
+            onChange={(value) => handleInputChange("healthChronicle", value)}
+            readOnly={!editing}
+          />
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          {!editing ? (
+            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setEditing(true)}>
+              Modifier
+            </button>
+          ) : (
+            <>
+              <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={handleSave}>
+                Enregistrer
+              </button>
+              <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={handleCancel}>
+                Annuler
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PatientHealthData;
+import { useEffect, useState } from "react";
+import {
+  getPatientContacts,
+  addContact,
+  updateContact,
+  deleteContact,
+} from "../../../api/contactAPI.js";
+
+const PatientReferences = ({ patient }) => {
+  const [contacts, setContacts] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [isNew, setIsNew] = useState(false);
+  const [formType, setFormType] = useState("reference"); // Pour savoir dans quel tableau afficher le formulaire
+
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    relation: "",
+    inami: "",
+    phone: "",
+    email: "",
+    comment: "",
+  });
+
+  useEffect(() => {
+    if (patient?.id) loadContacts();
+  }, [patient]);
+
+  const loadContacts = async () => {
+    try {
+      const data = await getPatientContacts(patient.id);
+      setContacts(data);
+    } catch (err) {
+      console.error("Erreur chargement contacts:", err);
+    }
+  };
+
+  const startEdit = (contact = null, type = "reference") => {
+    setFormType(type);
+    if (contact) {
+      setForm(contact);
+      setEditing(contact.id);
+      setIsNew(false);
+    } else {
+      setForm({
+        firstName: "",
+        lastName: "",
+        relation: "",
+        inami: "",
+        phone: "",
+        email: "",
+        comment: "",
+      });
+      setEditing(null);
+      setIsNew(true);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setIsNew(false);
+    setForm({});
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const saveContact = async () => {
+    const contactData = { ...form, type: formType };
+
+    try {
+      if (isNew) {
+        await addContact(patient.id, contactData);
+      } else {
+        await updateContact(editing, contactData);
+      }
+      await loadContacts();
+      cancelEdit();
+    } catch (err) {
+      console.error("Erreur sauvegarde contact:", err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Supprimer ce contact ?")) {
+      try {
+        await deleteContact(id);
+        await loadContacts();
+      } catch (err) {
+        console.error("Erreur suppression contact:", err);
+      }
+    }
+  };
+
+  const references = contacts.filter((c) => c.type === "reference");
+  const personals = contacts.filter((c) => c.type === "personal");
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Références et Contacts
+      </h3>
+
+      {/* Formulaire affiché en haut du bon tableau */}
+      {(editing !== null || isNew) && (
+        <div className="bg-gray-100 p-4 rounded mb-6 space-y-2">
+          <input name="firstName" value={form.firstName || ""} onChange={handleChange} placeholder="Prénom" className="w-full p-2 border rounded" />
+          <input name="lastName" value={form.lastName || ""} onChange={handleChange} placeholder="Nom" className="w-full p-2 border rounded" />
+          {formType === "personal" && (
+            <input name="relation" value={form.relation || ""} onChange={handleChange} placeholder="Relation" className="w-full p-2 border rounded" />
+          )}
+          {formType === "reference" && (
+            <input name="inami" value={form.inami || ""} onChange={handleChange} placeholder="INAMI" className="w-full p-2 border rounded" />
+          )}
+          <input name="phone" value={form.phone || ""} onChange={handleChange} placeholder="Téléphone" className="w-full p-2 border rounded" />
+          <input name="email" value={form.email || ""} onChange={handleChange} placeholder="Email" className="w-full p-2 border rounded" />
+          <textarea name="comment" value={form.comment || ""} onChange={handleChange} placeholder="Commentaire" className="w-full p-2 border rounded" />
+
+          <div className="flex justify-end space-x-2 mt-2">
+            <button onClick={saveContact} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Enregistrer</button>
+            <button onClick={cancelEdit} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annuler</button>
+          </div>
+        </div>
+      )}
+
+      {/* Références */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-700">Références et Contacts</h4>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "reference")}>
+            Ajouter Référence
+          </button>
+        </div>
+        <table className="w-full border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="p-2">Nom</th>
+              <th className="p-2">Prénom</th>
+              <th className="p-2">Type</th>
+              <th className="p-2">INAMI</th>
+              <th className="p-2">Téléphone</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {references.map((c) => (
+              <tr key={c.id} className="border-t">
+                <td className="p-2">{c.lastName}</td>
+                <td className="p-2">{c.firstName}</td>
+                <td className="p-2">{c.type}</td>
+                <td className="p-2">{c.inami}</td>
+                <td className="p-2">{c.phone}</td>
+                <td className="p-2">{c.email}</td>
+                <td className="p-2">
+                  <button className="text-blue-600" onClick={() => startEdit(c, "reference")}>✏️</button>
+                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Contacts personnels */}
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-700">Contacts Personnels</h4>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "personal")}>
+            Ajouter Contact Personnel
+          </button>
+        </div>
+        <table className="w-full border">
+          <thead className="bg-gray-200">
+            <tr>
+              <th className="p-2">Nom</th>
+              <th className="p-2">Prénom</th>
+              <th className="p-2">Relation</th>
+              <th className="p-2">Téléphone</th>
+              <th className="p-2">Email</th>
+              <th className="p-2">Commentaire</th>
+              <th className="p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {personals.map((c) => (
+              <tr key={c.id} className="border-t">
+                <td className="p-2">{c.lastName}</td>
+                <td className="p-2">{c.firstName}</td>
+                <td className="p-2">{c.relation}</td>
+                <td className="p-2">{c.phone}</td>
+                <td className="p-2">{c.email}</td>
+                <td className="p-2">{c.comment}</td>
+                <td className="p-2">
+                  <button className="text-blue-600" onClick={() => startEdit(c, "personal")}>✏️</button>
+                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default PatientReferences;
+import React, { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+
+const PatientDiagnosis = ({ motif, updateMotif }) => {
+  const [editing, setEditing] = useState(false);
+  const [diagnostic, setDiagnostic] = useState(motif?.diagnostic || "");
+
+  useEffect(() => {
+    setDiagnostic(motif?.diagnostic || "");
+  }, [motif]);
+
+  const handleSave = async () => {
+    if (!motif) return;
+
+    const updatedMotif = {
+      ...motif,
+      diagnostic,
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+      setEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde du diagnostic :", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setDiagnostic(motif?.diagnostic || "");
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-md rounded-lg h-full">
+      <h4 className="text-md font-semibold mb-4">Diagnostic</h4>
+
+      {/* ✅ Ajout d'un conteneur propre pour QuillEditor */}
+      <div className="border rounded-lg p-2">
+        <QuillEditor
+          value={diagnostic}
+          onChange={setDiagnostic}
+          readOnly={!editing}
+          className="min-h-[150px] max-h-64 overflow-auto"
+        />
+      </div>
+
+      <div className="flex space-x-2 mt-4">
+        {editing ? (
+          <>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
+              Enregistrer
+            </button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
+              Annuler
+            </button>
+          </>
+        ) : (
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => setEditing(true)}>
+            Modifier
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientDiagnosis;
+import React, { useState } from "react";
+import QuillEditor from "../../QuillEditor.js";
+
+const PatientInterventions = ({ motif, updateMotif }) => {
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [newIntervention, setNewIntervention] = useState({
+    date: "",
+    texte: "",
+  });
+  const [showForm, setShowForm] = useState(false);
+
+  const handleInputChange = (field, value) => {
+    setNewIntervention((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveIntervention = async () => {
+    const updatedMotif = {
+      ...motif,
+      compteRenduInterventions: [
+        ...(motif.compteRenduInterventions || []),
+        newIntervention,
+      ],
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+      setNewIntervention({ date: "", texte: "" });
+      setShowForm(false);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de l'intervention :", error);
+    }
+  };
+
+  const handleEditIntervention = (index) => {
+    setEditingIndex(index);
+    setNewIntervention(motif.compteRenduInterventions[index]);
+    setShowForm(true);
+  };
+
+  const handleSaveEditIntervention = async () => {
+    const updatedMotif = {
+      ...motif,
+      compteRenduInterventions: motif.compteRenduInterventions.map((intervention, index) =>
+        index === editingIndex ? newIntervention : intervention
+      ),
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+      setEditingIndex(null);
+      setNewIntervention({ date: "", texte: "" });
+      setShowForm(false);
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de l'intervention :", error);
+    }
+  };
+
+  const handleDeleteIntervention = async (index) => {
+    const updatedMotif = {
+      ...motif,
+      compteRenduInterventions: motif.compteRenduInterventions.filter((_, i) => i !== index),
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'intervention :", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingIndex(null);
+    setNewIntervention({ date: "", texte: "" });
+    setShowForm(false);
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-md rounded-lg">
+      <h4 className="text-md font-semibold mb-4">Compte Rendu des Interventions</h4>
+
+      <button
+        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        onClick={() => {
+          setShowForm(true);
+          setEditingIndex(null);
+          setNewIntervention({ date: "", texte: "" });
+        }}
+      >
+        Ajouter une intervention
+      </button>
+
+      {showForm && (
+        <div className="mb-4 border p-4 rounded-lg">
+          <input
+            type="date"
+            className="w-full mb-2 border rounded-lg p-2"
+            placeholder="Date de l'intervention"
+            value={newIntervention.date}
+            onChange={(e) => handleInputChange("date", e.target.value)}
+          />
+          <QuillEditor
+            value={newIntervention.texte}
+            onChange={(value) => handleInputChange("texte", value)}
+            readOnly={false}
+          />
+          <div className="flex space-x-2 mt-4">
+            {editingIndex !== null ? (
+              <>
+                <button
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                  onClick={handleSaveEditIntervention}
+                >
+                  Enregistrer
+                </button>
+                <button
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                  onClick={handleCancel}
+                >
+                  Annuler
+                </button>
+              </>
+            ) : (
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                onClick={handleSaveIntervention}
+              >
+                Ajouter
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4">
+        {motif.compteRenduInterventions?.length > 0 ? (
+          <ul className="space-y-2">
+            {motif.compteRenduInterventions.map((intervention, index) => (
+              <li key={index} className="border-b py-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p><strong>Date:</strong> {intervention.date || "Non spécifiée"}</p>
+                    <div dangerouslySetInnerHTML={{ __html: intervention.texte }} />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      className="text-yellow-500 hover:underline"
+                      onClick={() => handleEditIntervention(index)}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="text-red-500 hover:underline"
+                      onClick={() => handleDeleteIntervention(index)}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">Aucune intervention enregistrée.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientInterventions;
+import React, { useEffect, useState } from "react";
+import QuillEditor from "../../QuillEditor.js";
+import { createLongTermObjective, createShortTermObjective } from "../../../api/objectiveAPI.js";
+
+const PatientObjectives = ({ motif }) => {
+  const [longObjectives, setLongObjectives] = useState([]);
+  const [selectedLongObjective, setSelectedLongObjective] = useState(null);
+
+  const [newLongTitle, setNewLongTitle] = useState("");
+  const [newShortObjective, setNewShortObjective] = useState({
+    title: "",
+    startDate: "",
+    endDate: "",
+    description: "",
+    status: "ouvert",
+  });
+
+  const [showShortTermForm, setShowShortTermForm] = useState(false);
+
+  const fetchObjectives = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/objectives/${motif.id}/objectives`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      setLongObjectives(data?.longTermObjectives || []);
+    } catch (err) {
+      console.error("Erreur chargement objectifs", err);
+    }
+  };
+
+  useEffect(() => {
+    if (motif?.id) fetchObjectives();
+  }, [motif]);
+
+  const handleAddLongTermObjective = async () => {
+    if (!newLongTitle.trim()) return;
+    try {
+      await createLongTermObjective(motif.id, {
+        title: newLongTitle,
+        startDate: new Date().toISOString(),
+      });
+      setNewLongTitle("");
+      fetchObjectives();
+    } catch (err) {
+      console.error("Erreur ajout objectif long terme", err);
+    }
+  };
+
+  const handleAddShortTermObjective = async () => {
+    if (!selectedLongObjective) return;
+    try {
+      await createShortTermObjective(selectedLongObjective.id, newShortObjective);
+      setNewShortObjective({
+        title: "",
+        startDate: "",
+        endDate: "",
+        description: "",
+        status: "ouvert",
+      });
+      setShowShortTermForm(false); // Fermer après ajout
+      fetchObjectives();
+    } catch (err) {
+      console.error("Erreur ajout objectif court terme", err);
+    }
+  };
+
+  const renderShortTermForm = () => (
+    <>
+      <input
+        type="text"
+        name="title"
+        value={newShortObjective.title}
+        onChange={(e) => setNewShortObjective({ ...newShortObjective, title: e.target.value })}
+        placeholder="Titre"
+        className="w-full p-2 border rounded-lg"
+      />
+      <input
+        type="date"
+        name="startDate"
+        value={newShortObjective.startDate}
+        onChange={(e) => setNewShortObjective({ ...newShortObjective, startDate: e.target.value })}
+        className="w-full p-2 border rounded-lg"
+      />
+      <input
+        type="date"
+        name="endDate"
+        value={newShortObjective.endDate}
+        onChange={(e) => setNewShortObjective({ ...newShortObjective, endDate: e.target.value })}
+        className="w-full p-2 border rounded-lg"
+      />
+      <QuillEditor
+        value={newShortObjective.description}
+        onChange={(value) => setNewShortObjective({ ...newShortObjective, description: value })}
+        readOnly={false}
+      />
+      <select
+        name="status"
+        value={newShortObjective.status}
+        onChange={(e) => setNewShortObjective({ ...newShortObjective, status: e.target.value })}
+        className="w-full p-2 border rounded-lg"
+      >
+        <option value="ouvert">Ouvert</option>
+        <option value="fermé">Fermé</option>
+      </select>
+
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+        onClick={handleAddShortTermObjective}
+      >
+        Enregistrer
+      </button>
+    </>
+  );
+
+  return (
+    <div className="flex space-x-4">
+      {/* Objectifs long terme */}
+      <div className="w-1/3 bg-gray-100 p-4 rounded-lg shadow">
+        <h4 className="text-lg font-semibold mb-3">Objectifs Long Terme</h4>
+
+        <input
+          type="text"
+          value={newLongTitle}
+          onChange={(e) => setNewLongTitle(e.target.value)}
+          placeholder="Titre..."
+          className="w-full p-2 border rounded-lg mb-2"
+        />
+        <button
+          className="bg-green-500 text-white px-4 py-2 rounded-lg w-full mb-4"
+          onClick={handleAddLongTermObjective}
+        >
+          Ajouter
+        </button>
+
+        <ul className="space-y-2">
+          {longObjectives.map((obj) => (
+            <li
+              key={obj.id}
+              onClick={() => setSelectedLongObjective(obj)}
+              className={`cursor-pointer p-2 rounded-lg ${
+                selectedLongObjective?.id === obj.id ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+            >
+              {obj.title}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Objectifs court terme */}
+      <div className="w-2/3 bg-white p-4 rounded-lg shadow">
+        {selectedLongObjective ? (
+          <>
+            {selectedLongObjective.shortTermObjectives?.length === 0 ? (
+              <>
+                <h4 className="text-lg font-semibold mb-3">
+                  Objectifs Court Terme pour "{selectedLongObjective.title}"
+                </h4>
+                <div className="space-y-4 mb-6">
+                  {renderShortTermForm()}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-semibold">
+                    Objectifs Court Terme pour "{selectedLongObjective.title}"
+                  </h4>
+                  <button
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                    onClick={() => setShowShortTermForm(!showShortTermForm)}
+                  >
+                    {showShortTermForm ? "Annuler" : "Ajouter"}
+                  </button>
+                </div>
+
+                <ul className="space-y-2 mb-4">
+                  {selectedLongObjective.shortTermObjectives.map((obj) => (
+                    <li key={obj.id} className="p-3 bg-gray-100 rounded shadow-sm">
+                      <div className="font-semibold">{obj.title}</div>
+                      <div className="text-sm text-gray-600">
+                        {obj.status} | Du {obj.startDate?.slice(0, 10)} au {obj.endDate?.slice(0, 10) || "..."}
+                      </div>
+                      {obj.description && (
+                        <div
+                          className="mt-2 text-sm prose max-w-none"
+                          dangerouslySetInnerHTML={{ __html: obj.description }}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+
+                {showShortTermForm && (
+                  <div className="space-y-4">
+                    {renderShortTermForm()}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <p className="text-gray-500">Sélectionnez un objectif long terme.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientObjectives;
+import React, { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+
+const PatientSituation = ({ motif, updateMotif }) => {
+  const [editing, setEditing] = useState(false);
+  const [newSituation, setNewSituation] = useState({
+    personne: motif?.situation?.personne || "",
+    occupation: motif?.situation?.occupation || "",
+    environnement: motif?.situation?.environnement || "",
+  });
+
+  useEffect(() => {
+    setNewSituation({
+      personne: motif?.situation?.personne || "",
+      occupation: motif?.situation?.occupation || "",
+      environnement: motif?.situation?.environnement || "",
+    });
+  }, [motif]);
+
+  const handleInputChange = (field, value) => {
+    setNewSituation((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    const updated = {
+      ...motif,
+      situation: newSituation,
+    };
+    await updateMotif(updated);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setNewSituation({
+      personne: motif?.situation?.personne || "",
+      occupation: motif?.situation?.occupation || "",
+      environnement: motif?.situation?.environnement || "",
+    });
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-md rounded-lg">
+      <h4 className="text-lg font-semibold mb-4">Situation Personnelle</h4>
+
+      {["personne", "occupation", "environnement"].map((field) => (
+        <div key={field} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 capitalize">{field} :</label>
+          <QuillEditor
+            value={newSituation[field]}
+            onChange={(value) => handleInputChange(field, value)}
+            readOnly={!editing}
+          />
+        </div>
+      ))}
+
+      <div className="flex space-x-2">
+        {!editing ? (
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
+        ) : (
+          <>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientSituation;
+import React, { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+
+const PatientSummary = ({ motif, updateMotif }) => {
+  const [editing, setEditing] = useState(false);
+  const [synthese, setSynthese] = useState(motif?.synthese || "");
+
+  useEffect(() => {
+    setSynthese(motif?.synthese || "");
+  }, [motif]);
+
+  const handleSave = async () => {
+    if (!motif) return;
+
+    const updatedMotif = {
+      ...motif,
+      synthese,
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+      setEditing(false);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de la synthèse :", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setSynthese(motif?.synthese || "");
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-md rounded-lg h-full">
+      <h4 className="text-md font-semibold mb-4">Synthèse</h4>
+
+      <div className="border rounded-lg p-2">
+        <QuillEditor
+          value={synthese}
+          onChange={setSynthese}
+          readOnly={!editing}
+          className="min-h-[150px] max-h-64 overflow-auto"
+        />
+      </div>
+
+      <div className="flex space-x-2 mt-4">
+        {editing ? (
+          <>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
+              Enregistrer
+            </button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
+              Annuler
+            </button>
+          </>
+        ) : (
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => setEditing(true)}>
+            Modifier
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientSummary;
+import React, { useState, useEffect } from "react";
+import QuillEditor from "../../QuillEditor.js";
+
+const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
+  const [editing, setEditing] = useState(false);
+  const [therapeuticData, setTherapeuticData] = useState({
+    assesments: motif?.therapeutic?.assesments || "",
+    syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+    restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+    diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
+  });
+
+  useEffect(() => {
+    setTherapeuticData({
+      assesments: motif?.therapeutic?.assesments || "",
+      syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+      restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+      diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
+    });
+  }, [motif]);
+
+  const handleInputChange = (field, value) => {
+    setTherapeuticData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!motif || !patientId) {
+      console.error("❌ patientId ou motif est undefined !");
+      return;
+    }
+
+    const updatedMotif = {
+      ...motif,
+      therapeutic: {
+        assesments: therapeuticData.assesments || "",
+        syntheseEvaluation: therapeuticData.syntheseEvaluation || "",
+        restrictionsSouhaits: therapeuticData.restrictionsSouhaits || "",
+        diagnosticOccupationnel: therapeuticData.diagnosticOccupationnel || "",
+      },
+    };
+
+    try {
+      await updateMotif(updatedMotif);
+      setEditing(false);
+    } catch (error) {
+      console.error("❌ Erreur lors de la mise à jour :", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setTherapeuticData({
+      assesments: motif?.therapeutic?.assesments || "",
+      syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
+      restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
+      diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
+    });
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-md rounded-lg">
+      <h4 className="text-lg font-semibold mb-4">Perspective Thérapeutique</h4>
+
+      {[
+        { label: "Batteries Code CIF", field: "assesments" },
+        { label: "Synthèse de l'évaluation", field: "syntheseEvaluation" },
+        { label: "Restrictions de participation", field: "restrictionsSouhaits" },
+        { label: "Diagnostic occupationnel", field: "diagnosticOccupationnel" },
+      ].map(({ label, field }) => (
+        <div key={field} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">{label} :</label>
+          <QuillEditor
+            value={therapeuticData[field]}
+            onChange={(value) => handleInputChange(field, value)}
+            readOnly={!editing}
+          />
+        </div>
+      ))}
+
+      <div className="flex space-x-2">
+        {!editing ? (
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
+        ) : (
+          <>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientTherapeutic;

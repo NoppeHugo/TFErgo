@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import axios from 'axios';
+import { useState } from "react";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import axios from "axios";
 
 const sectionLabels = {
-  patientInfo: 'Informations patient',
-  notes: 'Notes du thérapeute',
-  diagnostic: 'Diagnostics',
-  synthese: 'Synthèses',
-  interventions: 'Interventions',
-  objectifs: 'Objectifs thérapeutiques'
+  patientInfo: "Données client",
+  references: "Références et Contacts",
+  personalContacts: "Contacts Personnels",
+  medicalData: "Données de Santé",
+  motif: "Motif d’intervention",
+  diagnostic: "Diagnostic",
+  comptesRendus: "Comptes rendus",
+  synthese: "Synthèse",
 };
 
 const initialSections = Object.keys(sectionLabels);
@@ -20,13 +22,13 @@ const SortableItem = ({ id, enabled, onToggle }) => {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    padding: '10px',
-    marginBottom: '8px',
-    background: '#f3f4f6',
-    borderRadius: '6px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    padding: "10px",
+    marginBottom: "8px",
+    background: "#f3f4f6",
+    borderRadius: "6px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   };
 
   return (
@@ -63,28 +65,24 @@ const ReportBuilder = ({ patientId }) => {
         `http://localhost:3001/reports/${patientId}`,
         { selectedSections: selected },
         {
-          responseType: 'blob',
+          responseType: "blob",
           withCredentials: true,
-          headers: {
-            'Accept': 'application/pdf',
-          }
+          headers: { Accept: "application/pdf" },
         }
       );
-  
-      // Vérifie que le blob est bien un PDF
-      const blob = new Blob([res.data], { type: 'application/pdf' });
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', 'rapport_patient.pdf');
+      link.setAttribute("download", "rapport_patient.pdf");
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (err) {
-      console.error('Erreur génération PDF :', err);
+      console.error("Erreur génération PDF :", err);
     }
   };
-  
 
   return (
     <div className="p-4 bg-white rounded-xl shadow-xl">
@@ -92,12 +90,7 @@ const ReportBuilder = ({ patientId }) => {
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sections} strategy={verticalListSortingStrategy}>
           {sections.map((id) => (
-            <SortableItem
-              key={id}
-              id={id}
-              enabled={enabledSections.has(id)}
-              onToggle={handleToggle}
-            />
+            <SortableItem key={id} id={id} enabled={enabledSections.has(id)} onToggle={handleToggle} />
           ))}
         </SortableContext>
       </DndContext>
