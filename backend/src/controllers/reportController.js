@@ -1,9 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
+const path = require("path");
+const fs = require("fs");
+const puppeteer = require("puppeteer");
+const handlebars = require("handlebars");
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
-const handlebars = require('handlebars');
 
 const generatePatientReport = async (req, res) => {
   const { patientId } = req.params;
@@ -16,103 +16,108 @@ const generatePatientReport = async (req, res) => {
         therapist: true,
         contacts: true,
         diagnostics: true,
-        interventionReports: true,
         syntheses: true,
-        interventionReasons: true
-      }
+        interventionReports: true,
+        interventionReasons: true,
+      },
     });
 
-    if (!patient) return res.status(404).json({ message: 'Patient introuvable' });
-
-    const references = patient.contacts.filter(c => c.type === 'reference');
-    const personals = patient.contacts.filter(c => c.type === 'personal');
-
+    const references = patient.contacts.filter(c => c.type === "reference");
+    const personals = patient.contacts.filter(c => c.type === "personal");
     const motif = patient.interventionReasons[0] || {};
-    const therapeutic = motif.therapeutic || {};
 
     const sections = {
       patientInfo: {
-        title: 'Données client',
-        content: `Nom: ${patient.lastName} ${patient.firstName}
-Sexe: ${patient.sex}
-Date de naissance: ${patient.birthdate?.toLocaleDateString() || ''}
-Nationalité: ${patient.nationality || ''}
-Adresse: ${patient.address || ''}
-Téléphone: ${patient.phone1 || ''}${patient.phone2 ? ', ' + patient.phone2 : ''}
-Email: ${patient.email || ''}`
+        title: "Données client",
+        content: `
+<strong>Sexe :</strong> ${patient.sex || ""}<br/>
+<strong>Nationalité :</strong> ${patient.nationality || ""}<br/>
+<strong>Adresse :</strong> ${patient.address || ""}<br/>
+<strong>Téléphone :</strong> ${patient.phone1 || ""}, ${patient.phone2 || ""}<br/>
+<strong>Email :</strong> ${patient.email || ""}
+        `
       },
       references: {
-        title: 'Références et Contacts',
-        content: references.map(c => `- ${c.firstName || ''} ${c.lastName || ''} (${c.relation || ''}) - ${c.phone || ''}`).join('\n')
+        title: "Références et Contacts",
+        content: references.map(r => `${r.relation || ""} (${r.firstName || ""} ${r.lastName || ""})`).join("<br/>")
       },
       personalContacts: {
-        title: 'Contacts Personnels',
-        content: personals.map(c => `- ${c.firstName || ''} ${c.lastName || ''} (${c.relation || ''}) - ${c.phone || ''}`).join('\n')
+        title: "Contacts Personnels",
+        content: personals.map(p => `${p.relation || ""} (${p.firstName || ""} ${p.lastName || ""})`).join("<br/>")
       },
       medicalData: {
-        title: 'Données de Santé',
-        content: `Diagnostic Médical :\n${patient.medicalDiagnosis || ''}
-\nAntécédents Médicaux :\n${patient.medicalHistory || ''}
-\nChronique de santé :\n${patient.healthChronicle || ''}`
+        title: "Données de Santé",
+        content: `
+<h3>Diagnostic Médical</h3>
+${patient.medicalDiagnosis || ""}
+<h3>Antécédents Médicaux</h3>
+${patient.medicalHistory || ""}
+<h3>Chronique de Santé</h3>
+${patient.healthChronicle || ""}
+        `
       },
       motif: {
-        title: 'Motif d’intervention',
-        content: `Synthèse de l'évaluation :\n${therapeutic.syntheseEvaluation || ''}
-\nRestrictions de participation :\n${therapeutic.restrictionsSouhaits || ''}
-\nDiagnostic occupationnel :\n${therapeutic.diagnosticOccupationnel || ''}`
+        title: "Motif d’intervention",
+        content: `
+<h3>Synthèse de l'évaluation</h3>
+${motif?.therapeutic?.syntheseEvaluation || ""}
+<h3>Restrictions de participation</h3>
+${motif?.therapeutic?.restrictionsSouhaits || ""}
+<h3>Diagnostic occupationnel</h3>
+${motif?.therapeutic?.diagnosticOccupationnel || ""}
+        `
       },
       diagnostic: {
-        title: 'Diagnostic',
-        content: patient.diagnostics.map(d => `- ${new Date(d.createdAt).toLocaleDateString()} : ${d.diagnosticText}`).join('\n')
+        title: "Diagnostic",
+        content: patient.diagnostics.map(d => `<p><strong>${new Date(d.createdAt).toLocaleDateString()}</strong> — ${d.diagnosticText}</p>`).join("")
       },
       comptesRendus: {
-        title: 'Comptes rendus',
-        content: patient.interventionReports.map(r => `- ${new Date(r.date).toLocaleDateString()} : ${r.interventionText}`).join('\n')
+        title: "Comptes rendus",
+        content: motif?.compteRenduInterventions?.map(i => `<p><strong>${i.date}</strong><br/>${i.texte}</p>`).join("") || ""
       },
       synthese: {
-        title: 'Synthèse',
-        content: patient.syntheses.map(s => `- ${new Date(s.createdAt).toLocaleDateString()} : ${s.synthesisText}`).join('\n')
+        title: "Synthèse",
+        content: motif?.synthese || ""
       }
     };
 
-    const reportContent = selectedSections.map(key => ({
-      title: sections[key]?.title || '',
-      content: sections[key]?.content || ''
+    const reportContent = selectedSections.map((key) => ({
+      title: sections[key]?.title || "",
+      content: sections[key]?.content || "<em>Non renseigné</em>"
     }));
 
-    const templatePath = path.resolve(__dirname, '..', '..', 'templates', 'reportTemplate.hbs');
-    const templateHtml = fs.readFileSync(templatePath, 'utf8');
-    const compiledTemplate = handlebars.compile(templateHtml);
-    const html = compiledTemplate({
+    const templatePath = path.resolve(__dirname, "../../templates/reportTemplate.hbs");
+    const source = fs.readFileSync(templatePath, "utf8");
+    const template = handlebars.compile(source);
+    const html = template({
       patientName: `${patient.firstName} ${patient.lastName}`,
-      birthDate: patient.birthdate?.toLocaleDateString() || '',
-      reportDate: new Date().toLocaleDateString(),
-      therapistName: patient.therapist?.name || 'Ergothérapeute',
+      birthDate: patient.birthdate?.toLocaleDateString() || "",
+      reportDate: new Date().toLocaleDateString("fr-FR"),
+      therapistName: patient.therapist?.name || "Ergothérapeute",
       reportContent
     });
 
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    await page.emulateMediaType('screen');
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
     await browser.close();
 
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename=rapport_patient.pdf',
-      'Content-Length': pdfBuffer.length
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=rapport_patient.pdf",
+      "Content-Length": pdfBuffer.length,
     });
+
     res.end(pdfBuffer);
   } catch (err) {
-    console.error('Erreur génération rapport PDF:', err);
-    res.status(500).json({ message: 'Erreur lors de la génération du rapport' });
+    console.error("Erreur génération PDF:", err);
+    res.status(500).json({ error: "Erreur génération PDF" });
   }
 };
 
