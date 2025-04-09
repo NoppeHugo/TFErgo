@@ -6,8 +6,7 @@ import axios from "axios";
 
 const sectionLabels = {
   patientInfo: "Données client",
-  references: "Références et Contacts",
-  personalContacts: "Contacts Personnels",
+  contacts: "Références & Contacts",
   medicalData: "Données de Santé",
   motif: "Motif d’intervention",
   diagnostic: "Diagnostic",
@@ -70,15 +69,23 @@ const ReportBuilder = ({ patientId }) => {
           headers: { Accept: "application/pdf" },
         }
       );
-
+      let fileName = "rapport_patient.pdf";
+      const disposition = res.headers["content-disposition"];
+      if (disposition && disposition.indexOf("filename=") !== -1) {
+        const fileNameMatch = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/);
+        if (fileNameMatch && fileNameMatch.length > 1) {
+          fileName = decodeURIComponent(fileNameMatch[1]);
+        }
+      }
       const blob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "rapport_patient.pdf");
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Erreur génération PDF :", err);
     }
