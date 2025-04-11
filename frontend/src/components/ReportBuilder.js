@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import ToggleSwitch from "./ToggleSwitch.js";
 
 const sectionLabels = {
   patientInfo: "Données client",
@@ -15,14 +16,14 @@ const sectionLabels = {
 const initialOrder = Object.keys(sectionLabels);
 
 const ReportBuilder = ({ patientId }) => {
-  const formRef = useRef(null);
   const [order, setOrder] = useState(initialOrder);
+  const [enabledSections, setEnabledSections] = useState(
+    Object.fromEntries(initialOrder.map((id) => [id, true]))
+  );
 
   useEffect(() => {
-    if (formRef.current) {
-      formRef.current.reset();
-    }
     setOrder(initialOrder);
+    setEnabledSections(Object.fromEntries(initialOrder.map((id) => [id, true])));
   }, [patientId]);
 
   const handleDragEnd = (result) => {
@@ -33,10 +34,15 @@ const ReportBuilder = ({ patientId }) => {
     setOrder(newOrder);
   };
 
-  const handleGenerate = async (e) => {
-    e.preventDefault();
-    const form = new FormData(formRef.current);
-    const selectedSections = order.filter((id) => form.getAll("sections").includes(id));
+  const handleToggle = (id) => {
+    setEnabledSections((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const handleGenerate = async () => {
+    const selectedSections = order.filter((id) => enabledSections[id]);
 
     try {
       const res = await axios.post(
@@ -71,7 +77,7 @@ const ReportBuilder = ({ patientId }) => {
   };
 
   return (
-    <form ref={formRef} onSubmit={handleGenerate} className="p-4 bg-white rounded-xl shadow-xl">
+    <div className="p-4 bg-white rounded-xl shadow-xl">
       <h2 className="text-xl font-semibold mb-4">🧾 Générer un rapport patient</h2>
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="sections">
@@ -86,13 +92,11 @@ const ReportBuilder = ({ patientId }) => {
                       {...provided.dragHandleProps}
                       className="flex justify-between items-center mb-2 p-2 bg-gray-100 rounded"
                     >
-                      <label htmlFor={`section-${id}`}>{sectionLabels[id]}</label>
-                      <input
-                        type="checkbox"
-                        id={`section-${id}`}
-                        name="sections"
-                        value={id}
-                        defaultChecked
+                      <span>{sectionLabels[id]}</span>
+                      <ToggleSwitch
+                        checked={enabledSections[id]}
+                        onChange={() => handleToggle(id)}
+                        size={55}
                       />
                     </div>
                   )}
@@ -104,12 +108,12 @@ const ReportBuilder = ({ patientId }) => {
         </Droppable>
       </DragDropContext>
       <button
-        type="submit"
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={handleGenerate}
+        className="mt-6 px-4 py-2 bg-violetErgogo text-white rounded hover:brightness-110"
       >
         Générer le PDF
       </button>
-    </form>
+    </div>
   );
 };
 

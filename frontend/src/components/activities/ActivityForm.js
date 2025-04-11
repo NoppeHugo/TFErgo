@@ -116,7 +116,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
             />
             <button
               onClick={handleAddGoal}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition"
+              className="bg-greenErgogo hover:bg-greenErgogo/90 text-white px-3 py-1 rounded text-sm transition"
             >
               + Objectif
             </button>
@@ -134,7 +134,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
 
         <button
           onClick={() => setVisible(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition"
+          className="bg-violetErgogo hover:bg-violetErgogo/90 text-white px-3 py-1 rounded text-sm transition"
         >
           + Ajouter une activité
         </button>
