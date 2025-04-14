@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
-import { updateActivity } from '../../api/activityAPI.js';
+import { updateActivity, uploadFileToActivity, deleteFile } from '../../api/activityAPI.js';
 import { getGoals } from '../../api/goalAPI.js';
+import { FiX } from 'react-icons/fi';
 
 const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [name, setName] = useState(activity.name || '');
@@ -9,6 +10,10 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [link, setLink] = useState(activity.link || '');
   const [selectedGoals, setSelectedGoals] = useState([]);
   const [goals, setGoals] = useState([]);
+  const [existingImages, setExistingImages] = useState(
+    activity.files?.filter(f => f.fileType.startsWith('image/')) || []
+  );
+  const [newImages, setNewImages] = useState([]);
 
   useEffect(() => {
     getGoals().then(res => {
@@ -21,6 +26,18 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
     });
   }, [activity]);
 
+  const handleImageRemove = async (fileId) => {
+    if (window.confirm('Supprimer cette image ?')) {
+      await deleteFile(fileId);
+      setExistingImages(prev => prev.filter(img => img.id !== fileId));
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setNewImages(prev => [...prev, ...files]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -31,8 +48,26 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
       objectiveIds: selectedGoals.map(o => o.value),
     });
 
-    onUpdated(); // Rafraîchir la liste
-    onClose();   // Fermer le formulaire
+    // Upload en base64 comme pour la création
+    const uploads = newImages.map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          await uploadFileToActivity(activity.id, {
+            fileUrl: reader.result,
+            fileType: file.type,
+            fileName: file.name,
+          });
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+    await Promise.all(uploads);
+
+    setNewImages([]);
+    onUpdated();
+    onClose();
   };
 
   return (
@@ -72,6 +107,37 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
           onChange={setSelectedGoals}
           className="text-sm"
         />
+      </div>
+
+      {existingImages.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {existingImages.map((img) => (
+            <div key={img.id} className="relative">
+              <img src={img.fileUrl} alt="fichier activité" className="w-full h-[120px] object-cover rounded" />
+              <button
+                type="button"
+                onClick={() => handleImageRemove(img.id)}
+                className="absolute top-1 right-1 bg-white/70 hover:bg-white text-red-600 rounded-full p-1"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Ajouter des images :</label>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="text-sm"
+        />
+        {newImages.length > 0 && (
+          <p className="text-sm text-gray-500 mt-1">{newImages.length} image(s) sélectionnée(s)</p>
+        )}
       </div>
 
       <div className="flex gap-4">

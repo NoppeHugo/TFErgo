@@ -12,7 +12,7 @@ import Header from './components/Header.js';
 import './index.css';
 import LoginPage from './pages/LoginPage.js';
 import RequireAuth from './components/RequireAuth.js';
-import ActivityDetailsPage from './src/components/activities/ActivityDetailsPage.js ';
+import ActivityDetailsPage from './components/activities/ActivityDetailsPage.js';
 
 // Page d'accueil
 const HomePage = () => (
@@ -40,6 +40,7 @@ const AnimatedRoutes = () => {
         <Route path="/patients" element={<RequireAuth><PatientsPage /></RequireAuth>} />
         <Route path="/add-patient" element={<RequireAuth><AddPatientPage /></RequireAuth>} />
         <Route path="/activities" element={<RequireAuth><ActivitiesPage /></RequireAuth>} />
+        <Route path="/activities/:id" element={<RequireAuth><ActivityDetailsPage /></RequireAuth>} /> {/* ✅ déplacé ici */}
         <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
         <Route path="/login" element={<LoginPage />} />
 

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { searchActivities, deleteActivity } from '../../api/activityAPI.js';
 import ActivityCard from './ActivityCard.js';
 import EditActivityForm from './EditActivityForm.js';
-import FullscreenActivityView from './ActivityDetailsPage.js';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ActivityList = ({ filters, refresh }) => {
   const [activities, setActivities] = useState([]);
   const [editingActivity, setEditingActivity] = useState(null);
-  const [fullscreenActivity, setFullscreenActivity] = useState(null); // 👈 NEW
+  const navigate = useNavigate();
 
   useEffect(() => {
     searchActivities({
@@ -44,34 +45,27 @@ const ActivityList = ({ filters, refresh }) => {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 auto-rows-fr">
-          {activities.map(activity => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              onEdit={() => setEditingActivity(activity)}
-              onDelete={() => handleDelete(activity.id)}
-              onOpen={setFullscreenActivity} // 👈 NEW
-            />
-          ))}
+        <div className="columns-1 sm:columns-2 gap-6 space-y-6">
+          <AnimatePresence>
+            {activities.map(activity => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="break-inside-avoid"
+              >
+                <ActivityCard
+                  activity={activity}
+                  onEdit={() => setEditingActivity(activity)}
+                  onDelete={() => handleDelete(activity.id)}
+                  onOpen={() => navigate(`/activities/${activity.id}`)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
-      )}
-
-      {/* Vue plein écran si sélectionnée */}
-      {fullscreenActivity && (
-        <FullscreenActivityView
-        activity={fullscreenActivity}
-        onClose={() => setFullscreenActivity(null)}
-        onEdit={(a) => {
-          setEditingActivity(a);
-          setFullscreenActivity(null);
-        }}
-        onDelete={async (id) => {
-          await deleteActivity(id);
-          setFullscreenActivity(null);
-          setActivities(prev => prev.filter((a) => a.id !== id));
-        }}
-      />      
       )}
     </>
   );

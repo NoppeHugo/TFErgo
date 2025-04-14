@@ -7,7 +7,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
 
   return (
     <div
-      className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition cursor-pointer flex flex-col justify-between h-[480px]"
+      className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition cursor-pointer flex flex-col justify-between"
       onClick={() => onOpen(activity)}
     >
       {/* Menu bouton 3 points */}
