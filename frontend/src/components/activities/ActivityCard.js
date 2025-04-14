@@ -7,7 +7,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
 
   return (
     <div
-      className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition cursor-pointer"
+      className="relative bg-white rounded shadow-sm p-4 border hover:shadow-md transition cursor-pointer flex flex-col justify-between h-[480px]"
       onClick={() => onOpen(activity)}
     >
       {/* Menu bouton 3 points */}
@@ -21,13 +21,19 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
         {menuOpen && (
           <div className="absolute right-0 mt-1 bg-white border rounded shadow w-32 z-30 animate-fade-in">
             <button
-              onClick={() => { setMenuOpen(false); onEdit(); }}
+              onClick={() => {
+                setMenuOpen(false);
+                onEdit();
+              }}
               className="block w-full text-left px-4 py-2 text-sm hover:bg-purple-100"
             >
               Modifier
             </button>
             <button
-              onClick={() => { setMenuOpen(false); onDelete(); }}
+              onClick={() => {
+                setMenuOpen(false);
+                onDelete();
+              }}
               className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
             >
               Supprimer
@@ -36,8 +42,9 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
         )}
       </div>
 
+      {/* Contenu principal */}
       <h2 className="text-xl font-bold text-purple-700">{activity.name}</h2>
-      <p className="text-gray-600 text-sm mt-1 whitespace-pre-line">{activity.description}</p>
+      <p className="text-gray-600 text-sm mt-1 whitespace-pre-line line-clamp-2">{activity.description}</p>
 
       {activity.link && (
         <a
@@ -45,7 +52,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
           className="text-purple-600 text-sm underline mt-2 inline-block"
           target="_blank"
           rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           Lien externe
         </a>
@@ -55,7 +62,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
         <p className="text-sm font-semibold text-gray-700">Objectifs :</p>
         {activity.objectives?.length ? (
           <div className="flex flex-wrap gap-2 mt-1">
-            {activity.objectives.map(o => (
+            {activity.objectives.map((o) => (
               <span
                 key={o.objective.id}
                 className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full"
@@ -71,9 +78,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
 
       <div className="mt-3">
         <p className="text-sm font-semibold text-gray-700">Fichiers :</p>
-        {activity.files?.length ? activity.files.map(file => (
-          <ActivityFileViewer key={file.id} file={file} />
-        )) : <p className="text-sm text-gray-400">Aucun fichier</p>}
+        <ActivityFileViewer files={activity.files} />
       </div>
     </div>
   );

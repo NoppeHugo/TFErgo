@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiChevronDown } from 'react-icons/fi'
 
 const Header = () => {
   const [therapist, setTherapist] = useState(null)
@@ -7,14 +8,9 @@ const Header = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetch('http://localhost:3001/auth/me', {
-      credentials: 'include'
-    })
+    fetch('http://localhost:3001/auth/me', { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        console.log(data)
-        if (data) setTherapist(data)
-      })
+      .then(data => data && setTherapist(data))
       .catch(() => {})
   }, [])
 
@@ -27,28 +23,42 @@ const Header = () => {
   }
 
   return (
-    <nav className="bg-[#A294F9] p-4 shadow-lg">
-      <div className="container mx-auto flex justify-between items-center relative">
-        <Link to="/" className="text-white text-3xl font-bold">
+    <nav className="bg-[#A294F9] px-6 py-3 shadow-md">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="text-white text-xl font-bold tracking-wider">
           ERGOGO
         </Link>
 
-        <ul className="flex space-x-8 mx-auto">
-          <li><Link to="/calendrier" className="text-white text-3xl hover:scale-125 transition">Calendrier</Link></li>
-          <li><Link to="/patients" className="text-white text-3xl hover:scale-125 transition">Patients</Link></li>
-          <li><Link to="/activities" className="text-white text-3xl hover:scale-125 transition">Activités</Link></li>
-          <li><Link to="/reports" className="text-white text-3xl hover:scale-125 transition">Rapports</Link></li>
+        {/* Liens navigation */}
+        <ul className="hidden md:flex space-x-6">
+          {[
+            { to: '/calendrier', label: 'Calendrier' },
+            { to: '/patients', label: 'Patients' },
+            { to: '/activities', label: 'Activités' },
+            { to: '/reports', label: 'Rapports' },
+          ].map((item) => (
+            <li key={item.to}>
+              <Link
+                to={item.to}
+                className="text-white text-sm font-medium uppercase tracking-wide px-3 py-1 rounded-md transition duration-200 hover:bg-white/20"
+              >
+                {item.label}
+              </Link>
+
+            </li>
+          ))}
         </ul>
 
-        {/* Nom du thérapeute + menu de déconnexion */}
+        {/* Profil utilisateur */}
         {therapist && (
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="text-white font-semibold px-4 py-2 rounded hover:bg-[#8d7cf9] transition"
+              className="flex items-center gap-2 text-white font-medium hover:underline transition"
             >
               {therapist.name}
-              
+              <FiChevronDown />
             </button>
 
             {menuOpen && (

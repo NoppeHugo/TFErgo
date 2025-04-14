@@ -30,11 +30,12 @@ const Patients = () => {
 
   return (
     <motion.div 
-      className="p-4 bg-white shadow-lg rounded-xl w-full max-w-4xl h-[80vh] mt-4 overflow-y-auto custom-scrollbar"
+      className="p-4 bg-white shadow-lg rounded-xl w-full max-w-4xl h-[80vh] mt-4 flex flex-col"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.3 } }}
     >
-      <div className="flex justify-between items-center mb-4">
+      {/* En-tête fixe */}
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <h2 className="text-xl font-bold">Liste des Patients</h2>
         <button 
           className="bg-[#A294F9] text-white px-4 py-2 rounded-lg hover:bg-[#8a7cf9]"
@@ -44,19 +45,22 @@ const Patients = () => {
         </button>
       </div>
 
-      <ul className="space-y-2">
-        {patients.map(patient => (
-          <motion.li
-            key={patient.id}
-            className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200 flex justify-between items-center"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => goToPatientDetails(patient.id)}
-          >
-            <span>{patient.lastName} {patient.firstName}</span>
-          </motion.li>
-        ))}
-      </ul>
+      {/* Liste scrollable sans scrollbar visible */}
+      <div className="grow overflow-y-auto custom-scrollbar">
+        <ul className="space-y-2 pr-2">
+          {patients.map(patient => (
+            <motion.li
+              key={patient.id}
+              className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200 flex justify-between items-center"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => goToPatientDetails(patient.id)}
+            >
+              <span>{patient.lastName} {patient.firstName}</span>
+            </motion.li>
+          ))}
+        </ul>
+      </div>
     </motion.div>
   );
 };

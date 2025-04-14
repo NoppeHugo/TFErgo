@@ -24,27 +24,8 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   };
 
   const handleSave = async () => {
-    if (!motif || !patientId) {
-      console.error("❌ patientId ou motif est undefined !");
-      return;
-    }
-
-    const updatedMotif = {
-      ...motif,
-      therapeutic: {
-        assesments: therapeuticData.assesments || "",
-        syntheseEvaluation: therapeuticData.syntheseEvaluation || "",
-        restrictionsSouhaits: therapeuticData.restrictionsSouhaits || "",
-        diagnosticOccupationnel: therapeuticData.diagnosticOccupationnel || "",
-      },
-    };
-
-    try {
-      await updateMotif(updatedMotif);
-      setEditing(false);
-    } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour :", error);
-    }
+    await updateMotif({ ...motif, therapeutic: therapeuticData });
+    setEditing(false);
   };
 
   const handleCancel = () => {
@@ -58,8 +39,23 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg">
-      <h4 className="text-lg font-semibold mb-4">Perspective Thérapeutique</h4>
+    <div className="relative p-4 bg-white shadow-md rounded-lg">
+      <div className="flex justify-between items-start mb-4">
+        {!editing ? (
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg sticky top-4" onClick={() => setEditing(true)}>
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2 sticky top-4">
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>
+              Enregistrer
+            </button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
       {[
         { label: "Batteries Code CIF", field: "assesments" },
@@ -69,24 +65,16 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
       ].map(({ label, field }) => (
         <div key={field} className="mb-4">
           <label className="block text-sm font-medium text-gray-700">{label} :</label>
-          <QuillEditor
-            value={therapeuticData[field]}
-            onChange={(value) => handleInputChange(field, value)}
-            readOnly={!editing}
-          />
+          <div className="border rounded p-2">
+            <QuillEditor
+              value={therapeuticData[field]}
+              onChange={(value) => handleInputChange(field, value)}
+              readOnly={!editing}
+              className="min-h-[150px] max-h-[300px] overflow-y-auto custom-scrollbar"
+            />
+          </div>
         </div>
       ))}
-
-      <div className="flex space-x-2">
-        {!editing ? (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
-        ) : (
-          <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
-          </>
-        )}
-      </div>
     </div>
   );
 };

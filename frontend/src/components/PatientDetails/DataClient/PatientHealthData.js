@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { getPatientHealthData, updatePatientHealthData } from "../../../api/healthDataApi.js";
+import {
+  getPatientHealthData,
+  updatePatientHealthData,
+} from "../../../api/healthDataApi.js";
 
-const PatientHealthData = ({ patient, patientId }) => {
+const PatientHealthData = ({ patientId }) => {
   const [editing, setEditing] = useState(false);
   const [healthData, setHealthData] = useState({
     medicalDiagnosis: "",
@@ -46,12 +49,37 @@ const PatientHealthData = ({ patient, patientId }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Données de Santé
-      </h3>
+    <div className="flex flex-col bg-white h-full w-full rounded-lg shadow-md p-4">
+      {/* Header avec titre + bouton à droite */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-800">Données de Santé</h3>
+        {!editing ? (
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              onClick={handleSave}
+            >
+              Enregistrer
+            </button>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              onClick={handleCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-6">
+      {/* Scrollable content */}
+      <div className="overflow-y-auto flex-grow pr-1 custom-scrollbar space-y-6">
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
             Diagnostic Médical
@@ -59,7 +87,9 @@ const PatientHealthData = ({ patient, patientId }) => {
           <input
             type="text"
             value={healthData.medicalDiagnosis}
-            onChange={(e) => handleInputChange("medicalDiagnosis", e.target.value)}
+            onChange={(e) =>
+              handleInputChange("medicalDiagnosis", e.target.value)
+            }
             className="border p-2 rounded w-full"
             disabled={!editing}
           />
@@ -82,26 +112,11 @@ const PatientHealthData = ({ patient, patientId }) => {
           </label>
           <QuillEditor
             value={healthData.healthChronicle}
-            onChange={(value) => handleInputChange("healthChronicle", value)}
+            onChange={(value) =>
+              handleInputChange("healthChronicle", value)
+            }
             readOnly={!editing}
           />
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          {!editing ? (
-            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setEditing(true)}>
-              Modifier
-            </button>
-          ) : (
-            <>
-              <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={handleSave}>
-                Enregistrer
-              </button>
-              <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={handleCancel}>
-                Annuler
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>

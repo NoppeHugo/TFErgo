@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { searchActivities, deleteActivity } from '../../api/activityAPI.js';
 import ActivityCard from './ActivityCard.js';
 import EditActivityForm from './EditActivityForm.js';
-import FullscreenActivityView from './FullscreenActivityView.js';
+import FullscreenActivityView from './ActivityDetailsPage.js';
 
 const ActivityList = ({ filters, refresh }) => {
   const [activities, setActivities] = useState([]);
@@ -44,7 +44,7 @@ const ActivityList = ({ filters, refresh }) => {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 auto-rows-fr">
           {activities.map(activity => (
             <ActivityCard
               key={activity.id}
@@ -60,9 +60,18 @@ const ActivityList = ({ filters, refresh }) => {
       {/* Vue plein écran si sélectionnée */}
       {fullscreenActivity && (
         <FullscreenActivityView
-          activity={fullscreenActivity}
-          onClose={() => setFullscreenActivity(null)}
-        />
+        activity={fullscreenActivity}
+        onClose={() => setFullscreenActivity(null)}
+        onEdit={(a) => {
+          setEditingActivity(a);
+          setFullscreenActivity(null);
+        }}
+        onDelete={async (id) => {
+          await deleteActivity(id);
+          setFullscreenActivity(null);
+          setActivities(prev => prev.filter((a) => a.id !== id));
+        }}
+      />      
       )}
     </>
   );

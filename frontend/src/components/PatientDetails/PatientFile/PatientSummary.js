@@ -11,14 +11,8 @@ const PatientSummary = ({ motif, updateMotif }) => {
 
   const handleSave = async () => {
     if (!motif) return;
-
-    const updatedMotif = {
-      ...motif,
-      synthese,
-    };
-
     try {
-      await updateMotif(updatedMotif);
+      await updateMotif({ ...motif, synthese });
       setEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de la synthèse :", error);
@@ -31,33 +25,42 @@ const PatientSummary = ({ motif, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg h-full">
-      <h4 className="text-md font-semibold mb-4">Synthèse</h4>
+    <div className="relative flex flex-col p-4 bg-white shadow-md rounded-lg h-full max-h-[calc(100vh-150px)] overflow-hidden">
+      {/* Titre + Bouton Modifier sticky en haut */}
+      <div className="flex justify-between items-start mb-4 sticky top-0 bg-white z-10 pb-2">
+        {!editing ? (
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              onClick={handleSave}
+            >
+              Enregistrer
+            </button>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+              onClick={handleCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="border rounded-lg p-2">
+      {/* ✅ Scroll uniquement ici */}
+      <div className="border rounded-lg p-2 grow overflow-y-auto custom-scrollbar">
         <QuillEditor
           value={synthese}
           onChange={setSynthese}
           readOnly={!editing}
-          className="min-h-[150px] max-h-64 overflow-auto"
+          className="h-full"
         />
-      </div>
-
-      <div className="flex space-x-2 mt-4">
-        {editing ? (
-          <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
-              Enregistrer
-            </button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
-              Annuler
-            </button>
-          </>
-        ) : (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => setEditing(true)}>
-            Modifier
-          </button>
-        )}
       </div>
     </div>
   );

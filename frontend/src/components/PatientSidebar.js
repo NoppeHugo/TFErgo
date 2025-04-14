@@ -27,14 +27,16 @@ const PatientSidebar = () => {
   };
 
   return (
-    <div className="h-full">
-      <h3 className="text-lg font-bold mb-4">Liste des patients</h3>
-      <ul className="space-y-2 h-96 overflow-y-auto custom-scrollbar">
+    <div className="h-full w-full flex flex-col">
+      <h3 className="text-lg font-bold mb-4 px-2">Liste des patients</h3>
+      <ul className="flex-grow overflow-y-auto custom-scrollbar px-2 space-y-2">
         {patients.map((patient) => (
           <li
             key={patient.id}
-            className={`p-2 rounded-lg cursor-pointer ${
-              patient.id === parseInt(patientId) ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-blue-300"
+            className={`block w-full p-2 rounded-lg text-sm cursor-pointer truncate ${
+              patient.id === parseInt(patientId)
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 hover:bg-blue-300"
             }`}
             onClick={() => handlePatientChange(patient.id)}
           >

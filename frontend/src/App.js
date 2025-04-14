@@ -12,6 +12,7 @@ import Header from './components/Header.js';
 import './index.css';
 import LoginPage from './pages/LoginPage.js';
 import RequireAuth from './components/RequireAuth.js';
+import ActivityDetailsPage from './src/components/activities/ActivityDetailsPage.js ';
 
 // Page d'accueil
 const HomePage = () => (

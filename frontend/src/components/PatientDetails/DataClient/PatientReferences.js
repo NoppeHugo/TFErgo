@@ -5,12 +5,13 @@ import {
   updateContact,
   deleteContact,
 } from "../../../api/contactAPI.js";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const PatientReferences = ({ patient }) => {
   const [contacts, setContacts] = useState([]);
   const [editing, setEditing] = useState(null);
   const [isNew, setIsNew] = useState(false);
-  const [formType, setFormType] = useState("reference"); // Pour savoir dans quel tableau afficher le formulaire
+  const [formType, setFormType] = useState("reference");
 
   const [form, setForm] = useState({
     firstName: "",
@@ -98,14 +99,9 @@ const PatientReferences = ({ patient }) => {
   const personals = contacts.filter((c) => c.type === "personal");
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Références et Contacts
-      </h3>
-
-      {/* Formulaire affiché en haut du bon tableau */}
+    <div className="flex flex-col grow overflow-y-auto space-y-8 px-2">
       {(editing !== null || isNew) && (
-        <div className="bg-gray-100 p-4 rounded mb-6 space-y-2">
+        <div className="bg-gray-100 p-4 rounded mb-2 space-y-2">
           <input name="firstName" value={form.firstName || ""} onChange={handleChange} placeholder="Prénom" className="w-full p-2 border rounded" />
           <input name="lastName" value={form.lastName || ""} onChange={handleChange} placeholder="Nom" className="w-full p-2 border rounded" />
           {formType === "personal" && (
@@ -125,83 +121,75 @@ const PatientReferences = ({ patient }) => {
         </div>
       )}
 
-      {/* Références */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-lg font-semibold text-gray-700">Références et Contacts</h4>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "reference")}>
-            Ajouter Référence
-          </button>
-        </div>
-        <table className="w-full border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2">Nom</th>
-              <th className="p-2">Prénom</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">INAMI</th>
-              <th className="p-2">Téléphone</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {references.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.lastName}</td>
-                <td className="p-2">{c.firstName}</td>
-                <td className="p-2">{c.type}</td>
-                <td className="p-2">{c.inami}</td>
-                <td className="p-2">{c.phone}</td>
-                <td className="p-2">{c.email}</td>
-                <td className="p-2">
-                  <button className="text-blue-600" onClick={() => startEdit(c, "reference")}>✏️</button>
-                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {[{ title: "Références", data: references, type: "reference" }, { title: "Contacts Personnels", data: personals, type: "personal" }].map(({ title, data, type }) => (
+        <div key={type}>
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-lg font-semibold text-gray-700">{title}</h4>
+            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, type)}>
+              Ajouter
+            </button>
+          </div>
 
-      {/* Contacts personnels */}
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-lg font-semibold text-gray-700">Contacts Personnels</h4>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "personal")}>
-            Ajouter Contact Personnel
-          </button>
+          <div className="max-h-64 overflow-y-auto custom-scrollbar rounded border">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-200">
+                <tr>
+                  {type === "reference" ? (
+                    <>
+                      <th className="p-2">Nom</th>
+                      <th className="p-2">Prénom</th>
+                      <th className="p-2">INAMI</th>
+                      <th className="p-2">Téléphone</th>
+                      <th className="p-2">Email</th>
+                      <th className="p-2">Action</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="p-2">Nom</th>
+                      <th className="p-2">Prénom</th>
+                      <th className="p-2">Relation</th>
+                      <th className="p-2">Téléphone</th>
+                      <th className="p-2">Email</th>
+                      <th className="p-2">Commentaire</th>
+                      <th className="p-2">Action</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((c) => (
+                  <tr key={c.id} className="border-t hover:bg-gray-50 transition">
+                    <td className="p-2">{c.lastName}</td>
+                    <td className="p-2">{c.firstName}</td>
+                    {type === "reference" ? (
+                      <>
+                        <td className="p-2">{c.inami}</td>
+                        <td className="p-2">{c.phone}</td>
+                        <td className="p-2">{c.email}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-2">{c.relation}</td>
+                        <td className="p-2">{c.phone}</td>
+                        <td className="p-2">{c.email}</td>
+                        <td className="p-2">{c.comment}</td>
+                      </>
+                    )}
+                    <td className="p-2 flex gap-2">
+                      <button title="Modifier" onClick={() => startEdit(c, type)}>
+                        <FiEdit2 className="text-blue-600" />
+                      </button>
+                      <button title="Supprimer" onClick={() => handleDelete(c.id)}>
+                        <FiTrash2 className="text-red-600" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <table className="w-full border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2">Nom</th>
-              <th className="p-2">Prénom</th>
-              <th className="p-2">Relation</th>
-              <th className="p-2">Téléphone</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Commentaire</th>
-              <th className="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {personals.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.lastName}</td>
-                <td className="p-2">{c.firstName}</td>
-                <td className="p-2">{c.relation}</td>
-                <td className="p-2">{c.phone}</td>
-                <td className="p-2">{c.email}</td>
-                <td className="p-2">{c.comment}</td>
-                <td className="p-2">
-                  <button className="text-blue-600" onClick={() => startEdit(c, "personal")}>✏️</button>
-                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      ))}
     </div>
   );
 };

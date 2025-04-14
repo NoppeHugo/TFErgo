@@ -56,32 +56,58 @@ const PatientDetails = () => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
   };
 
-  if (loading) return <div>Chargement...</div>;
-  if (!patient) return <div>Patient introuvable</div>;
+  if (loading) return <div className="p-4">Chargement...</div>;
+  if (!patient) return <div className="p-4">Patient introuvable</div>;
 
   return (
-    <div className="p-4 bg-white shadow-lg rounded-xl w-full h-full">
-      <h2 className="text-xl font-bold">{patient.lastName} {patient.firstName}</h2>
-      <button className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 text-sm" onClick={handleDelete}>
-        Supprimer
-      </button>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-white">
+      {/* En-tête patient */}
+      <div className="flex justify-between items-center mb-6 border-b pb-4">
+        <h2 className="text-2xl font-bold text-gray-800">
+          {patient.lastName} {patient.firstName}
+        </h2>
+        <button
+          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm transition"
+          onClick={handleDelete}
+        >
+          Supprimer
+        </button>
+      </div>
 
-      <div className="flex space-x-4 mb-6">
-        {["details", "carnet", "donnees", "dossier"].map((tab) => (
+      {/* Tabs navigation */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        {[
+          { key: "details", label: "Détails" },
+          { key: "carnet", label: "Carnet de notes" },
+          { key: "donnees", label: "Données patient" },
+          { key: "dossier", label: "Dossier patient" },
+        ].map(({ key, label }) => (
           <button
-            key={tab}
-            className={`py-2 px-4 rounded-lg ${activeTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-            onClick={() => setActiveTab(tab)}
+            key={key}
+            className={`py-2 px-4 rounded-lg transition text-sm font-medium ${
+              activeTab === key
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+            }`}
+            onClick={() => setActiveTab(key)}
           >
-            {tab === "details" ? "Détails" : tab === "carnet" ? "Carnet de notes" : tab === "donnees" ? "Données patient" : "Dossier patient"}
+            {label}
           </button>
         ))}
       </div>
-      
 
-
-      <div className="transition-all duration-500 ease-in-out h-full overflow-y-auto">
-        {activeTab === "details" && <PatientDetailsTab patient={patient} isEditing={isEditing} updatedPatient={updatedPatient} handleChange={handleChange} handleUpdate={handleUpdate} setIsEditing={setIsEditing} />}
+      {/* Contenu */}
+      <div className="grow overflow-y-auto custom-scrollbar pr-1">
+        {activeTab === "details" && (
+          <PatientDetailsTab
+            patient={patient}
+            isEditing={isEditing}
+            updatedPatient={updatedPatient}
+            handleChange={handleChange}
+            handleUpdate={handleUpdate}
+            setIsEditing={setIsEditing}
+          />
+        )}
         {activeTab === "carnet" && <PatientNotesTab patient={patient} />}
         {activeTab === "donnees" && <PatientDataTab patient={patient} />}
         {activeTab === "dossier" && <PatientFileTab patient={patient} />}
