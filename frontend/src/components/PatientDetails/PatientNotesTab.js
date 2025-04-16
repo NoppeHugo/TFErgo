@@ -102,7 +102,7 @@ const PatientNotesTab = ({ patient }) => {
       <div className="shrink-0 mb-4">
         <h3 className="text-lg font-bold mb-4">Notes</h3>
         <button
-          className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          className="mb-4 bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
           onClick={() => setShowForm(!showForm)}
         >
           {showForm ? "Cancel" : "Add Note"}

@@ -107,7 +107,7 @@ const PatientObjectives = ({ motif }) => {
       </select>
 
       <div className="flex justify-end">
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg" onClick={handleAddShortTermObjective}>
+        <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg" onClick={handleAddShortTermObjective}>
           Enregistrer
         </button>
       </div>
@@ -128,7 +128,7 @@ const PatientObjectives = ({ motif }) => {
           className="w-full p-2 border rounded-lg mb-2"
         />
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded-lg w-full mb-4"
+          className="bg-dark2GreenErgogo text-white px-4 py-2 rounded-lg w-full mb-4"
           onClick={handleAddLongTermObjective}
         >
           Ajouter
@@ -140,7 +140,7 @@ const PatientObjectives = ({ motif }) => {
               key={obj.id}
               onClick={() => setSelectedLongObjective(obj)}
               className={`cursor-pointer p-2 rounded-lg text-sm ${
-                selectedLongObjective?.id === obj.id ? "bg-blue-500 text-white" : "bg-gray-200"
+                selectedLongObjective?.id === obj.id ? "bg-middleBlueErgogo text-white" : "bg-gray-200"
               }`}
             >
               {obj.title}
@@ -158,7 +158,7 @@ const PatientObjectives = ({ motif }) => {
                 Objectifs Court Terme pour "{selectedLongObjective.title}"
               </h4>
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg"
                 onClick={() => setShowShortTermForm(!showShortTermForm)}
               >
                 {showShortTermForm ? "Annuler" : "Ajouter"}

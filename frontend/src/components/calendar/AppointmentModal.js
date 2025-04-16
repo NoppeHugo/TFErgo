@@ -1,0 +1,227 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+} from "../../api/appointmentAPI.js";
+
+import { getAllPatients } from "../../api/patientAPI.js";
+import { getActivities } from "../../api/activityAPI.js";
+
+const AppointmentModal = ({ event, onClose }) => {
+  const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    patientId: "",
+    activityId: "",
+    description: "",
+    date: "",
+    duration: 60,
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [pats, actsRes] = await Promise.all([
+        getAllPatients(),
+        getActivities(),
+      ]);
+      setPatients(pats);
+      setActivities(actsRes.data);
+    };
+    fetchData();
+
+    if (event?.id) {
+      setForm({
+        title: event.title.split(" - ")[0] || "",
+        patientId: event.patient?.id || "",
+        activityId: event.activity?.id || "",
+        description: event.description || "",
+        date: event.start?.toISOString().slice(0, 16) || "",
+        duration: (event.end - event.start) / 60000 || 60,
+      });
+    } else if (event?.date) {
+      setForm((prev) => ({
+        ...prev,
+        date: new Date(event.date).toISOString().slice(0, 16),
+      }));
+    }
+  }, [event]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    const data = {
+      ...form,
+      duration: parseInt(form.duration),
+    };
+    if (event?.id) {
+      await updateAppointment(event.id, data);
+    } else {
+      await createAppointment(data);
+    }
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    if (event?.id && window.confirm("Supprimer ce rendez-vous ?")) {
+      await deleteAppointment(event.id);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white rounded-2xl px-8 py-6 w-full max-w-[90%] md:max-w-[520px] shadow-xl">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          {event?.id ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}
+        </h2>
+
+        <div className="grid grid-cols-1 gap-4">
+          {/* Titre */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Titre</label>
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="Ex: Séance d’évaluation cognitive"
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          {/* Patient */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Patient</label>
+            <select
+              name="patientId"
+              value={form.patientId}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            >
+              <option value="">-- Sélectionner un patient --</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.firstName} {p.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Activité */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Activité</label>
+            <select
+              name="activityId"
+              value={form.activityId}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            >
+              <option value="">-- Sélectionner une activité --</option>
+              {activities.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Description */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Préparation / description</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Ex : matériel à prévoir, consignes à suivre..."
+              className="border rounded-lg px-3 py-2 text-sm min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          {/* Date */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Date & heure</label>
+            <input
+              type="datetime-local"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          {/* Durée */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Durée</label>
+            <select
+              name="duration"
+              value={form.duration}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            >
+              {[30, 45, 60, 90, 120].map((d) => (
+                <option key={d} value={d}>
+                  {d} minutes
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Liens rapides */}
+          <div className="flex justify-between pt-1 text-sm">
+            {form.patientId && (
+              <button
+                onClick={() => navigate(`/patient/${form.patientId}`)}
+                className="text-[#A294F9] hover:underline"
+              >
+                Voir le dossier du patient
+              </button>
+            )}
+            {form.activityId && (
+              <button
+                onClick={() => navigate(`/activities/${form.activityId}`)}
+                className="text-[#A294F9] hover:underline"
+              >
+                Voir l'activité
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Boutons bas */}
+        <div className="flex justify-between mt-6 items-center">
+          {event?.id && (
+            <button
+              className="text-red-500 hover:underline text-sm"
+              onClick={handleDelete}
+            >
+              🗑️ Supprimer
+            </button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm border border-[#A294F9] text-[#A294F9] rounded-lg hover:bg-[#f6f4ff] transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 text-sm bg-[#A294F9] text-white rounded-lg shadow hover:bg-[#8c7ef1] transition"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AppointmentModal;

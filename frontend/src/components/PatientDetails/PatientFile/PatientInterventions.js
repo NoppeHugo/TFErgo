@@ -79,7 +79,7 @@ const PatientInterventions = ({ motif, updateMotif }) => {
       <h4 className="text-md font-semibold mb-4">Compte Rendu des Interventions</h4>
 
       <button
-        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        className="mb-4 bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
         onClick={() => {
           setShowForm(true);
           setEditingIndex(null);

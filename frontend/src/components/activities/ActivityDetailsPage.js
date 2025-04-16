@@ -319,7 +319,7 @@ const ActivityDetailsPage = () => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+                className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition"
               >
                 Enregistrer
               </button>

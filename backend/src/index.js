@@ -37,6 +37,7 @@ app.use('/goals', require('./routes/goals'));               // Objectifs liés a
 app.use('/files', require('./routes/activityFiles'));       // Upload/suppression de fichiers lié
 
 app.use('/reports', require('./routes/reports'));
+app.use("/appointments", require('./routes/appointments'));  // RDV thérapeutiques
 
 
 // ✅ Middleware pour test de disponibilité

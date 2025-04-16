@@ -38,7 +38,7 @@ const Patients = () => {
       <div className="flex justify-between items-center mb-4 shrink-0">
         <h2 className="text-xl font-bold">Liste des Patients</h2>
         <button 
-          className="bg-[#A294F9] text-white px-4 py-2 rounded-lg hover:bg-[#8a7cf9]"
+          className="bg-[#AE99B2] text-white px-4 py-2 rounded-lg hover:bg-[#776B89]"
           onClick={goToAddPatientPage}
         >
           Ajouter un patient

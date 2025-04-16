@@ -125,7 +125,7 @@ const PatientReferences = ({ patient }) => {
         <div key={type}>
           <div className="flex justify-between items-center mb-2">
             <h4 className="text-lg font-semibold text-gray-700">{title}</h4>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, type)}>
+            <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, type)}>
               Ajouter
             </button>
           </div>

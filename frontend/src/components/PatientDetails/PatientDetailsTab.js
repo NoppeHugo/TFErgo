@@ -41,7 +41,7 @@ const PatientDetailsTab = ({ patient, isEditing, updatedPatient, handleChange, h
       {!isEditing && (
         <div className="mt-6 flex justify-end">
           <button
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+            className="bg-middleBlueErgogo text-white px-6 py-2 rounded-lg hover:bg-dark2GreenErgogo transition duration-200 text-sm font-medium"
             onClick={() => setIsEditing(true)}
           >
             Modifier

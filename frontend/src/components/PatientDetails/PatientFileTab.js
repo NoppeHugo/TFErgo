@@ -94,7 +94,7 @@ const PatientFileTab = ({ patient }) => {
             className="w-full p-2 border rounded-lg mb-2"
           />
           <button
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full"
+            className="bg-dark2GreenErgogo text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full"
             onClick={handleCreateMotif}
           >
             Ajouter
@@ -107,7 +107,7 @@ const PatientFileTab = ({ patient }) => {
               key={motif.id || index}
               className={`cursor-pointer p-2 rounded-lg text-sm ${
                 selectedMotif?.id === motif.id
-                  ? "bg-blue-500 text-white"
+                  ? "bg-middleBlueErgogo text-white"
                   : "bg-gray-200 hover:bg-blue-300"
               }`}
               onClick={() => handleSelectMotif(motif)}
@@ -133,7 +133,7 @@ const PatientFileTab = ({ patient }) => {
                   key={tab}
                   className={`py-2 px-4 rounded-lg text-sm font-medium transition ${
                     activeSubTab === tab
-                      ? "bg-blue-500 text-white"
+                      ? "bg-middleBlueErgogo text-white"
                       : "bg-gray-200 hover:bg-gray-300"
                   }`}
                   onClick={() => setActiveSubTab(tab)}

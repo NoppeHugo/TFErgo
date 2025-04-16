@@ -30,7 +30,7 @@ const PatientSummary = ({ motif, updateMotif }) => {
       <div className="flex justify-between items-start mb-4 sticky top-0 bg-white z-10 pb-2">
         {!editing ? (
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+            className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg"
             onClick={() => setEditing(true)}
           >
             Modifier

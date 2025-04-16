@@ -23,7 +23,7 @@ const Header = () => {
   }
 
   return (
-    <nav className="bg-[#A294F9] px-6 py-3 shadow-md">
+    <nav className="bg-[#AE99B2] px-6 py-3 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="text-white text-xl font-bold tracking-wider">
@@ -45,7 +45,6 @@ const Header = () => {
               >
                 {item.label}
               </Link>
-
             </li>
           ))}
         </ul>

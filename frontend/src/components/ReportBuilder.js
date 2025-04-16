@@ -109,7 +109,7 @@ const ReportBuilder = ({ patientId }) => {
       </DragDropContext>
       <button
         onClick={handleGenerate}
-        className="mt-6 px-4 py-2 bg-violetErgogo text-white rounded hover:brightness-110"
+        className="mt-6 px-4 py-2 bg-dark2GreenErgogo text-white rounded hover:brightness-110"
       >
         Générer le PDF
       </button>

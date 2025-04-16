@@ -11,6 +11,8 @@ export const getAllPatients = async () => {
   return res.data
 }
 
+
+
 // GET one patient
 export const getPatient = async (id) => {
   const res = await api.get(`/patients/${id}`)

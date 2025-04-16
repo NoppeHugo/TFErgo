@@ -35,7 +35,7 @@ const PatientSidebar = () => {
             key={patient.id}
             className={`block w-full p-2 rounded-lg text-sm cursor-pointer truncate ${
               patient.id === parseInt(patientId)
-                ? "bg-blue-500 text-white"
+                ? "bg-[#748FC4] text-white"
                 : "bg-gray-200 hover:bg-blue-300"
             }`}
             onClick={() => handlePatientChange(patient.id)}

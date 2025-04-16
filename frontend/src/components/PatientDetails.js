@@ -67,7 +67,7 @@ const PatientDetails = () => {
           {patient.lastName} {patient.firstName}
         </h2>
         <button
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm transition"
+          className="bg-[#AB3130] text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm transition"
           onClick={handleDelete}
         >
           Supprimer
@@ -86,7 +86,7 @@ const PatientDetails = () => {
             key={key}
             className={`py-2 px-4 rounded-lg transition text-sm font-medium ${
               activeTab === key
-                ? "bg-blue-500 text-white"
+                ? "bg-middleBlueErgogo text-white"
                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
             onClick={() => setActiveTab(key)}

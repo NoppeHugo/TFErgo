@@ -43,13 +43,13 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
       </div>
 
       {/* Contenu principal */}
-      <h2 className="text-xl font-bold text-purple-700">{activity.name}</h2>
+      <h2 className="text-xl font-bold text-darkPurpleErgogo">{activity.name}</h2>
       <p className="text-gray-600 text-sm mt-1 whitespace-pre-line line-clamp-2">{activity.description}</p>
 
       {activity.link && (
         <a
           href={activity.link}
-          className="text-purple-600 text-sm underline mt-2 inline-block"
+          className="text-darkPurpleErgogo text-sm underline mt-2 inline-block"
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
@@ -65,7 +65,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
             {activity.objectives.map((o) => (
               <span
                 key={o.objective.id}
-                className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full"
+                className="text-xs px-2 py-1 bg-lightPurpleErgogo text-white rounded-full"
               >
                 {o.objective.name}
               </span>

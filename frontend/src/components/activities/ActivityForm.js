@@ -116,7 +116,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
             />
             <button
               onClick={handleAddGoal}
-              className="bg-greenErgogo hover:bg-greenErgogo/90 text-white px-3 py-1 rounded text-sm transition"
+              className="bg-dark2GreenErgogo hover:bg-greenErgogo/90 text-white px-3 py-1 rounded text-sm transition"
             >
               + Objectif
             </button>
@@ -134,7 +134,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
 
         <button
           onClick={() => setVisible(true)}
-          className="bg-violetErgogo hover:bg-violetErgogo/90 text-white px-3 py-1 rounded text-sm transition"
+          className="bg-lightPurpleErgogo hover:bg-violetErgogo/90 text-white px-3 py-1 rounded text-sm transition"
         >
           + Ajouter une activité
         </button>
@@ -199,7 +199,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
       <div className="flex gap-4 pt-2">
         <button
           type="submit"
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+          className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition"
         >
           Créer
         </button>

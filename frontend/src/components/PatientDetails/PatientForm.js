@@ -68,7 +68,7 @@ const PatientForm = ({ patientData, handleChange, handleSubmit, isEditing, setIs
       </div>
 
       <div className="mt-4 flex space-x-4">
-        <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSubmit}>
+        <button className="bg-[#B5C99A] text-white px-4 py-2 rounded-lg hover:bg-[#97A97C]" onClick={handleSubmit}>
           {isEditing ? "Enregistrer" : "Ajouter"}
         </button>
         {isEditing && (

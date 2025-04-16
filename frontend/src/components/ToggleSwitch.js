@@ -11,7 +11,7 @@ const ToggleSwitch = ({ checked, onChange, size = 60 }) => {
       style={{
         width: `${size}px`,
         height: `${height}px`,
-        backgroundColor: checked ? "#a294f9" : "#e5e7eb", // violet / gris
+        backgroundColor: checked ? "#97a97c" : "#e5e7eb", // violet / gris
         borderRadius: `${height}px`,
         display: "flex",
         alignItems: "center",

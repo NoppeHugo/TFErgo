@@ -42,7 +42,7 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
     <div className="relative p-4 bg-white shadow-md rounded-lg">
       <div className="flex justify-between items-start mb-4">
         {!editing ? (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg sticky top-4" onClick={() => setEditing(true)}>
+          <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg sticky top-4" onClick={() => setEditing(true)}>
             Modifier
           </button>
         ) : (

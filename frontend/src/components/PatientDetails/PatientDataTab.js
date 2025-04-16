@@ -28,7 +28,7 @@ const PatientDataTab = ({ patient }) => {
           <button
             className={`py-2 px-4 rounded-lg transition-all text-sm font-medium ${
               activeSubTab === "references"
-                ? "bg-blue-500 text-white"
+                ? "bg-middleBlueErgogo text-white"
                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
             onClick={() => setActiveSubTab("references")}
@@ -38,7 +38,7 @@ const PatientDataTab = ({ patient }) => {
           <button
             className={`py-2 px-4 rounded-lg transition-all text-sm font-medium ${
               activeSubTab === "health"
-                ? "bg-blue-500 text-white"
+                ? "bg-middleBlueErgogo text-white"
                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
             onClick={() => setActiveSubTab("health")}

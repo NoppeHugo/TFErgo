@@ -115,7 +115,7 @@ const ActivityFilters = ({ filters, setFilters, onCreated }) => {
           <button
             onClick={handleAddObjectiveField}
             type="button"
-            className="text-blue-600 text-sm hover:underline mt-1"
+            className="text-darkPurpleErgogo text-sm hover:underline mt-1"
           >
             + Ajouter un objectif
           </button>
