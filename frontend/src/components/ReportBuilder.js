@@ -10,6 +10,7 @@ const sectionLabels = {
   motif: "Motif d’intervention",
   diagnostic: "Diagnostic",
   comptesRendus: "Comptes rendus",
+  appointments: "Rendez-vous",
   synthese: "Synthèse",
 };
 

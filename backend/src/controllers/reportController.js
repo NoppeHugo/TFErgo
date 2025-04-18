@@ -10,7 +10,6 @@ const generatePatientReport = async (req, res) => {
   const { selectedSections } = req.body;
 
   try {
-    // Récupération du patient et de ses données
     const patient = await prisma.patient.findUnique({
       where: { id: parseInt(patientId) },
       include: {
@@ -23,15 +22,46 @@ const generatePatientReport = async (req, res) => {
       },
     });
 
-    // Séparation des contacts par type
+    const appointments = await prisma.appointment.findMany({
+      where: { patientId: patient.id },
+      include: {
+        activities: { include: { activity: true } },
+        feedbacks: true,
+      },
+      orderBy: { date: 'asc' }
+    });
+
     const references = patient.contacts.filter((c) => c.type === "reference");
     const personals = patient.contacts.filter((c) => c.type === "personal");
-
-    // Récupération du premier motif d’intervention (s’il existe)
     const motif = patient.interventionReasons[0] || {};
 
-    // Définition des sections
-    // Fusionner "Références et Contacts" et "Contacts Personnels" sous la clé "contacts"
+    const appointmentsSection = {
+      title: "Rendez-vous",
+      content: appointments.map((apt) => {
+        const date = new Date(apt.date).toLocaleDateString("fr-FR");
+        const activities = apt.activities.length
+          ? `<ul>${apt.activities.map((link) => `<li>${link.activity.name}</li>`).join("")}</ul>`
+          : "<em>Aucune activité</em>";
+
+        const feedbacks = apt.feedbacks.length
+          ? apt.feedbacks.map(
+              (fb) =>
+                `<p>${"★".repeat(fb.rating)}${"☆".repeat(5 - fb.rating)} — ${fb.objective} ${fb.completed ? "(✅ terminé)" : ""}</p>`
+            ).join("")
+          : "<em>Aucun retour</em>";
+
+        return `
+          <h3>${apt.title} — ${date}</h3>
+          <p>${apt.description || ""}</p>
+          <p><strong>Activités réalisées :</strong></p>
+          ${activities}
+          <p><strong>Retour sur la séance :</strong></p>
+          ${feedbacks}
+          ${apt.sessionReport ? `<p><strong>Compte rendu :</strong><br/>${apt.sessionReport}</p>` : ""}
+        `;
+      }).join("<hr/>")
+    };
+
     const sections = {
       patientInfo: {
         title: "Données client",
@@ -40,16 +70,14 @@ const generatePatientReport = async (req, res) => {
 <strong>Nationalité :</strong> ${patient.nationality || ""}<br/>
 <strong>Adresse :</strong> ${patient.address || ""}<br/>
 <strong>Téléphone :</strong> ${patient.phone1 || ""}, ${patient.phone2 || ""}<br/>
-<strong>Email :</strong> ${patient.email || ""}
-        `,
+<strong>Email :</strong> ${patient.email || ""}`
       },
       contacts: {
         title: "Références & Contacts",
         content: `
 ${references.map((r) => `${r.relation || ""} (${r.firstName || ""} ${r.lastName || ""})`).join("<br/>")}
 <br/>
-${personals.map((p) => `${p.relation || ""} (${p.firstName || ""} ${p.lastName || ""})`).join("<br/>")}
-        `,
+${personals.map((p) => `${p.relation || ""} (${p.firstName || ""} ${p.lastName || ""})`).join("<br/>")}`
       },
       medicalData: {
         title: "Données de Santé",
@@ -59,8 +87,7 @@ ${patient.medicalDiagnosis || ""}
 <h3>Antécédents Médicaux</h3>
 ${patient.medicalHistory || ""}
 <h3>Chronique de Santé</h3>
-${patient.healthChronicle || ""}
-        `,
+${patient.healthChronicle || ""}`
       },
       motif: {
         title: "Motif d’intervention",
@@ -70,38 +97,33 @@ ${motif?.therapeutic?.syntheseEvaluation || ""}
 <h3>Restrictions de participation</h3>
 ${motif?.therapeutic?.restrictionsSouhaits || ""}
 <h3>Diagnostic occupationnel</h3>
-${motif?.therapeutic?.diagnosticOccupationnel || ""}
-        `,
+${motif?.therapeutic?.diagnosticOccupationnel || ""}`
       },
       diagnostic: {
         title: "Diagnostic",
         content: patient.diagnostics
-          .map((d) =>
-            `<p><strong>${new Date(d.createdAt).toLocaleDateString()}</strong> — ${d.diagnosticText}</p>`
-          )
-          .join(""),
+          .map((d) => `<p><strong>${new Date(d.createdAt).toLocaleDateString()}</strong> — ${d.diagnosticText}</p>`)
+          .join("")
       },
       comptesRendus: {
         title: "Comptes rendus",
         content:
           motif?.compteRenduInterventions
             ?.map((i) => `<p><strong>${i.date}</strong><br/>${i.texte}</p>`)
-            .join("") || "",
+            .join("") || ""
       },
       synthese: {
         title: "Synthèse",
-        content: motif?.synthese || "",
+        content: motif?.synthese || ""
       },
+      appointments: appointmentsSection
     };
 
-    // Ne conserver que les sections sélectionnées
     const reportContent = selectedSections.map((key) => ({
       title: sections[key]?.title || "",
-      content: sections[key]?.content || "<em>Non renseigné</em>",
+      content: sections[key]?.content || "<em>Non renseigné</em>"
     }));
 
-    // Extraction des sous-sections (<h3>) pour chaque section
-    // On génère une numérotation "Section.SousIndex" pour chaque <h3> trouvé dans le contenu
     reportContent.forEach((section, sIndex) => {
       const regex = /<h3>(.*?)<\/h3>/g;
       section.subsections = [];
@@ -109,7 +131,6 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}
       let subCounter = 1;
       while ((match = regex.exec(section.content)) !== null) {
         const subTitle = match[1].trim();
-        // Génère un numéro sous la forme "X.Y" où X = numéro de section
         const subNumber = `${sIndex + 1}.${subCounter}`;
         section.subsections.push({
           number: subNumber,
@@ -119,7 +140,6 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}
       }
     });
 
-    // Helpers Handlebars pour la numérotation dans le contenu
     handlebars.registerHelper("addOne", function (index) {
       return index + 1;
     });
@@ -133,12 +153,10 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}
       }.bind(this));
     });
 
-    // Lecture et compilation du template Handlebars
     const templatePath = path.resolve(__dirname, "../../templates/reportTemplate.hbs");
     const source = fs.readFileSync(templatePath, "utf8");
     const template = handlebars.compile(source);
 
-    // Injection des données dans le template
     const html = template({
       patientName: `${patient.firstName} ${patient.lastName}`,
       birthDate: new Date(patient.birthdate).toLocaleDateString(),
@@ -147,7 +165,6 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}
       reportContent,
     });
 
-    // Génération du PDF via Puppeteer
     const browser = await puppeteer.launch({
       headless: "new",
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -173,7 +190,6 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}
     });
     await browser.close();
 
-    // Construction du nom du fichier PDF
     const today = new Date().toISOString().split("T")[0];
     const firstName = patient.firstName.trim().replace(/\s+/g, "_");
     const lastName = patient.lastName.trim().replace(/\s+/g, "_");

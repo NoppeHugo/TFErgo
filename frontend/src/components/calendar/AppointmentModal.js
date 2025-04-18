@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Select from "react-select";
 import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  linkActivitiesToAppointment,
 } from "../../api/appointmentAPI.js";
-
 import { getAllPatients } from "../../api/patientAPI.js";
 import { getActivities } from "../../api/activityAPI.js";
 
@@ -16,7 +17,7 @@ const AppointmentModal = ({ event, onClose }) => {
   const [form, setForm] = useState({
     title: "",
     patientId: "",
-    activityId: "",
+    activityIds: [],
     description: "",
     date: "",
     duration: 60,
@@ -37,7 +38,7 @@ const AppointmentModal = ({ event, onClose }) => {
       setForm({
         title: event.title.split(" - ")[0] || "",
         patientId: event.patient?.id || "",
-        activityId: event.activity?.id || "",
+        activityIds: event.activities?.map((a) => a.activity?.id) || [],
         description: event.description || "",
         date: event.start?.toISOString().slice(0, 16) || "",
         duration: (event.end - event.start) / 60000 || 60,
@@ -62,8 +63,10 @@ const AppointmentModal = ({ event, onClose }) => {
     };
     if (event?.id) {
       await updateAppointment(event.id, data);
+      await linkActivitiesToAppointment(event.id, form.activityIds);
     } else {
-      await createAppointment(data);
+      const newApt = await createAppointment(data);
+      await linkActivitiesToAppointment(newApt.id, form.activityIds);
     }
     onClose();
   };
@@ -83,7 +86,6 @@ const AppointmentModal = ({ event, onClose }) => {
         </h2>
 
         <div className="grid grid-cols-1 gap-4">
-          {/* Titre */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Titre</label>
             <input
@@ -96,7 +98,6 @@ const AppointmentModal = ({ event, onClose }) => {
             />
           </div>
 
-          {/* Patient */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Patient</label>
             <select
@@ -114,25 +115,25 @@ const AppointmentModal = ({ event, onClose }) => {
             </select>
           </div>
 
-          {/* Activité */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Activité</label>
-            <select
-              name="activityId"
-              value={form.activityId}
-              onChange={handleChange}
-              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
-            >
-              <option value="">-- Sélectionner une activité --</option>
-              {activities.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
+            <label className="text-sm font-medium text-gray-700">Activités</label>
+            <Select
+              isMulti
+              name="activities"
+              options={activities.map((a) => ({ value: a.id, label: a.name }))}
+              value={activities
+                .filter((a) => form.activityIds.includes(a.id))
+                .map((a) => ({ value: a.id, label: a.name }))}
+              onChange={(selected) =>
+                setForm((prev) => ({
+                  ...prev,
+                  activityIds: selected.map((opt) => opt.value),
+                }))
+              }
+              className="text-sm"
+            />
           </div>
 
-          {/* Description */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Préparation / description</label>
             <textarea
@@ -144,7 +145,6 @@ const AppointmentModal = ({ event, onClose }) => {
             />
           </div>
 
-          {/* Date */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Date & heure</label>
             <input
@@ -156,7 +156,6 @@ const AppointmentModal = ({ event, onClose }) => {
             />
           </div>
 
-          {/* Durée */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Durée</label>
             <select
@@ -173,7 +172,6 @@ const AppointmentModal = ({ event, onClose }) => {
             </select>
           </div>
 
-          {/* Liens rapides */}
           <div className="flex justify-between pt-1 text-sm">
             {form.patientId && (
               <button
@@ -183,18 +181,9 @@ const AppointmentModal = ({ event, onClose }) => {
                 Voir le dossier du patient
               </button>
             )}
-            {form.activityId && (
-              <button
-                onClick={() => navigate(`/activities/${form.activityId}`)}
-                className="text-[#A294F9] hover:underline"
-              >
-                Voir l'activité
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Boutons bas */}
         <div className="flex justify-between mt-6 items-center">
           {event?.id && (
             <button

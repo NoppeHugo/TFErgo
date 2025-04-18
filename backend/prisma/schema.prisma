@@ -21,32 +21,32 @@ model Therapist {
 }
 
 model Patient {
-  id              Int       @id @default(autoincrement())
-  therapistId     Int
-  therapist       Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  firstName       String?   
-  lastName        String?   
-  niss            String?   @unique
-  title           String?
-  sex             String?
-  language        String?
-  birthdate       DateTime?
-  nationality     String?
-  address         String?
-  phone1          String?
-  phone2          String?
-  email           String?
-  familyDoctor    String?
-  profession      String?
-  childrenCount   Int?
-  billingInfo     String?
-  residenceZone   String?
-  maritalStatus   String?
-  createdAt       DateTime  @default(now())
+  id            Int       @id @default(autoincrement())
+  therapistId   Int
+  therapist     Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  firstName     String?
+  lastName      String?
+  niss          String?   @unique
+  title         String?
+  sex           String?
+  language      String?
+  birthdate     DateTime?
+  nationality   String?
+  address       String?
+  phone1        String?
+  phone2        String?
+  email         String?
+  familyDoctor  String?
+  profession    String?
+  childrenCount Int?
+  billingInfo   String?
+  residenceZone String?
+  maritalStatus String?
+  createdAt     DateTime  @default(now())
 
-  medicalDiagnosis   String?
-  medicalHistory     String?
-  healthChronicle    String?
+  medicalDiagnosis String?
+  medicalHistory   String?
+  healthChronicle  String?
 
   appointments        Appointment[]
   interventionReasons InterventionReason[]
@@ -59,20 +59,42 @@ model Patient {
 }
 
 model Appointment {
-  id          Int       @id @default(autoincrement())
-  therapistId Int
-  patientId   Int
-  title       String
-  date        DateTime
-  duration    Int
-  imageUrl    String?
-  activityId  Int?
-  activity    Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
-  description String?
-  createdAt   DateTime  @default(now())
+  id            Int      @id @default(autoincrement())
+  therapistId   Int
+  patientId     Int
+  title         String
+  date          DateTime
+  duration      Int
+  imageUrl      String?
+  description   String?
+  sessionReport String?
+  createdAt     DateTime @default(now())
 
-  therapist Therapist @relation(fields: [therapistId], references: [id], onDelete: Cascade)
-  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  therapist  Therapist             @relation(fields: [therapistId], references: [id], onDelete: Cascade)
+  patient    Patient               @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  activities AppointmentActivity[]
+  feedbacks  AppointmentFeedback[]
+}
+
+model AppointmentActivity {
+  appointmentId Int
+  activityId    Int
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  activity    Activity    @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([appointmentId, activityId])
+}
+
+model AppointmentFeedback {
+  id            Int      @id @default(autoincrement())
+  appointmentId Int
+  objective     String // texte ou nom objectif
+  rating        Int // de 1 à 5
+  completed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 }
 
 model Activity {
@@ -86,11 +108,10 @@ model Activity {
   therapist                  Therapist                    @relation(fields: [therapistId], references: [id], onDelete: Cascade)
   objectives                 ActivityObjectiveLink[]
   images                     ActivityImage[]
-  files                      ActivityFile[] 
-  Appointment                Appointment[]
+  files                      ActivityFile[]
+  appointmentLinks           AppointmentActivity[]
   ShortTermObjectiveActivity ShortTermObjectiveActivity[]
 }
-
 
 model ActivityObjective {
   id          Int     @id @default(autoincrement())
@@ -135,23 +156,22 @@ model InterventionReason {
   description String?
   createdAt   DateTime @default(now())
 
-  diagnostic       String?       
-  synthese         String?       
-  situation        Json?         
-  therapeutic      Json?         
-  interventions    Json?         
-  objectives       Json?         
+  diagnostic    String?
+  synthese      String?
+  situation     Json?
+  therapeutic   Json?
+  interventions Json?
+  objectives    Json?
 
-  groupeCible      String?   
-  age              String?   
+  groupeCible      String?
+  age              String?
   batteriesCodeCIF String?
 
   compteRenduInterventions Json?
 
-
-  patient          Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  patientRecords   PatientRecord[]
-  longTermObjectives LongTermObjective[] 
+  patient            Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patientRecords     PatientRecord[]
+  longTermObjectives LongTermObjective[]
 }
 
 model PatientRecord {
@@ -166,7 +186,6 @@ model PatientRecord {
   cifCodes           CifCode[]
 }
 
-
 model CifCode {
   id              Int    @id @default(autoincrement())
   patientRecordId Int
@@ -177,18 +196,17 @@ model CifCode {
 }
 
 model LongTermObjective {
-  id                  Int       @id @default(autoincrement())
-  interventionReasonId Int     // <- nouveau champ
-  title               String
-  startDate           DateTime
-  endDate             DateTime?
-  status              String    @default("ouvert")
-  createdAt           DateTime  @default(now())
+  id                   Int       @id @default(autoincrement())
+  interventionReasonId Int // <- nouveau champ
+  title                String
+  startDate            DateTime
+  endDate              DateTime?
+  status               String    @default("ouvert")
+  createdAt            DateTime  @default(now())
 
-  interventionReason InterventionReason @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
+  interventionReason  InterventionReason   @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
   shortTermObjectives ShortTermObjective[]
 }
-
 
 model ShortTermObjective {
   id                  Int       @id @default(autoincrement())

@@ -29,3 +29,13 @@ export const deleteAppointment = async (id) => {
   const res = await api.delete(`/appointments/${id}`);
   return res.data;
 };
+
+export const getAppointmentsByPatient = async (patientId) => {
+  const res = await api.get(`/appointments/patient/${patientId}`);
+  return res.data;
+};
+
+export const linkActivitiesToAppointment = async (appointmentId, activityIds) => {
+  const res = await api.post(`/appointments/${appointmentId}/activities`, { activityIds });
+  return res.data;
+};

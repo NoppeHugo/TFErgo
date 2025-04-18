@@ -9,16 +9,29 @@ const getAllActivities = async (req, res) => {
           include: { objective: true }
         },
         images: true,
-        Appointment: true,
+        files: true,
+        appointmentLinks: {
+          include: {
+            appointment: {
+              include: {
+                patient: true,
+                feedbacks: true
+              }
+            }
+          }
+        },
         ShortTermObjectiveActivity: true,
       },
       orderBy: { createdAt: 'desc' }
     });
     res.json(activities);
   } catch (error) {
+    console.error("❌ getAllActivities error:", error);
     res.status(500).json({ error: 'Failed to fetch activities' });
   }
 };
+
+
 
 const getActivityById = async (req, res) => {
   const { id } = req.params;

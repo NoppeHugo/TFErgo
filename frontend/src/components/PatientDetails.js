@@ -5,6 +5,7 @@ import PatientDetailsTab from "./PatientDetails/PatientDetailsTab.js";
 import PatientNotesTab from "./PatientDetails/PatientNotesTab.js";
 import PatientDataTab from "./PatientDetails/PatientDataTab.js";
 import PatientFileTab from "./PatientDetails/PatientFileTab.js";
+import PatientAppointmentsTab from "./PatientDetails/PatientAppointmentsTab.js";
 
 const PatientDetails = () => {
   const { patientId } = useParams();
@@ -81,6 +82,7 @@ const PatientDetails = () => {
           { key: "carnet", label: "Carnet de notes" },
           { key: "donnees", label: "Données patient" },
           { key: "dossier", label: "Dossier patient" },
+          { key: "rendezvous", label: "Rendez-vous" }
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -111,6 +113,7 @@ const PatientDetails = () => {
         {activeTab === "carnet" && <PatientNotesTab patient={patient} />}
         {activeTab === "donnees" && <PatientDataTab patient={patient} />}
         {activeTab === "dossier" && <PatientFileTab patient={patient} />}
+        {activeTab === "rendezvous" && <PatientAppointmentsTab patient={patient} />} 
       </div>
     </div>
   );
