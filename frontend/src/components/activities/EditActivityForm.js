@@ -3,6 +3,9 @@ import Select from 'react-select';
 import { updateActivity, uploadFileToActivity, deleteFile } from '../../api/activityAPI.js';
 import { getGoals } from '../../api/goalAPI.js';
 import { FiX } from 'react-icons/fi';
+import MaterialSelect from './MaterialSelect.js';
+import { getMaterials } from '../../api/materialAPI.js';
+
 
 const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [name, setName] = useState(activity.name || '');
@@ -14,6 +17,8 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
     activity.files?.filter(f => f.fileType.startsWith('image/')) || []
   );
   const [newImages, setNewImages] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
 
   useEffect(() => {
     getGoals().then(res => {
@@ -23,6 +28,14 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
         label: o.objective.name,
       }));
       setSelectedGoals(mapped);
+    });
+    getMaterials().then(res => {
+      const mapped = activity.materials.map(m => ({
+        value: m.material.id,
+        label: m.material.name,
+      }));
+      setSelectedMaterials(mapped);
+      setMaterials(res.data);
     });
   }, [activity]);
 
@@ -46,6 +59,7 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
       description,
       link,
       objectiveIds: selectedGoals.map(o => o.value),
+      materialIds: selectedMaterials.map(m => m.value),
     });
 
     // Upload en base64 comme pour la création
@@ -108,6 +122,11 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
           className="text-sm"
         />
       </div>
+
+      <MaterialSelect
+        selectedMaterials={selectedMaterials}
+        setSelectedMaterials={setSelectedMaterials}
+      />
 
       {existingImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { createActivity, uploadFileToActivity } from '../../api/activityAPI.js';
 import { getGoals, createGoal } from '../../api/goalAPI.js';
+import MaterialSelect from './MaterialSelect.js';
 
 const ActivityForm = ({ onCreated, showToast }) => {
   const [visible, setVisible] = useState(false);
@@ -16,6 +17,8 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const [fadeErrors, setFadeErrors] = useState(false);
   const [goalError, setGoalError] = useState('');
   const [fadeGoalError, setFadeGoalError] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+
 
   const loadGoals = () => {
     getGoals().then(res => setGoals(res.data));
@@ -53,6 +56,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
       description,
       link,
       objectiveIds: selectedGoals.map(g => g.value),
+      materialIds: selectedMaterials.map(m => m.value),
     });
 
     const activityId = newActivity.data.id;
@@ -190,6 +194,12 @@ const ActivityForm = ({ onCreated, showToast }) => {
           </div>
         )}
       </div>
+
+      <MaterialSelect
+        selectedMaterials={selectedMaterials}
+        setSelectedMaterials={setSelectedMaterials}
+        showToast={showToast}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Fichiers :</label>

@@ -5,18 +5,14 @@ const getAllActivities = async (req, res) => {
   try {
     const activities = await prisma.activity.findMany({
       include: {
-        objectives: {
-          include: { objective: true }
-        },
+        objectives: { include: { objective: true } },
+        materials: { include: { material: true } },
         images: true,
         files: true,
         appointmentLinks: {
           include: {
             appointment: {
-              include: {
-                patient: true,
-                feedbacks: true
-              }
+              include: { patient: true, feedbacks: true }
             }
           }
         },
@@ -31,19 +27,16 @@ const getAllActivities = async (req, res) => {
   }
 };
 
-
-
 const getActivityById = async (req, res) => {
   const { id } = req.params;
   try {
     const activity = await prisma.activity.findUnique({
       where: { id: Number(id) },
       include: {
-        objectives: {
-          include: { objective: true }
-        },
+        objectives: { include: { objective: true } },
+        materials: { include: { material: true } },
         images: true,
-        files: true
+        files: true,
       }
     });
     if (!activity) return res.status(404).json({ error: 'Activity not found' });
@@ -54,30 +47,58 @@ const getActivityById = async (req, res) => {
 };
 
 const createActivity = async (req, res) => {
-  const { therapistId, name, description, link, objectiveIds } = req.body;
   try {
-    const activity = await prisma.activity.create({
+    console.log("🔁 Requête reçue pour créer une activité");
+    console.log("📥 Données reçues :", req.body);
+
+    const { therapistId, name, description, link, objectiveIds = [], materialIds = [] } = req.body;
+
+    if (!therapistId || !name) {
+      console.log("❌ Données manquantes");
+      return res.status(400).json({ error: 'therapistId et name sont requis' });
+    }
+
+    console.log("🔗 Connexion des objectifs :", objectiveIds);
+    console.log("🔗 Connexion des matériels :", materialIds);
+
+    const newActivity = await prisma.activity.create({
       data: {
-        therapistId,
+        therapist: { connect: { id: therapistId } },
         name,
         description,
         link,
         objectives: {
           create: objectiveIds.map((id) => ({
-            objective: { connect: { id: Number(id) } }
+            objective: { connect: { id } }
           }))
-        }
+        },
+        materials: {
+          create: materialIds.map((id) => ({
+            material: { connect: { id } }
+          }))
+        },
+      },
+      include: {
+        objectives: { include: { objective: true } },
+        materials: { include: { material: true } },
       }
     });
-    res.status(201).json(activity);
+
+    console.log("✅ Activité créée :", newActivity);
+    res.status(201).json(newActivity);
+
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create activity' });
+    console.error("❌ Erreur dans createActivity :", error);
+    res.status(500).json({
+      error: 'Erreur interne lors de la création de l’activité',
+      details: error.message,
+    });
   }
 };
 
 const updateActivity = async (req, res) => {
   const { id } = req.params;
-  const { name, description, link, objectiveIds } = req.body;
+  const { name, description, link, objectiveIds, materialIds } = req.body;
   try {
     const updated = await prisma.activity.update({
       where: { id: Number(id) },
@@ -89,6 +110,12 @@ const updateActivity = async (req, res) => {
           deleteMany: {},
           create: objectiveIds.map((id) => ({
             objective: { connect: { id: Number(id) } }
+          }))
+        },
+        materials: {
+          deleteMany: {},
+          create: materialIds.map((id) => ({
+            material: { connect: { id: Number(id) } }
           }))
         }
       }
@@ -127,9 +154,7 @@ const searchActivities = async (req, res) => {
     const activities = await prisma.activity.findMany({
       where: {
         name: { contains: name || '', mode: 'insensitive' },
-        description: description
-          ? { contains: description, mode: 'insensitive' }
-          : undefined,
+        description: description ? { contains: description, mode: 'insensitive' } : undefined,
         objectives: objectiveArray.length > 0
           ? {
               some: {
@@ -145,6 +170,7 @@ const searchActivities = async (req, res) => {
       },
       include: {
         objectives: { include: { objective: true } },
+        materials: { include: { material: true } },
         files: true
       },
       orderBy: { createdAt: 'desc' }

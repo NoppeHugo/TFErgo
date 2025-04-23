@@ -38,6 +38,9 @@ app.use('/files', require('./routes/activityFiles'));       // Upload/suppressio
 
 app.use('/reports', require('./routes/reports'));
 app.use("/appointments", require('./routes/appointments'));  // RDV thérapeutiques
+app.use('/materials', require('./routes/materialRoutes'));
+
+
 
 
 // ✅ Middleware pour test de disponibilité

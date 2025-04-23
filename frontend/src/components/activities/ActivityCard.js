@@ -77,6 +77,24 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
       </div>
 
       <div className="mt-3">
+        <p className="text-sm font-semibold text-gray-700">Matériel :</p>
+        {activity.materials?.length ? (
+          <div className="flex flex-wrap gap-2 mt-1">
+            {activity.materials.map((m) => (
+              <span
+                key={m.material.id}
+                className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full"
+              >
+                {m.material.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">Aucun</p>
+        )}
+      </div>
+
+      <div className="mt-3">
         <p className="text-sm font-semibold text-gray-700">Fichiers :</p>
         <ActivityFileViewer files={activity.files} />
       </div>

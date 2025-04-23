@@ -111,6 +111,7 @@ model Activity {
   files                      ActivityFile[]
   appointmentLinks           AppointmentActivity[]
   ShortTermObjectiveActivity ShortTermObjectiveActivity[]
+  materials MaterialLink[]
 }
 
 model ActivityObjective {
@@ -149,6 +150,24 @@ model ActivityFile {
   activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
 }
 
+model Material {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+
+  activities MaterialLink[]
+}
+
+model MaterialLink {
+  activityId Int
+  materialId Int
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([activityId, materialId])
+}
+
 model InterventionReason {
   id          Int      @id @default(autoincrement())
   patientId   Int
@@ -183,16 +202,6 @@ model PatientRecord {
   createdAt              DateTime @default(now())
 
   interventionReason InterventionReason @relation(fields: [interventionReasonId], references: [id], onDelete: Cascade)
-  cifCodes           CifCode[]
-}
-
-model CifCode {
-  id              Int    @id @default(autoincrement())
-  patientRecordId Int
-  code            String
-  description     String
-
-  patientRecord PatientRecord @relation(fields: [patientRecordId], references: [id], onDelete: Cascade)
 }
 
 model LongTermObjective {
@@ -295,3 +304,4 @@ model Contact {
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
+
