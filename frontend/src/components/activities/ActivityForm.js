@@ -19,9 +19,11 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const [fadeGoalError, setFadeGoalError] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
 
-
   const loadGoals = () => {
-    getGoals().then(res => setGoals(res.data));
+    getGoals().then(res => {
+      const sorted = res.data.sort((a, b) => a.name.localeCompare(b.name));
+      setGoals(sorted);
+    });
   };
 
   useEffect(() => {
@@ -51,7 +53,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
     }
 
     const newActivity = await createActivity({
-      therapistId: 1,
+      therapistId: 1, // ⚠️ Remplacer par l’ID du thérapeute connecté
       name,
       description,
       link,
@@ -81,7 +83,6 @@ const ActivityForm = ({ onCreated, showToast }) => {
     showToast && showToast("Activité ajoutée !");
     onCreated();
 
-    // Reset
     setName('');
     setDescription('');
     setLink('');
@@ -91,7 +92,8 @@ const ActivityForm = ({ onCreated, showToast }) => {
     setErrors({});
   };
 
-  const handleAddGoal = async () => {
+  const handleAddGoal = async (e) => {
+    e.preventDefault();
     if (!newGoalName.trim()) {
       setGoalError("Veuillez écrire un objectif avant de l’ajouter.");
       setFadeGoalError(false);
@@ -109,7 +111,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
   if (!visible) {
     return (
       <div className="flex gap-4 flex-wrap">
-        <div className="flex flex-col gap-1">
+        <form onSubmit={handleAddGoal} className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -119,7 +121,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
               className="border px-2 py-1 rounded text-sm shadow-sm"
             />
             <button
-              onClick={handleAddGoal}
+              type="submit"
               className="bg-dark2GreenErgogo hover:bg-greenErgogo/90 text-white px-3 py-1 rounded text-sm transition"
             >
               + Objectif
@@ -134,7 +136,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
               {goalError}
             </div>
           )}
-        </div>
+        </form>
 
         <button
           onClick={() => setVisible(true)}
@@ -170,6 +172,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
         className="w-full border px-3 py-2 rounded"
         rows={3}
       />
+
       <input
         type="text"
         value={link}
