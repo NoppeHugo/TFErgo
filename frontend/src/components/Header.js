@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiChevronDown } from 'react-icons/fi'
 
 const Header = () => {
   const [therapist, setTherapist] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation(); // 🔥 ICI : savoir sur quelle page on est
 
   useEffect(() => {
     fetch('http://localhost:3001/auth/me', { credentials: 'include' })
@@ -25,6 +26,7 @@ const Header = () => {
   return (
     <nav className="bg-[#AE99B2] px-6 py-3 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
+
         {/* Logo */}
         <Link to="/" className="text-white text-xl font-bold tracking-wider">
           ERGOGO
@@ -37,16 +39,23 @@ const Header = () => {
             { to: '/patients', label: 'Patients' },
             { to: '/activities', label: 'Activités' },
             { to: '/reports', label: 'Rapports' },
-          ].map((item) => (
-            <li key={item.to}>
-              <Link
-                to={item.to}
-                className="text-white text-sm font-medium uppercase tracking-wide px-3 py-1 rounded-md transition duration-200 hover:bg-white/20"
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
+          ].map((item) => {
+            const isActive = location.pathname.startsWith(item.to); // 🔥 Comparaison actuelle
+            return (
+              <li key={item.to}>
+                <Link
+                  to={item.to}
+                  className={`text-sm font-medium uppercase tracking-wide px-3 py-1 rounded-md transition duration-200 ${
+                    isActive
+                      ? 'bg-white/30 text-white font-bold'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            )
+          })}
         </ul>
 
         {/* Profil utilisateur */}

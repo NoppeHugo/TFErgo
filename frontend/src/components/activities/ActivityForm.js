@@ -3,6 +3,7 @@ import Select from 'react-select';
 import { createActivity, uploadFileToActivity } from '../../api/activityAPI.js';
 import { getGoals, createGoal } from '../../api/goalAPI.js';
 import MaterialSelect from './MaterialSelect.js';
+import GoalSelect from './GoalSelect.js';
 
 const ActivityForm = ({ onCreated, showToast }) => {
   const [visible, setVisible] = useState(false);
@@ -53,7 +54,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
     }
 
     const newActivity = await createActivity({
-      therapistId: 1, // ⚠️ Remplacer par l’ID du thérapeute connecté
+      therapistId: 1, // ⚠️ À remplacer par l'ID du thérapeute connecté
       name,
       description,
       link,
@@ -82,20 +83,23 @@ const ActivityForm = ({ onCreated, showToast }) => {
 
     showToast && showToast("Activité ajoutée !");
     onCreated();
+    resetForm();
+  };
 
+  const resetForm = () => {
     setName('');
     setDescription('');
     setLink('');
     setSelectedGoals([]);
+    setSelectedMaterials([]);
     setFiles([]);
     setVisible(false);
     setErrors({});
   };
 
-  const handleAddGoal = async (e) => {
-    e.preventDefault();
+  const handleAddGoal = async () => {
     if (!newGoalName.trim()) {
-      setGoalError("Veuillez écrire un objectif avant de l’ajouter.");
+      setGoalError("Veuillez écrire un objectif.");
       setFadeGoalError(false);
       setTimeout(() => setFadeGoalError(true), 2500);
       setTimeout(() => setGoalError(''), 3000);
@@ -103,128 +107,102 @@ const ActivityForm = ({ onCreated, showToast }) => {
     }
     await createGoal({ name: newGoalName });
     setNewGoalName('');
-    loadGoals();
-    onCreated();
+    await loadGoals();
     showToast && showToast("Objectif ajouté !");
   };
 
   if (!visible) {
     return (
-      <div className="flex gap-4 flex-wrap">
-        <form onSubmit={handleAddGoal} className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={newGoalName}
-              onChange={(e) => setNewGoalName(e.target.value)}
-              placeholder="Nouvel objectif"
-              className="border px-2 py-1 rounded text-sm shadow-sm"
-            />
-            <button
-              type="submit"
-              className="bg-dark2GreenErgogo hover:bg-greenErgogo/90 text-white px-3 py-1 rounded text-sm transition"
-            >
-              + Objectif
-            </button>
-          </div>
-          {goalError && (
-            <div
-              className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${
-                fadeGoalError ? 'opacity-0' : 'opacity-100'
-              }`}
-            >
-              {goalError}
-            </div>
-          )}
-        </form>
-
-        <button
-          onClick={() => setVisible(true)}
-          className="bg-lightPurpleErgogo hover:bg-violetErgogo/90 text-white px-3 py-1 rounded text-sm transition"
-        >
-          + Ajouter une activité
-        </button>
-      </div>
+      <button
+        onClick={() => setVisible(true)}
+        className="bg-lightPurpleErgogo hover:bg-violetErgogo/90 text-white px-4 py-2 rounded-md text-sm transition"
+      >
+        + Ajouter une activité
+      </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded border shadow space-y-4 animate-fade-in w-full">
+    <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-2xl shadow-md space-y-4 animate-fade-in max-w-5xl mx-auto">
+      {/* Nom */}
       <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Nom de l’activité :</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nom de l’activité"
-          className="w-full border px-3 py-2 rounded"
+          className="border border-gray-300 px-3 py-1.5 rounded-md text-sm"
         />
         {errors.name && (
-          <div className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`text-purple-700 text-sm animate-fade-in ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
             {errors.name}
           </div>
         )}
       </div>
 
-      <textarea
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Description"
-        className="w-full border px-3 py-2 rounded"
-        rows={3}
-      />
-
-      <input
-        type="text"
-        value={link}
-        onChange={(e) => setLink(e.target.value)}
-        placeholder="Lien externe"
-        className="w-full border px-3 py-2 rounded"
-      />
-
+      {/* Description */}
       <div className="flex flex-col gap-1">
-        <label className="block text-sm font-medium text-gray-700">Objectifs liés :</label>
-        <Select
-          options={goalOptions}
-          isMulti
-          value={selectedGoals}
-          onChange={setSelectedGoals}
-          className="text-sm"
-          placeholder="Sélectionner des objectifs"
+        <label className="text-sm font-medium text-gray-700">Description :</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Description de l’activité"
+          className="border border-gray-300 px-4 py-2 rounded-md resize-none"
+          rows={2}
         />
-        {errors.goals && (
-          <div className={`bg-purple-100 border border-purple-300 text-purple-700 text-sm rounded px-3 py-2 animate-fade-in transition-opacity duration-500 ease-in-out ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
-            {errors.goals}
-          </div>
-        )}
       </div>
 
+      {/* Lien */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Lien externe :</label>
+        <input
+          type="text"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="Lien externe (optionnel)"
+          className="border border-gray-300 px-4 py-2 rounded-md"
+        />
+      </div>
+
+      <GoalSelect
+        selectedGoals={selectedGoals}
+        setSelectedGoals={setSelectedGoals}
+        showToast={showToast}
+      />
+
+
+      {/* Matériel */}
       <MaterialSelect
         selectedMaterials={selectedMaterials}
         setSelectedMaterials={setSelectedMaterials}
         showToast={showToast}
       />
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Fichiers :</label>
+      {/* Fichiers */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Fichiers :</label>
         <input type="file" multiple onChange={handleFileChange} />
       </div>
 
+      {/* Boutons */}
       <div className="flex gap-4 pt-2">
         <button
           type="submit"
-          className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition"
+          className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-6 py-2 rounded-md transition"
         >
           Créer
         </button>
         <button
           type="button"
-          onClick={() => setVisible(false)}
+          onClick={resetForm}
           className="text-gray-600 hover:underline"
         >
           Annuler
         </button>
       </div>
     </form>
+
   );
 };
 

@@ -12,11 +12,8 @@ const ActivityFileViewer = ({ files }) => {
     <div className="mt-2 space-y-2">
       {imageFiles.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
-          {visibleImages.slice(0, 2).map((file, index) => (
-            <div
-              key={file.id}
-              className="relative aspect-square overflow-hidden rounded"
-            >
+          {visibleImages.slice(0, 2).map((file) => (
+            <div key={file.id} className="relative aspect-square overflow-hidden rounded">
               <img
                 src={file.fileUrl}
                 alt="Image activité"

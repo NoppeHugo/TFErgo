@@ -13,12 +13,12 @@ import './index.css';
 import LoginPage from './pages/LoginPage.js';
 import RequireAuth from './components/RequireAuth.js';
 import ActivityDetailsPage from './components/activities/ActivityDetailsPage.js';
+import ManageGoalsAndMaterialsPage from './components/activities/ManageGoalsAndMaterialsPage.js';
 
 // Page d'accueil
 const HomePage = () => (
   <div className="w-full flex-grow flex flex-col items-center">
     <CalendarPage className="w-full h-full" />
-    <PatientsPage className="w-full mt-4" />
   </div>
 );
 
@@ -43,6 +43,7 @@ const AnimatedRoutes = () => {
         <Route path="/activities/:id" element={<RequireAuth><ActivityDetailsPage /></RequireAuth>} /> {/* ✅ déplacé ici */}
         <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/manage-goals-materials" element={<ManageGoalsAndMaterialsPage />} />
 
         {/* Layout pour les pages patients */}
         <Route path="/patient/*" element={<RequireAuth><PatientLayout /></RequireAuth>}>

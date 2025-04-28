@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { searchActivities, deleteActivity } from '../../api/activityAPI.js';
 import ActivityCard from './ActivityCard.js';
 import EditActivityForm from './EditActivityForm.js';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const ActivityList = ({ filters, refresh }) => {
   const [activities, setActivities] = useState([]);
@@ -46,25 +45,16 @@ const ActivityList = ({ filters, refresh }) => {
         </div>
       ) : (
         <div className="columns-1 sm:columns-2 gap-6 space-y-6">
-          <AnimatePresence>
-            {activities.map(activity => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="break-inside-avoid"
-              >
-                <ActivityCard
-                  activity={activity}
-                  onEdit={() => setEditingActivity(activity)}
-                  onDelete={() => handleDelete(activity.id)}
-                  onOpen={() => navigate(`/activities/${activity.id}`)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {activities.map(activity => (
+            <div key={activity.id} className="break-inside-avoid">
+              <ActivityCard
+                activity={activity}
+                onEdit={() => setEditingActivity(activity)}
+                onDelete={() => handleDelete(activity.id)}
+                onOpen={() => navigate(`/activities/${activity.id}`)}
+              />
+            </div>
+          ))}
         </div>
       )}
     </>
