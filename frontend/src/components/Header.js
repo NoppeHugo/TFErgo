@@ -6,7 +6,7 @@ const Header = () => {
   const [therapist, setTherapist] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
-  const location = useLocation(); // 🔥 ICI : savoir sur quelle page on est
+  const location = useLocation(); 
 
   useEffect(() => {
     fetch('http://localhost:3001/auth/me', { credentials: 'include' })
@@ -31,7 +31,7 @@ const Header = () => {
         <Link to="/" className="text-white text-xl font-bold tracking-wider">
           ERGOGO
         </Link>
-
+        
         {/* Liens navigation */}
         <ul className="hidden md:flex space-x-6">
           {[

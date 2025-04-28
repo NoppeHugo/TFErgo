@@ -5,6 +5,7 @@ import PatientForm from "../components/PatientDetails/PatientForm.js";
 
 const AddPatientPage = () => {
   const [newPatient, setNewPatient] = useState({});
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
   // 🔧 Fonction pour nettoyer et formater les données avant envoi
@@ -19,9 +20,31 @@ const AddPatientPage = () => {
         : null,
   });
 
+  // ✅ Validation des données
+  const validatePatientData = (data) => {
+    const validationErrors = {};
+
+    if (!data.firstName?.trim()) validationErrors.firstName = "Le prénom est obligatoire.";
+    if (!data.lastName?.trim()) validationErrors.lastName = "Le nom est obligatoire.";
+    if (!data.sex) validationErrors.sex = "Le sexe est obligatoire.";
+    if (!data.birthdate) validationErrors.birthdate = "La date de naissance est obligatoire.";
+    if (data.birthdate && new Date(data.birthdate) > new Date()) validationErrors.birthdate = "La date de naissance ne peut pas être dans le futur.";
+    if (data.niss && !/^\d{11}$/.test(data.niss)) validationErrors.niss = "Le NISS doit contenir exactement 11 chiffres.";
+
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
+  };
+
   const handleAddPatient = async () => {
+    const preparedData = sanitizePatientData(newPatient);
+    const isValid = validatePatientData(preparedData);
+
+    if (!isValid) {
+      alert("Veuillez corriger les erreurs avant de soumettre.");
+      return;
+    }
+
     try {
-      const preparedData = sanitizePatientData(newPatient);
       await createPatient(preparedData);
       navigate("/patients");
     } catch (err) {
@@ -40,6 +63,7 @@ const AddPatientPage = () => {
       handleChange={handleChange}
       handleSubmit={handleAddPatient}
       isEditing={false}
+      errors={errors} // 🔥 Passe les erreurs au PatientForm
     />
   );
 };

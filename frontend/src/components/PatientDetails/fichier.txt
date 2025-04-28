@@ -1,3 +1,156 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const StarRating = ({ value, onChange }) => {
+  return (
+    <div className="flex space-x-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          onClick={() => onChange(i)}
+          className={`cursor-pointer text-xl ${i <= value ? "text-yellow-500" : "text-gray-300"}`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+};
+
+const PatientAppointmentFeedback = ({ appointmentId }) => {
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [newFeedback, setNewFeedback] = useState({ objective: "", rating: 3 });
+
+  const fetchFeedbacks = async () => {
+    const res = await axios.get(`http://localhost:3001/appointments/${appointmentId}/feedbacks`, { withCredentials: true });
+    setFeedbacks(res.data);
+  };
+
+  const handleAdd = async () => {
+    if (!newFeedback.objective) return;
+    await axios.post(
+      `http://localhost:3001/appointments/${appointmentId}/feedbacks`,
+      newFeedback,
+      { withCredentials: true }
+    );
+    setNewFeedback({ objective: "", rating: 3 });
+    fetchFeedbacks();
+  };
+
+  const handleUpdate = async (id, updates) => {
+    await axios.patch(`http://localhost:3001/appointments/feedbacks/${id}`, updates, { withCredentials: true });
+    fetchFeedbacks();
+  };
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, [appointmentId]);
+
+  return (
+    <div className="mt-6 bg-gray-50 p-4 rounded-xl">
+      <h3 className="text-lg font-semibold mb-2">Retour sur la séance</h3>
+
+      <div className="flex flex-col md:flex-row md:items-center gap-2">
+        <input
+          type="text"
+          value={newFeedback.objective}
+          onChange={(e) => setNewFeedback((prev) => ({ ...prev, objective: e.target.value }))}
+          placeholder="Ex : Objectif ou ressenti"
+          className="px-3 py-2 rounded border w-full md:w-auto"
+        />
+        <StarRating
+          value={newFeedback.rating}
+          onChange={(val) => setNewFeedback((prev) => ({ ...prev, rating: val }))}
+        />
+        <button
+          onClick={handleAdd}
+          className="bg-dark2GreenErgogo text-white rounded px-3 py-2 text-sm hover:brightness-110"
+        >
+          Ajouter
+        </button>
+      </div>
+
+      <ul className="mt-4 space-y-2">
+        {feedbacks.map((fb) => (
+          <li key={fb.id} className="p-3 bg-white border rounded">
+            <div className="text-sm text-gray-700 mb-1">{fb.objective}</div>
+            <StarRating
+              value={fb.rating}
+              onChange={(val) => handleUpdate(fb.id, { rating: val })}
+            />
+            <div className="mt-1 text-xs">
+              <label className="inline-flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={fb.completed}
+                  onChange={(e) => handleUpdate(fb.id, { completed: e.target.checked })}
+                />
+                Objectif terminé
+              </label>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default PatientAppointmentFeedback;
+import React, { useEffect, useState } from "react";
+import { getAppointmentsByPatient } from "../../api/appointmentAPI.js";
+import PatientAppointmentFeedback from "./PatientAppointmentFeedback.js"; // 🆕 à importer
+
+const PatientAppointmentsTab = ({ patient }) => {
+  const [appointments, setAppointments] = useState([]);
+
+  useEffect(() => {
+    if (patient?.id) {
+      getAppointmentsByPatient(patient.id).then(setAppointments);
+    }
+  }, [patient]);
+
+  if (appointments.length === 0) {
+    return <p className="text-gray-500">Aucun rendez-vous pour ce patient.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {appointments.map((apt) => (
+        <div key={apt.id} className="p-4 bg-gray-50 border rounded-xl">
+          <h3 className="font-semibold text-lg text-[#776B89]">
+            {apt.title} – {new Date(apt.date).toLocaleString("fr-FR")}
+          </h3>
+          <p className="text-sm text-gray-700 mt-1">{apt.description}</p>
+
+          {apt.activities?.length > 0 && (
+            <div className="mt-2 text-sm">
+              <strong>Activités liées :</strong>
+              <ul className="list-disc list-inside">
+                {apt.activities.map((link) => (
+                  <li key={link.activity.id}>{link.activity.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {apt.sessionReport && (
+            <div className="mt-2 text-sm text-gray-800">
+              <strong>Compte rendu :</strong>
+              <p>{apt.sessionReport}</p>
+            </div>
+          )}
+
+          {/* 🔥 Ajout du feedback */}
+          <div className="mt-4">
+            <PatientAppointmentFeedback appointmentId={apt.id} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default PatientAppointmentsTab;
 import { useState } from "react";
 import PatientReferences from "./DataClient/PatientReferences.js";
 import PatientHealthData from "./DataClient/PatientHealthData.js";
@@ -22,24 +175,33 @@ const PatientDataTab = ({ patient }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md h-full w-full max-w-8xl mx-auto">
-      <h3 className="text-2xl font-bold mb-6 text-gray-800">Données Patient</h3>
-      <div className="flex space-x-4 mb-6">
-        <button
-          className={`py-2 px-4 rounded-lg ${activeSubTab === "references" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setActiveSubTab("references")}
-        >
-          Références et Contacts
-        </button>
-        <button
-          className={`py-2 px-4 rounded-lg ${activeSubTab === "health" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-          onClick={() => setActiveSubTab("health")}
-        >
-          Données de Santé
-        </button>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-white">
+      <div className="px-6 pt-6 pb-2 border-b">
+        <div className="flex flex-wrap gap-4">
+          <button
+            className={`py-2 px-4 rounded-lg transition-all text-sm font-medium ${
+              activeSubTab === "references"
+                ? "bg-middleBlueErgogo text-white"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+            }`}
+            onClick={() => setActiveSubTab("references")}
+          >
+            Références et Contacts
+          </button>
+          <button
+            className={`py-2 px-4 rounded-lg transition-all text-sm font-medium ${
+              activeSubTab === "health"
+                ? "bg-middleBlueErgogo text-white"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+            }`}
+            onClick={() => setActiveSubTab("health")}
+          >
+            Données de Santé
+          </button>
+        </div>
       </div>
 
-      <div className="transition-all duration-500 ease-in-out h-full overflow-y-auto">
+      <div className="grow overflow-y-auto px-6 py-4 custom-scrollbar">
         {activeSubTab === "references" && (
           <PatientReferences
             patient={updatedPatient}
@@ -104,7 +266,7 @@ const PatientDetailsTab = ({ patient, isEditing, updatedPatient, handleChange, h
       {!isEditing && (
         <div className="mt-6 flex justify-end">
           <button
-            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+            className="bg-middleBlueErgogo text-white px-6 py-2 rounded-lg hover:bg-dark2GreenErgogo transition duration-200 text-sm font-medium"
             onClick={() => setIsEditing(true)}
           >
             Modifier
@@ -129,7 +291,12 @@ const PatientFileTab = ({ patient }) => {
   const [motifs, setMotifs] = useState([]);
   const [selectedMotif, setSelectedMotif] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState("situation");
-  const [newMotif, setNewMotif] = useState({ title: "", groupeCible: "", age: "", batteriesCodeCIF: "" });
+  const [newMotif, setNewMotif] = useState({
+    title: "",
+    groupeCible: "",
+    age: "",
+    batteriesCodeCIF: "",
+  });
 
   useEffect(() => {
     if (!patient?.id) return;
@@ -193,8 +360,9 @@ const PatientFileTab = ({ patient }) => {
   };
 
   return (
-    <div className="flex space-x-4">
-      <div className="w-1/6 bg-gray-100 p-4 rounded-lg shadow">
+    <div className="flex w-full h-[calc(100vh-120px)] space-x-4">
+      {/* Colonne gauche : liste des motifs */}
+      <div className="w-1/5 bg-gray-100 p-4 rounded-lg shadow flex flex-col overflow-y-auto custom-scrollbar">
         <h4 className="text-lg font-semibold mb-3">Motifs d’intervention</h4>
 
         <div className="mb-4">
@@ -205,7 +373,10 @@ const PatientFileTab = ({ patient }) => {
             onChange={(e) => setNewMotif({ ...newMotif, title: e.target.value })}
             className="w-full p-2 border rounded-lg mb-2"
           />
-          <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleCreateMotif}>
+          <button
+            className="bg-dark2GreenErgogo text-white px-4 py-2 rounded-lg hover:bg-green-600 w-full"
+            onClick={handleCreateMotif}
+          >
             Ajouter
           </button>
         </div>
@@ -214,25 +385,37 @@ const PatientFileTab = ({ patient }) => {
           {motifs.map((motif, index) => (
             <li
               key={motif.id || index}
-              className={`cursor-pointer p-2 rounded-lg ${selectedMotif?.id === motif.id ? "bg-blue-500 text-white" : "bg-gray-200"} hover:bg-blue-300`}
+              className={`cursor-pointer p-2 rounded-lg text-sm ${
+                selectedMotif?.id === motif.id
+                  ? "bg-middleBlueErgogo text-white"
+                  : "bg-gray-200 hover:bg-blue-300"
+              }`}
               onClick={() => handleSelectMotif(motif)}
             >
               <strong>{motif.title}</strong>
-              <p className="text-sm">Groupe: {motif.groupeCible} | Âge: {motif.age}</p>
+              <p className="text-xs">
+                Groupe: {motif.groupeCible} | Âge: {motif.age}
+              </p>
               <p className="text-xs">Batteries: {motif.batteriesCodeCIF}</p>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="w-5/6 bg-white p-4 rounded-lg shadow">
+      {/* Colonne droite : contenu du motif */}
+      <div className="w-4/5 flex flex-col h-full overflow-hidden">
         {selectedMotif ? (
           <>
-            <div className="flex space-x-2 mb-4">
+            {/* Onglets */}
+            <div className="flex space-x-2 mb-4 shrink-0">
               {["situation", "therapeutic", "objectives", "diagnosis", "interventions", "summary"].map((tab) => (
                 <button
                   key={tab}
-                  className={`py-2 px-4 rounded-lg ${activeSubTab === tab ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+                  className={`py-2 px-4 rounded-lg text-sm font-medium transition ${
+                    activeSubTab === tab
+                      ? "bg-middleBlueErgogo text-white"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  }`}
                   onClick={() => setActiveSubTab(tab)}
                 >
                   {tab === "situation" && "Situation Personnelle"}
@@ -245,15 +428,30 @@ const PatientFileTab = ({ patient }) => {
               ))}
             </div>
 
-            {activeSubTab === "situation" && <PatientSituation motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "therapeutic" && <PatientTherapeutic motif={selectedMotif} patientId={patient?.id} updateMotif={handleUpdateMotifData}/>}
-            {activeSubTab === "objectives" && <PatientObjectives motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "diagnosis" && <PatientDiagnosis motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "interventions" && <PatientInterventions motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
-            {activeSubTab === "summary" && <PatientSummary motif={selectedMotif} updateMotif={handleUpdateMotifData} />}
+            {/* Contenu scrollable */}
+            <div className="flex-grow overflow-y-auto px-1 pb-4 custom-scrollbar">
+              {activeSubTab === "situation" && (
+                <PatientSituation motif={selectedMotif} updateMotif={handleUpdateMotifData} />
+              )}
+              {activeSubTab === "therapeutic" && (
+                <PatientTherapeutic motif={selectedMotif} patientId={patient?.id} updateMotif={handleUpdateMotifData} />
+              )}
+              {activeSubTab === "objectives" && (
+                <PatientObjectives motif={selectedMotif} updateMotif={handleUpdateMotifData} />
+              )}
+              {activeSubTab === "diagnosis" && (
+                <PatientDiagnosis motif={selectedMotif} updateMotif={handleUpdateMotifData} />
+              )}
+              {activeSubTab === "interventions" && (
+                <PatientInterventions motif={selectedMotif} updateMotif={handleUpdateMotifData} />
+              )}
+              {activeSubTab === "summary" && (
+                <PatientSummary motif={selectedMotif} updateMotif={handleUpdateMotifData} />
+              )}
+            </div>
           </>
         ) : (
-          <p className="text-gray-500 text-center">Sélectionnez un motif d’intervention.</p>
+          <p className="text-gray-500 text-center my-auto">Sélectionnez un motif d’intervention.</p>
         )}
       </div>
     </div>
@@ -331,7 +529,7 @@ const PatientForm = ({ patientData, handleChange, handleSubmit, isEditing, setIs
       </div>
 
       <div className="mt-4 flex space-x-4">
-        <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSubmit}>
+        <button className="bg-[#B5C99A] text-white px-4 py-2 rounded-lg hover:bg-[#97A97C]" onClick={handleSubmit}>
           {isEditing ? "Enregistrer" : "Ajouter"}
         </button>
         {isEditing && (
@@ -444,103 +642,110 @@ const PatientNotesTab = ({ patient }) => {
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
-      <h3 className="text-lg font-bold mb-4">Notes</h3>
+    <div className="p-4 bg-white rounded-lg shadow h-[70vh] flex flex-col">
+      {/* En-tête + bouton ajout */}
+      <div className="shrink-0 mb-4">
+        <h3 className="text-lg font-bold mb-4">Notes</h3>
+        <button
+          className="mb-4 bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          onClick={() => setShowForm(!showForm)}
+        >
+          {showForm ? "Cancel" : "Add Note"}
+        </button>
 
-      <button
-        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        onClick={() => setShowForm(!showForm)}
-      >
-        {showForm ? "Cancel" : "Add Note"}
-      </button>
+        {showForm && (
+          <div className="mb-4 border p-4 rounded-lg bg-gray-100">
+            <input
+              type="text"
+              className="w-full mb-2 border rounded-lg p-2"
+              placeholder="Note title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+            />
+            <textarea
+              className="w-full mb-2 border rounded-lg p-2"
+              placeholder="Note description"
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+            />
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              onClick={handleAddNote}
+              disabled={loading}
+            >
+              {loading ? "Adding..." : "Add"}
+            </button>
+          </div>
+        )}
+      </div>
 
-      {showForm && (
-        <div className="mb-4 border p-4 rounded-lg bg-gray-100">
-          <input
-            type="text"
-            className="w-full mb-2 border rounded-lg p-2"
-            placeholder="Note title"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-          />
-          <textarea
-            className="w-full mb-2 border rounded-lg p-2"
-            placeholder="Note description"
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-          />
-          <button
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-            onClick={handleAddNote}
-            disabled={loading}
-          >
-            {loading ? "Adding..." : "Add"}
-          </button>
-        </div>
-      )}
-
-      {notes.length > 0 ? (
-        <ul className="space-y-4">
-          {notes.map((note) => (
-            <li key={note.id} className="border-b pb-4">
-              {editingNoteId === note.id ? (
-                <>
-                  <input
-                    className="w-full mb-2 border rounded-lg p-2"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                  />
-                  <textarea
-                    className="w-full mb-2 border rounded-lg p-2"
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      className="bg-green-500 text-white px-4 py-1 rounded-lg"
-                      onClick={() => handleSaveEdit(note.id)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="bg-gray-500 text-white px-4 py-1 rounded-lg"
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-blue-600">{note.title}</span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(note.noteDate).toLocaleDateString("fr-FR")}
-                    </span>
-                  </div>
-                  <p className="text-gray-700">{note.description}</p>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
-                      onClick={() => handleEdit(note)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="bg-red-500 text-white px-3 py-1 rounded-lg"
-                      onClick={() => handleDeleteNote(note.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500">No notes available.</p>
-      )}
+      {/* Liste scrollable */}
+      <div className="grow overflow-y-auto custom-scrollbar pr-2">
+        {notes.length > 0 ? (
+          <ul className="space-y-4">
+            {notes.map((note) => (
+              <li key={note.id} className="border-b pb-4">
+                {editingNoteId === note.id ? (
+                  <>
+                    <input
+                      className="w-full mb-2 border rounded-lg p-2"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                    <textarea
+                      className="w-full mb-2 border rounded-lg p-2"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-green-500 text-white px-4 py-1 rounded-lg"
+                        onClick={() => handleSaveEdit(note.id)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="bg-gray-500 text-white px-4 py-1 rounded-lg"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-blue-600">
+                        {note.title}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(note.noteDate).toLocaleDateString("fr-FR")}
+                      </span>
+                    </div>
+                    <p className="text-gray-700">{note.description}</p>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        className="bg-yellow-500 text-white px-3 py-1 rounded-lg"
+                        onClick={() => handleEdit(note)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="bg-red-500 text-white px-3 py-1 rounded-lg"
+                        onClick={() => handleDeleteNote(note.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No notes available.</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -548,9 +753,12 @@ const PatientNotesTab = ({ patient }) => {
 export default PatientNotesTab;
 import { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
-import { getPatientHealthData, updatePatientHealthData } from "../../../api/healthDataApi.js";
+import {
+  getPatientHealthData,
+  updatePatientHealthData,
+} from "../../../api/healthDataApi.js";
 
-const PatientHealthData = ({ patient, patientId }) => {
+const PatientHealthData = ({ patientId }) => {
   const [editing, setEditing] = useState(false);
   const [healthData, setHealthData] = useState({
     medicalDiagnosis: "",
@@ -594,12 +802,37 @@ const PatientHealthData = ({ patient, patientId }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Données de Santé
-      </h3>
+    <div className="flex flex-col bg-white h-full w-full rounded-lg shadow-md p-4">
+      {/* Header avec titre + bouton à droite */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-gray-800">Données de Santé</h3>
+        {!editing ? (
+          <button
+            className="bg-middleBlueErgogo text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              onClick={handleSave}
+            >
+              Enregistrer
+            </button>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              onClick={handleCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="space-y-6">
+      {/* Scrollable content */}
+      <div className="overflow-y-auto flex-grow pr-1 custom-scrollbar space-y-6">
         <div>
           <label className="block text-gray-700 font-semibold mb-1">
             Diagnostic Médical
@@ -607,7 +840,9 @@ const PatientHealthData = ({ patient, patientId }) => {
           <input
             type="text"
             value={healthData.medicalDiagnosis}
-            onChange={(e) => handleInputChange("medicalDiagnosis", e.target.value)}
+            onChange={(e) =>
+              handleInputChange("medicalDiagnosis", e.target.value)
+            }
             className="border p-2 rounded w-full"
             disabled={!editing}
           />
@@ -630,26 +865,11 @@ const PatientHealthData = ({ patient, patientId }) => {
           </label>
           <QuillEditor
             value={healthData.healthChronicle}
-            onChange={(value) => handleInputChange("healthChronicle", value)}
+            onChange={(value) =>
+              handleInputChange("healthChronicle", value)
+            }
             readOnly={!editing}
           />
-        </div>
-
-        <div className="flex justify-end space-x-2">
-          {!editing ? (
-            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => setEditing(true)}>
-              Modifier
-            </button>
-          ) : (
-            <>
-              <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={handleSave}>
-                Enregistrer
-              </button>
-              <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onClick={handleCancel}>
-                Annuler
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -664,12 +884,13 @@ import {
   updateContact,
   deleteContact,
 } from "../../../api/contactAPI.js";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const PatientReferences = ({ patient }) => {
   const [contacts, setContacts] = useState([]);
   const [editing, setEditing] = useState(null);
   const [isNew, setIsNew] = useState(false);
-  const [formType, setFormType] = useState("reference"); // Pour savoir dans quel tableau afficher le formulaire
+  const [formType, setFormType] = useState("reference");
 
   const [form, setForm] = useState({
     firstName: "",
@@ -757,14 +978,9 @@ const PatientReferences = ({ patient }) => {
   const personals = contacts.filter((c) => c.type === "personal");
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Références et Contacts
-      </h3>
-
-      {/* Formulaire affiché en haut du bon tableau */}
+    <div className="flex flex-col grow overflow-y-auto space-y-8 px-2">
       {(editing !== null || isNew) && (
-        <div className="bg-gray-100 p-4 rounded mb-6 space-y-2">
+        <div className="bg-gray-100 p-4 rounded mb-2 space-y-2">
           <input name="firstName" value={form.firstName || ""} onChange={handleChange} placeholder="Prénom" className="w-full p-2 border rounded" />
           <input name="lastName" value={form.lastName || ""} onChange={handleChange} placeholder="Nom" className="w-full p-2 border rounded" />
           {formType === "personal" && (
@@ -784,83 +1000,75 @@ const PatientReferences = ({ patient }) => {
         </div>
       )}
 
-      {/* Références */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-lg font-semibold text-gray-700">Références et Contacts</h4>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "reference")}>
-            Ajouter Référence
-          </button>
-        </div>
-        <table className="w-full border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2">Nom</th>
-              <th className="p-2">Prénom</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">INAMI</th>
-              <th className="p-2">Téléphone</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {references.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.lastName}</td>
-                <td className="p-2">{c.firstName}</td>
-                <td className="p-2">{c.type}</td>
-                <td className="p-2">{c.inami}</td>
-                <td className="p-2">{c.phone}</td>
-                <td className="p-2">{c.email}</td>
-                <td className="p-2">
-                  <button className="text-blue-600" onClick={() => startEdit(c, "reference")}>✏️</button>
-                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {[{ title: "Références", data: references, type: "reference" }, { title: "Contacts Personnels", data: personals, type: "personal" }].map(({ title, data, type }) => (
+        <div key={type}>
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-lg font-semibold text-gray-700">{title}</h4>
+            <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, type)}>
+              Ajouter
+            </button>
+          </div>
 
-      {/* Contacts personnels */}
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <h4 className="text-lg font-semibold text-gray-700">Contacts Personnels</h4>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, "personal")}>
-            Ajouter Contact Personnel
-          </button>
+          <div className="max-h-64 overflow-y-auto custom-scrollbar rounded border">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-200">
+                <tr>
+                  {type === "reference" ? (
+                    <>
+                      <th className="p-2">Nom</th>
+                      <th className="p-2">Prénom</th>
+                      <th className="p-2">INAMI</th>
+                      <th className="p-2">Téléphone</th>
+                      <th className="p-2">Email</th>
+                      <th className="p-2">Action</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="p-2">Nom</th>
+                      <th className="p-2">Prénom</th>
+                      <th className="p-2">Relation</th>
+                      <th className="p-2">Téléphone</th>
+                      <th className="p-2">Email</th>
+                      <th className="p-2">Commentaire</th>
+                      <th className="p-2">Action</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((c) => (
+                  <tr key={c.id} className="border-t hover:bg-gray-50 transition">
+                    <td className="p-2">{c.lastName}</td>
+                    <td className="p-2">{c.firstName}</td>
+                    {type === "reference" ? (
+                      <>
+                        <td className="p-2">{c.inami}</td>
+                        <td className="p-2">{c.phone}</td>
+                        <td className="p-2">{c.email}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-2">{c.relation}</td>
+                        <td className="p-2">{c.phone}</td>
+                        <td className="p-2">{c.email}</td>
+                        <td className="p-2">{c.comment}</td>
+                      </>
+                    )}
+                    <td className="p-2 flex gap-2">
+                      <button title="Modifier" onClick={() => startEdit(c, type)}>
+                        <FiEdit2 className="text-blue-600" />
+                      </button>
+                      <button title="Supprimer" onClick={() => handleDelete(c.id)}>
+                        <FiTrash2 className="text-red-600" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <table className="w-full border">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="p-2">Nom</th>
-              <th className="p-2">Prénom</th>
-              <th className="p-2">Relation</th>
-              <th className="p-2">Téléphone</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Commentaire</th>
-              <th className="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {personals.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.lastName}</td>
-                <td className="p-2">{c.firstName}</td>
-                <td className="p-2">{c.relation}</td>
-                <td className="p-2">{c.phone}</td>
-                <td className="p-2">{c.email}</td>
-                <td className="p-2">{c.comment}</td>
-                <td className="p-2">
-                  <button className="text-blue-600" onClick={() => startEdit(c, "personal")}>✏️</button>
-                  <button className="text-red-600 ml-2" onClick={() => handleDelete(c.id)}>🗑️</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      ))}
     </div>
   );
 };
@@ -880,13 +1088,8 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
   const handleSave = async () => {
     if (!motif) return;
 
-    const updatedMotif = {
-      ...motif,
-      diagnostic,
-    };
-
     try {
-      await updateMotif(updatedMotif);
+      await updateMotif({ ...motif, diagnostic });
       setEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde du diagnostic :", error);
@@ -899,34 +1102,41 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg h-full">
-      <h4 className="text-md font-semibold mb-4">Diagnostic</h4>
-
-      {/* ✅ Ajout d'un conteneur propre pour QuillEditor */}
-      <div className="border rounded-lg p-2">
-        <QuillEditor
-          value={diagnostic}
-          onChange={setDiagnostic}
-          readOnly={!editing}
-          className="min-h-[150px] max-h-64 overflow-auto"
-        />
-      </div>
-
-      <div className="flex space-x-2 mt-4">
+    <div className="flex flex-col h-full w-full">
+      {/* Boutons d'action en haut à droite */}
+      <div className="flex justify-end mb-4">
         {editing ? (
           <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 mr-2"
+              onClick={handleSave}
+            >
               Enregistrer
             </button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+              onClick={handleCancel}
+            >
               Annuler
             </button>
           </>
         ) : (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => setEditing(true)}>
+          <button
+            className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            onClick={() => setEditing(true)}
+          >
             Modifier
           </button>
         )}
+      </div>
+
+      {/* Éditeur avec style d'origine (bordure et padding) */}
+      <div className="border rounded-lg p-2 flex-grow overflow-y-auto custom-scrollbar">
+        <QuillEditor
+          value={diagnostic}
+          onChange={setDiagnostic}
+          readOnly={!editing}
+        />
       </div>
     </div>
   );
@@ -1014,7 +1224,7 @@ const PatientInterventions = ({ motif, updateMotif }) => {
       <h4 className="text-md font-semibold mb-4">Compte Rendu des Interventions</h4>
 
       <button
-        className="mb-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+        className="mb-4 bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
         onClick={() => {
           setShowForm(true);
           setEditingIndex(null);
@@ -1163,7 +1373,7 @@ const PatientObjectives = ({ motif }) => {
         description: "",
         status: "ouvert",
       });
-      setShowShortTermForm(false); // Fermer après ajout
+      setShowShortTermForm(false);
       fetchObjectives();
     } catch (err) {
       console.error("Erreur ajout objectif court terme", err);
@@ -1171,29 +1381,31 @@ const PatientObjectives = ({ motif }) => {
   };
 
   const renderShortTermForm = () => (
-    <>
+    <div className="space-y-3">
       <input
         type="text"
         name="title"
         value={newShortObjective.title}
         onChange={(e) => setNewShortObjective({ ...newShortObjective, title: e.target.value })}
         placeholder="Titre"
-        className="w-full p-2 border rounded-lg"
+        className="w-full p-2 border rounded"
       />
-      <input
-        type="date"
-        name="startDate"
-        value={newShortObjective.startDate}
-        onChange={(e) => setNewShortObjective({ ...newShortObjective, startDate: e.target.value })}
-        className="w-full p-2 border rounded-lg"
-      />
-      <input
-        type="date"
-        name="endDate"
-        value={newShortObjective.endDate}
-        onChange={(e) => setNewShortObjective({ ...newShortObjective, endDate: e.target.value })}
-        className="w-full p-2 border rounded-lg"
-      />
+      <div className="flex space-x-2">
+        <input
+          type="date"
+          name="startDate"
+          value={newShortObjective.startDate}
+          onChange={(e) => setNewShortObjective({ ...newShortObjective, startDate: e.target.value })}
+          className="w-1/2 p-2 border rounded"
+        />
+        <input
+          type="date"
+          name="endDate"
+          value={newShortObjective.endDate}
+          onChange={(e) => setNewShortObjective({ ...newShortObjective, endDate: e.target.value })}
+          className="w-1/2 p-2 border rounded"
+        />
+      </div>
       <QuillEditor
         value={newShortObjective.description}
         onChange={(value) => setNewShortObjective({ ...newShortObjective, description: value })}
@@ -1203,25 +1415,24 @@ const PatientObjectives = ({ motif }) => {
         name="status"
         value={newShortObjective.status}
         onChange={(e) => setNewShortObjective({ ...newShortObjective, status: e.target.value })}
-        className="w-full p-2 border rounded-lg"
+        className="w-full p-2 border rounded"
       >
         <option value="ouvert">Ouvert</option>
         <option value="fermé">Fermé</option>
       </select>
 
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-        onClick={handleAddShortTermObjective}
-      >
-        Enregistrer
-      </button>
-    </>
+      <div className="flex justify-end">
+        <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg" onClick={handleAddShortTermObjective}>
+          Enregistrer
+        </button>
+      </div>
+    </div>
   );
 
   return (
-    <div className="flex space-x-4">
-      {/* Objectifs long terme */}
-      <div className="w-1/3 bg-gray-100 p-4 rounded-lg shadow">
+    <div className="flex w-full h-full space-x-4">
+      {/* Colonne gauche : Objectifs long terme */}
+      <div className="w-1/4 h-full bg-gray-100 p-4 rounded-lg shadow flex flex-col overflow-y-auto custom-scrollbar">
         <h4 className="text-lg font-semibold mb-3">Objectifs Long Terme</h4>
 
         <input
@@ -1232,7 +1443,7 @@ const PatientObjectives = ({ motif }) => {
           className="w-full p-2 border rounded-lg mb-2"
         />
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded-lg w-full mb-4"
+          className="bg-dark2GreenErgogo text-white px-4 py-2 rounded-lg w-full mb-4"
           onClick={handleAddLongTermObjective}
         >
           Ajouter
@@ -1243,8 +1454,8 @@ const PatientObjectives = ({ motif }) => {
             <li
               key={obj.id}
               onClick={() => setSelectedLongObjective(obj)}
-              className={`cursor-pointer p-2 rounded-lg ${
-                selectedLongObjective?.id === obj.id ? "bg-blue-500 text-white" : "bg-gray-200"
+              className={`cursor-pointer p-2 rounded-lg text-sm ${
+                selectedLongObjective?.id === obj.id ? "bg-middleBlueErgogo text-white" : "bg-gray-200"
               }`}
             >
               {obj.title}
@@ -1253,61 +1464,43 @@ const PatientObjectives = ({ motif }) => {
         </ul>
       </div>
 
-      {/* Objectifs court terme */}
-      <div className="w-2/3 bg-white p-4 rounded-lg shadow">
+      {/* Colonne droite : Objectifs court terme */}
+      <div className="w-3/4 h-full bg-white p-4 rounded-lg shadow flex flex-col overflow-y-auto custom-scrollbar">
         {selectedLongObjective ? (
           <>
-            {selectedLongObjective.shortTermObjectives?.length === 0 ? (
-              <>
-                <h4 className="text-lg font-semibold mb-3">
-                  Objectifs Court Terme pour "{selectedLongObjective.title}"
-                </h4>
-                <div className="space-y-4 mb-6">
-                  {renderShortTermForm()}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-lg font-semibold">
-                    Objectifs Court Terme pour "{selectedLongObjective.title}"
-                  </h4>
-                  <button
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-                    onClick={() => setShowShortTermForm(!showShortTermForm)}
-                  >
-                    {showShortTermForm ? "Annuler" : "Ajouter"}
-                  </button>
-                </div>
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-semibold">
+                Objectifs Court Terme pour "{selectedLongObjective.title}"
+              </h4>
+              <button
+                className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg"
+                onClick={() => setShowShortTermForm(!showShortTermForm)}
+              >
+                {showShortTermForm ? "Annuler" : "Ajouter"}
+              </button>
+            </div>
 
-                <ul className="space-y-2 mb-4">
-                  {selectedLongObjective.shortTermObjectives.map((obj) => (
-                    <li key={obj.id} className="p-3 bg-gray-100 rounded shadow-sm">
-                      <div className="font-semibold">{obj.title}</div>
-                      <div className="text-sm text-gray-600">
-                        {obj.status} | Du {obj.startDate?.slice(0, 10)} au {obj.endDate?.slice(0, 10) || "..."}
-                      </div>
-                      {obj.description && (
-                        <div
-                          className="mt-2 text-sm prose max-w-none"
-                          dangerouslySetInnerHTML={{ __html: obj.description }}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-
-
-                {showShortTermForm && (
-                  <div className="space-y-4">
-                    {renderShortTermForm()}
+            <ul className="space-y-3 mb-6">
+              {selectedLongObjective.shortTermObjectives?.map((obj) => (
+                <li key={obj.id} className="p-3 bg-gray-100 rounded shadow-sm">
+                  <div className="font-semibold">{obj.title}</div>
+                  <div className="text-sm text-gray-600">
+                    {obj.status} | Du {obj.startDate?.slice(0, 10)} au {obj.endDate?.slice(0, 10) || "…"}
                   </div>
-                )}
-              </>
-            )}
+                  {obj.description && (
+                    <div
+                      className="mt-2 text-sm prose max-w-none"
+                      dangerouslySetInnerHTML={{ __html: obj.description }}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {showShortTermForm && renderShortTermForm()}
           </>
         ) : (
-          <p className="text-gray-500">Sélectionnez un objectif long terme.</p>
+          <p className="text-gray-500 text-center my-auto">Sélectionnez un objectif long terme.</p>
         )}
       </div>
     </div>
@@ -1339,11 +1532,7 @@ const PatientSituation = ({ motif, updateMotif }) => {
   };
 
   const handleSave = async () => {
-    const updated = {
-      ...motif,
-      situation: newSituation,
-    };
-    await updateMotif(updated);
+    await updateMotif({ ...motif, situation: newSituation });
     setEditing(false);
   };
 
@@ -1357,30 +1546,40 @@ const PatientSituation = ({ motif, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg">
-      <h4 className="text-lg font-semibold mb-4">Situation Personnelle</h4>
+    <div className="relative w-full h-full">
+      <div className="flex justify-between items-start mb-4">
+        {!editing ? (
+          <button
+            className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg sticky top-4"
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2 sticky top-4">
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>
+              Enregistrer
+            </button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
       {["personne", "occupation", "environnement"].map((field) => (
         <div key={field} className="mb-4">
           <label className="block text-sm font-medium text-gray-700 capitalize">{field} :</label>
-          <QuillEditor
-            value={newSituation[field]}
-            onChange={(value) => handleInputChange(field, value)}
-            readOnly={!editing}
-          />
+          <div className="border rounded p-2">
+            <QuillEditor
+              value={newSituation[field]}
+              onChange={(value) => handleInputChange(field, value)}
+              readOnly={!editing}
+              className="min-h-[150px] max-h-[300px] overflow-y-auto custom-scrollbar"
+            />
+          </div>
         </div>
       ))}
-
-      <div className="flex space-x-2">
-        {!editing ? (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
-        ) : (
-          <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
-          </>
-        )}
-      </div>
     </div>
   );
 };
@@ -1399,14 +1598,8 @@ const PatientSummary = ({ motif, updateMotif }) => {
 
   const handleSave = async () => {
     if (!motif) return;
-
-    const updatedMotif = {
-      ...motif,
-      synthese,
-    };
-
     try {
-      await updateMotif(updatedMotif);
+      await updateMotif({ ...motif, synthese });
       setEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de la synthèse :", error);
@@ -1419,33 +1612,42 @@ const PatientSummary = ({ motif, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg h-full">
-      <h4 className="text-md font-semibold mb-4">Synthèse</h4>
+    <div className="relative flex flex-col p-4 bg-white shadow-md rounded-lg h-full max-h-[calc(100vh-150px)] overflow-hidden">
+      {/* Titre + Bouton Modifier sticky en haut */}
+      <div className="flex justify-between items-start mb-4 sticky top-0 bg-white z-10 pb-2">
+        {!editing ? (
+          <button
+            className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg"
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              onClick={handleSave}
+            >
+              Enregistrer
+            </button>
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+              onClick={handleCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="border rounded-lg p-2">
+      {/* ✅ Scroll uniquement ici */}
+      <div className="border rounded-lg p-2 grow overflow-y-auto custom-scrollbar">
         <QuillEditor
           value={synthese}
           onChange={setSynthese}
           readOnly={!editing}
-          className="min-h-[150px] max-h-64 overflow-auto"
+          className="h-full"
         />
-      </div>
-
-      <div className="flex space-x-2 mt-4">
-        {editing ? (
-          <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600" onClick={handleSave}>
-              Enregistrer
-            </button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={handleCancel}>
-              Annuler
-            </button>
-          </>
-        ) : (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => setEditing(true)}>
-            Modifier
-          </button>
-        )}
       </div>
     </div>
   );
@@ -1478,27 +1680,8 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   };
 
   const handleSave = async () => {
-    if (!motif || !patientId) {
-      console.error("❌ patientId ou motif est undefined !");
-      return;
-    }
-
-    const updatedMotif = {
-      ...motif,
-      therapeutic: {
-        assesments: therapeuticData.assesments || "",
-        syntheseEvaluation: therapeuticData.syntheseEvaluation || "",
-        restrictionsSouhaits: therapeuticData.restrictionsSouhaits || "",
-        diagnosticOccupationnel: therapeuticData.diagnosticOccupationnel || "",
-      },
-    };
-
-    try {
-      await updateMotif(updatedMotif);
-      setEditing(false);
-    } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour :", error);
-    }
+    await updateMotif({ ...motif, therapeutic: therapeuticData });
+    setEditing(false);
   };
 
   const handleCancel = () => {
@@ -1512,8 +1695,23 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   };
 
   return (
-    <div className="p-4 bg-white shadow-md rounded-lg">
-      <h4 className="text-lg font-semibold mb-4">Perspective Thérapeutique</h4>
+    <div className="relative p-4 bg-white shadow-md rounded-lg">
+      <div className="flex justify-between items-start mb-4">
+        {!editing ? (
+          <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg sticky top-4" onClick={() => setEditing(true)}>
+            Modifier
+          </button>
+        ) : (
+          <div className="flex space-x-2 sticky top-4">
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>
+              Enregistrer
+            </button>
+            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
 
       {[
         { label: "Batteries Code CIF", field: "assesments" },
@@ -1523,24 +1721,16 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
       ].map(({ label, field }) => (
         <div key={field} className="mb-4">
           <label className="block text-sm font-medium text-gray-700">{label} :</label>
-          <QuillEditor
-            value={therapeuticData[field]}
-            onChange={(value) => handleInputChange(field, value)}
-            readOnly={!editing}
-          />
+          <div className="border rounded p-2">
+            <QuillEditor
+              value={therapeuticData[field]}
+              onChange={(value) => handleInputChange(field, value)}
+              readOnly={!editing}
+              className="min-h-[150px] max-h-[300px] overflow-y-auto custom-scrollbar"
+            />
+          </div>
         </div>
       ))}
-
-      <div className="flex space-x-2">
-        {!editing ? (
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg" onClick={() => setEditing(true)}>Modifier</button>
-        ) : (
-          <>
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>Enregistrer</button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>Annuler</button>
-          </>
-        )}
-      </div>
     </div>
   );
 };
