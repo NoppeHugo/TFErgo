@@ -10,8 +10,8 @@ const PatientLayout = () => {
         <PatientSidebar />
       </div>
 
-      {/* Contenu dynamique (détails, notes, données, dossier, etc.) */}
-      <div className="flex-grow p-6 overflow-hidden">
+      {/* Contenu principal divisé en fixe (haut) + scrollable (bas) */}
+      <div className="flex-grow flex flex-col h-full">
         <Outlet />
       </div>
     </div>

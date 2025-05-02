@@ -22,6 +22,13 @@ const GoalSelect = ({ selectedGoals, setSelectedGoals, showToast }) => {
       setError('Nom requis');
       return;
     }
+
+    const goalExists = goals.some((goal) => goal.name.toLowerCase() === newGoalName.trim().toLowerCase());
+    if (goalExists) {
+      setError('Cet objectif existe déjà');
+      return;
+    }
+
     try {
       await createGoal({ name: newGoalName });
       setNewGoalName('');

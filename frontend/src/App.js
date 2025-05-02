@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import CalendarPage from './pages/CalendarPage.js';
@@ -7,13 +7,14 @@ import ActivitiesPage from './pages/ActivitiesPage.js';
 import ReportsPage from './pages/ReportsPage.js';
 import PatientDetails from "./components/PatientDetails.js";
 import AddPatientPage from './pages/AddPatientPage.js';
-import PatientLayout from './components/PatientLayout.js'; // Import du layout patient
+import PatientLayout from './components/PatientLayout.js';
 import Header from './components/Header.js';
 import './index.css';
 import LoginPage from './pages/LoginPage.js';
 import RequireAuth from './components/RequireAuth.js';
 import ActivityDetailsPage from './components/activities/ActivityDetailsPage.js';
 import ManageGoalsAndMaterialsPage from './components/activities/ManageGoalsAndMaterialsPage.js';
+import Animation from './pages/Animation.js';
 
 // Page d'accueil
 const HomePage = () => (
@@ -22,7 +23,7 @@ const HomePage = () => (
   </div>
 );
 
-// **Effet d'apparition et de glissement pour la fiche patient**
+// Effet d'apparition et de glissement pour la fiche patient
 const patientTransition = {
   initial: { opacity: 0, x: 50, scale: 0.95 },
   animate: { opacity: 1, x: 0, scale: 1, transition: { duration: 0.5, ease: "easeOut" } },
@@ -40,7 +41,7 @@ const AnimatedRoutes = () => {
         <Route path="/patients" element={<RequireAuth><PatientsPage /></RequireAuth>} />
         <Route path="/add-patient" element={<RequireAuth><AddPatientPage /></RequireAuth>} />
         <Route path="/activities" element={<RequireAuth><ActivitiesPage /></RequireAuth>} />
-        <Route path="/activities/:id" element={<RequireAuth><ActivityDetailsPage /></RequireAuth>} /> {/* ✅ déplacé ici */}
+        <Route path="/activities/:id" element={<RequireAuth><ActivityDetailsPage /></RequireAuth>} />
         <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/manage-goals-materials" element={<ManageGoalsAndMaterialsPage />} />
@@ -50,16 +51,18 @@ const AnimatedRoutes = () => {
           <Route
             path=":patientId"
             element={
-              <RequireAuth><motion.div
-                key={location.pathname}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                variants={patientTransition}
-                className="w-full"
-              >
-                <PatientDetails />
-              </motion.div></RequireAuth>
+              <RequireAuth>
+                <motion.div
+                  key={location.pathname}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={patientTransition}
+                  className="w-full"
+                >
+                  <PatientDetails />
+                </motion.div>
+              </RequireAuth>
             }
           />
           <Route path=":patientId/notes" element={<RequireAuth><PatientsPage /></RequireAuth>} />
@@ -72,14 +75,20 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => {
+  const [splashDone, setSplashDone] = useState(false); // ✅ Gère le splash screen
+
   return (
     <Router>
-      <div className="flex flex-col h-screen">
-        <Header />
-        <div className="flex-grow overflow-hidden">
-          <AnimatedRoutes />
+      {!splashDone ? (
+        <Animation onFinish={() => setSplashDone(true)} />
+      ) : (
+        <div className="flex flex-col h-screen">
+          <Header />
+          <div className="flex-grow overflow-auto">
+            <AnimatedRoutes />
+          </div>
         </div>
-      </div>
+      )}
     </Router>
   );
 };

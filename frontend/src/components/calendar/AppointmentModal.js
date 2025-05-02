@@ -9,11 +9,16 @@ import {
 } from "../../api/appointmentAPI.js";
 import { getAllPatients } from "../../api/patientAPI.js";
 import { getActivities } from "../../api/activityAPI.js";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AppointmentModal = ({ event, onClose }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [patients, setPatients] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
   const [form, setForm] = useState({
     title: "",
     patientId: "",
@@ -57,18 +62,43 @@ const AppointmentModal = ({ event, onClose }) => {
   };
 
   const handleSave = async () => {
+    if (!form.title || !form.patientId) {
+      setError("Le titre et le patient sont obligatoires.");
+      return;
+    }
+
+    const selectedDate = new Date(form.date);
+    if (selectedDate < new Date()) {
+      setError("La date du rendez-vous ne peut pas être dans le passé.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+
     const data = {
       ...form,
       duration: parseInt(form.duration),
     };
-    if (event?.id) {
-      await updateAppointment(event.id, data);
-      await linkActivitiesToAppointment(event.id, form.activityIds);
-    } else {
-      const newApt = await createAppointment(data);
-      await linkActivitiesToAppointment(newApt.id, form.activityIds);
+
+    try {
+      if (event?.id) {
+        await updateAppointment(event.id, data);
+        await linkActivitiesToAppointment(event.id, form.activityIds);
+      } else {
+        const newApt = await createAppointment(data);
+        await linkActivitiesToAppointment(newApt.id, form.activityIds);
+      }
+
+      // ✅ Forcer le refresh des composants qui utilisent ["appointments", "all"]
+      queryClient.invalidateQueries(["appointments", "all"]);
+
+      onClose();
+    } catch (e) {
+      setError("Erreur lors de l'enregistrement.");
+    } finally {
+      setIsSaving(false);
     }
-    onClose();
   };
 
   const handleDelete = async () => {
@@ -84,6 +114,12 @@ const AppointmentModal = ({ event, onClose }) => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {event?.id ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}
         </h2>
+
+        {error && (
+          <p className="text-sm text-red-600 mb-2 bg-red-100 px-3 py-2 rounded">
+            {error}
+          </p>
+        )}
 
         <div className="grid grid-cols-1 gap-4">
           <div className="flex flex-col gap-1">
@@ -202,9 +238,10 @@ const AppointmentModal = ({ event, onClose }) => {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 text-sm bg-[#A294F9] text-white rounded-lg shadow hover:bg-[#8c7ef1] transition"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm bg-[#A294F9] text-white rounded-lg shadow hover:bg-[#8c7ef1] transition disabled:opacity-50"
             >
-              Enregistrer
+              {isSaving ? "Enregistrement..." : "Enregistrer"}
             </button>
           </div>
         </div>

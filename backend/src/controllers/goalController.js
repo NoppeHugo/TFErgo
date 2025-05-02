@@ -13,6 +13,14 @@ const getGoals = async (req, res) => {
 const createGoal = async (req, res) => {
   const { name, description } = req.body;
   try {
+    // 🔍 Vérification de doublon insensible à la casse
+    const existingGoal = await prisma.activityObjective.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+    if (existingGoal) {
+      return res.status(409).json({ error: 'Cet objectif existe déjà.' });
+    }
+
     const newGoal = await prisma.activityObjective.create({
       data: { name, description }
     });

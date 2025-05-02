@@ -22,6 +22,16 @@ const MaterialSelect = ({ selectedMaterials, setSelectedMaterials, showToast }) 
       setError('Nom requis');
       return;
     }
+
+    const materialExists = materials.some(
+      (material) => material.name.toLowerCase() === newMaterialName.trim().toLowerCase()
+    );
+
+    if (materialExists) {
+      setError('Le matériel existe déjà');
+      return;
+    }
+
     try {
       await createMaterial({ name: newMaterialName });
       setNewMaterialName('');

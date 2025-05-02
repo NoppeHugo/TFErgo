@@ -58,8 +58,13 @@ const createActivity = async (req, res) => {
       return res.status(400).json({ error: 'therapistId et name sont requis' });
     }
 
-    console.log("🔗 Connexion des objectifs :", objectiveIds);
-    console.log("🔗 Connexion des matériels :", materialIds);
+    const existingActivity = await prisma.activity.findUnique({
+      where: { name },
+    });
+
+    if (existingActivity) {
+      return res.status(400).json({ error: 'Une activité avec ce nom existe déjà' });
+    }
 
     const newActivity = await prisma.activity.create({
       data: {

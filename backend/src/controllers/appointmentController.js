@@ -91,10 +91,16 @@ async function getAppointmentsByPatientId(req, res) {
 
 async function createAppointment(req, res) {
   const therapistId = req.user.id;
-  const {
-    patientId, title, date, duration,
-    description, imageUrl, sessionReport,
-  } = req.body;
+  const { patientId, title, date, duration, description, imageUrl, sessionReport } = req.body;
+
+  if (!title || !patientId || !date) {
+    return res.status(400).json({ error: "Champs obligatoires manquants." });
+  }
+
+  const parsedDate = new Date(date);
+  if (parsedDate < new Date()) {
+    return res.status(400).json({ error: "La date ne peut pas être dans le passé." });
+  }
 
   try {
     const appointment = await prisma.appointment.create({
@@ -102,7 +108,7 @@ async function createAppointment(req, res) {
         therapistId,
         patientId: parseInt(patientId),
         title,
-        date: new Date(date),
+        date: parsedDate,
         duration: parseInt(duration),
         description,
         imageUrl,
@@ -118,17 +124,23 @@ async function createAppointment(req, res) {
 
 async function updateAppointment(req, res) {
   const { id } = req.params;
-  const {
-    title, date, duration,
-    description, imageUrl, sessionReport,
-  } = req.body;
+  const { title, date, duration, description, imageUrl, sessionReport } = req.body;
+
+  if (!title || !date) {
+    return res.status(400).json({ error: "Champs obligatoires manquants." });
+  }
+
+  const parsedDate = new Date(date);
+  if (parsedDate < new Date()) {
+    return res.status(400).json({ error: "La date ne peut pas être dans le passé." });
+  }
 
   try {
     const updated = await prisma.appointment.update({
       where: { id: Number(id) },
       data: {
         title,
-        date: new Date(date),
+        date: parsedDate,
         duration: parseInt(duration),
         description,
         imageUrl,
@@ -139,6 +151,39 @@ async function updateAppointment(req, res) {
   } catch (err) {
     console.error('❌ updateAppointment error:', err);
     res.status(500).json({ error: 'Erreur mise à jour du rendez-vous' });
+  }
+}
+
+async function getAppointmentsByMonth(req, res) {
+  const therapistId = req.user.id;
+  const [year, month] = req.params.month.split('-').map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0, 23, 59, 59);
+
+  try {
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        therapistId,
+        date: { gte: start, lte: end },
+      },
+      include: {
+        patient: true,
+        activities: {
+          include: {
+            activity: {
+              include: {
+                objectives: { include: { objective: true } },
+              },
+            },
+          },
+        },
+        feedbacks: true,
+      },
+    });
+    res.json(appointments);
+  } catch (err) {
+    console.error("❌ getAppointmentsByMonth error:", err);
+    res.status(500).json({ error: "Erreur chargement des rendez-vous du mois" });
   }
 }
 
@@ -155,52 +200,119 @@ async function deleteAppointment(req, res) {
   }
 }
 
-async function addAppointmentFeedback(req, res) {
-  const { appointmentId } = req.params;
-  const { objective, rating, completed } = req.body;
+async function getEvaluationItemsByPatient(req, res) {
+  const { patientId } = req.params;
   try {
-    const feedback = await prisma.appointmentFeedback.create({
-      data: {
+    const items = await prisma.evaluationItem.findMany({
+      where: { patientId: parseInt(patientId) },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(items);
+  } catch (error) {
+    console.error('❌ getEvaluationItemsByPatient error:', error);
+    res.status(500).json({ error: 'Erreur chargement des éléments à évaluer' });
+  }
+}
+
+async function addAppointmentFeedbacks(req, res) {
+  const { appointmentId } = req.params;
+  const { feedbacks } = req.body;
+
+  try {
+    const newFeedbacks = await prisma.appointmentFeedback.createMany({
+      data: feedbacks.map((feedback) => ({
         appointmentId: parseInt(appointmentId),
-        objective,
-        rating,
-        completed: !!completed,
-      },
+        ...feedback,
+      })),
     });
-    res.json(feedback);
+    res.status(201).json(newFeedbacks);
   } catch (err) {
-    console.error("❌ addAppointmentFeedback error:", err);
-    res.status(500).json({ error: 'Erreur ajout du retour de rendez-vous' });
+    console.error("❌ addAppointmentFeedbacks error:", err);
+    res.status(500).json({ error: 'Erreur ajout des feedbacks' });
   }
 }
 
-async function updateAppointmentFeedback(req, res) {
+async function getAppointmentFeedbacksByAppointment(req, res) {
   const { id } = req.params;
-  const { rating, completed } = req.body;
-  try {
-    const updated = await prisma.appointmentFeedback.update({
-      where: { id: parseInt(id) },
-      data: { rating, completed },
-    });
-    res.json(updated);
-  } catch (err) {
-    console.error("❌ updateAppointmentFeedback error:", err);
-    res.status(500).json({ error: 'Erreur mise à jour du retour' });
-  }
-}
-
-async function getAppointmentFeedbacks(req, res) {
-  const { appointmentId } = req.params;
   try {
     const feedbacks = await prisma.appointmentFeedback.findMany({
-      where: { appointmentId: parseInt(appointmentId) },
+      where: { appointmentId: parseInt(id) },
     });
     res.json(feedbacks);
   } catch (err) {
-    console.error("❌ getAppointmentFeedbacks error:", err);
-    res.status(500).json({ error: 'Erreur chargement des retours' });
+    console.error("❌ getAppointmentFeedbacksByAppointment error:", err);
+    res.status(500).json({ error: "Erreur chargement des feedbacks" });
   }
 }
+
+
+async function updateAppointmentFeedback(req, res) {
+  const { id } = req.params;
+  const { feedback } = req.body;
+
+  try {
+    const updatedFeedback = await prisma.appointmentFeedback.update({
+      where: { id: parseInt(id) },
+      data: feedback,
+    });
+    res.json(updatedFeedback);
+  } catch (err) {
+    console.error("❌ updateAppointmentFeedback error:", err);
+    res.status(500).json({ error: 'Erreur mise à jour du feedback' });
+  }
+}
+
+async function createEvaluationItem(req, res) {
+  const { patientId, title } = req.body;
+  try {
+    const item = await prisma.evaluationItem.create({
+      data: {
+        patientId: parseInt(patientId),
+        title,
+      },
+    });
+    res.status(201).json(item);
+  } catch (err) {
+    console.error("❌ createEvaluationItem error:", err);
+    res.status(500).json({ error: "Erreur création élément à évaluer" });
+  }
+}
+
+async function getAppointmentFeedbacksByAppointment(req, res) {
+  const { id } = req.params;
+
+  try {
+    const feedbacks = await prisma.appointmentFeedback.findMany({
+      where: { appointmentId: parseInt(id) },
+      include: {
+        evaluationItem: true,
+      },
+    });
+
+    res.json(feedbacks);
+  } catch (err) {
+    console.error("❌ getAppointmentFeedbacksByAppointment error:", err);
+    res.status(500).json({ error: 'Erreur récupération des feedbacks' });
+  }
+}
+
+async function createEvaluationItem(req, res) {
+  const { patientId, title } = req.body;
+
+  try {
+    const newItem = await prisma.evaluationItem.create({
+      data: {
+        patientId: parseInt(patientId),
+        title,
+      },
+    });
+    res.status(201).json(newItem);
+  } catch (err) {
+    console.error("❌ createEvaluationItem error:", err);
+    res.status(500).json({ error: "Erreur création de l'élément à évaluer" });
+  }
+}
+
 
 async function linkActivitiesToAppointment(req, res) {
   const appointmentId = parseInt(req.params.id);
@@ -233,8 +345,11 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
-  addAppointmentFeedback,
+  getEvaluationItemsByPatient,
+  addAppointmentFeedbacks,
   updateAppointmentFeedback,
-  getAppointmentFeedbacks,
   linkActivitiesToAppointment,
+  getAppointmentFeedbacksByAppointment,
+  createEvaluationItem,
+  getAppointmentsByMonth
 };

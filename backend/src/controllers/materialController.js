@@ -8,7 +8,7 @@ const getMaterials = async (req, res) => {
     });
     res.json(materials);
   } catch (error) {
-    console.error('❌ ERREUR GET /materials :', error); // 👈 Ajout pour debug
+    console.error('❌ ERREUR GET /materials :', error);
     res.status(500).json({ error: 'Failed to fetch materials' });
   }
 };
@@ -16,6 +16,14 @@ const getMaterials = async (req, res) => {
 const createMaterial = async (req, res) => {
   const { name, description } = req.body;
   try {
+    // 🔍 Vérification de doublon insensible à la casse
+    const existingMaterial = await prisma.material.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
+    if (existingMaterial) {
+      return res.status(409).json({ error: 'Ce matériel existe déjà.' });
+    }
+
     const material = await prisma.material.create({
       data: { name, description }
     });
@@ -37,7 +45,7 @@ const updateMaterial = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to update material' });
   }
-}
+};
 
 const deleteMaterial = async (req, res) => {
   const { id } = req.params;
@@ -57,4 +65,3 @@ module.exports = {
   updateMaterial,
   deleteMaterial
 };
-

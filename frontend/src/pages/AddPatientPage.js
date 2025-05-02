@@ -63,7 +63,7 @@ const AddPatientPage = () => {
       handleChange={handleChange}
       handleSubmit={handleAddPatient}
       isEditing={false}
-      errors={errors} // 🔥 Passe les erreurs au PatientForm
+      errors={errors} 
     />
   );
 };

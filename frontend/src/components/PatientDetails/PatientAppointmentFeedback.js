@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import {
+  getEvaluationItemsByPatient,
+  addAppointmentFeedbacks,
+  getAppointmentFeedbacks,
+  createEvaluationItem,
+} from "../../api/evaluationAPI.js";
 
 const StarRating = ({ value, onChange }) => {
   return (
@@ -17,80 +22,66 @@ const StarRating = ({ value, onChange }) => {
   );
 };
 
-const PatientAppointmentFeedback = ({ appointmentId }) => {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [newFeedback, setNewFeedback] = useState({ objective: "", rating: 3 });
+const PatientAppointmentFeedback = ({ appointmentId, patientId, reloadTrigger }) => {
+  const [items, setItems] = useState([]);
+  const [feedbacks, setFeedbacks] = useState({});
+  const [existingFeedbacks, setExistingFeedbacks] = useState([]);
 
-  const fetchFeedbacks = async () => {
-    const res = await axios.get(`http://localhost:3001/appointments/${appointmentId}/feedbacks`, { withCredentials: true });
-    setFeedbacks(res.data);
+  const loadItems = async () => {
+    const data = await getEvaluationItemsByPatient(patientId);
+    setItems(data);
   };
 
-  const handleAdd = async () => {
-    if (!newFeedback.objective) return;
-    await axios.post(
-      `http://localhost:3001/appointments/${appointmentId}/feedbacks`,
-      newFeedback,
-      { withCredentials: true }
-    );
-    setNewFeedback({ objective: "", rating: 3 });
-    fetchFeedbacks();
+  const loadFeedbacks = async () => {
+    const data = await getAppointmentFeedbacks(appointmentId);
+    setExistingFeedbacks(data);
+    const initial = {};
+    data.forEach((fb) => {
+      initial[fb.evaluationItemId] = fb.rating;
+    });
+    setFeedbacks(initial);
   };
 
-  const handleUpdate = async (id, updates) => {
-    await axios.patch(`http://localhost:3001/appointments/feedbacks/${id}`, updates, { withCredentials: true });
-    fetchFeedbacks();
+  const handleSave = async () => {
+    const formatted = Object.entries(feedbacks).map(([evaluationItemId, rating]) => ({
+      evaluationItemId,
+      rating,
+    }));
+    await addAppointmentFeedbacks(appointmentId, formatted);
+    await loadFeedbacks();
   };
 
   useEffect(() => {
-    fetchFeedbacks();
-  }, [appointmentId]);
+    if (patientId && appointmentId) {
+      loadItems();
+      loadFeedbacks();
+    }
+  }, [patientId, appointmentId, reloadTrigger]); 
 
   return (
     <div className="mt-6 bg-gray-50 p-4 rounded-xl">
-      <h3 className="text-lg font-semibold mb-2">Retour sur la séance</h3>
+      <h3 className="text-lg font-semibold mb-2">Évaluation de la séance</h3>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-2">
-        <input
-          type="text"
-          value={newFeedback.objective}
-          onChange={(e) => setNewFeedback((prev) => ({ ...prev, objective: e.target.value }))}
-          placeholder="Ex : Objectif ou ressenti"
-          className="px-3 py-2 rounded border w-full md:w-auto"
-        />
-        <StarRating
-          value={newFeedback.rating}
-          onChange={(val) => setNewFeedback((prev) => ({ ...prev, rating: val }))}
-        />
-        <button
-          onClick={handleAdd}
-          className="bg-dark2GreenErgogo text-white rounded px-3 py-2 text-sm hover:brightness-110"
-        >
-          Ajouter
-        </button>
-      </div>
-
-      <ul className="mt-4 space-y-2">
-        {feedbacks.map((fb) => (
-          <li key={fb.id} className="p-3 bg-white border rounded">
-            <div className="text-sm text-gray-700 mb-1">{fb.objective}</div>
+      <ul className="space-y-3">
+        {items.map((item) => (
+          <li key={item.id} className="p-3 bg-white border rounded">
+            <div className="text-sm font-medium text-gray-700">{item.title}</div>
             <StarRating
-              value={fb.rating}
-              onChange={(val) => handleUpdate(fb.id, { rating: val })}
+              value={feedbacks[item.id] || 0}
+              onChange={(val) =>
+                setFeedbacks((prev) => ({ ...prev, [item.id]: val }))
+              }
             />
-            <div className="mt-1 text-xs">
-              <label className="inline-flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={fb.completed}
-                  onChange={(e) => handleUpdate(fb.id, { completed: e.target.checked })}
-                />
-                Objectif terminé
-              </label>
-            </div>
           </li>
         ))}
       </ul>
+
+      <button
+        onClick={handleSave}
+        className="mt-4 bg-dark2GreenErgogo text-white px-4 py-2 rounded hover:brightness-110"
+      >
+        Enregistrer les évaluations
+      </button>
     </div>
   );
 };

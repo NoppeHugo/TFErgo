@@ -1,31 +1,39 @@
-// src/components/calendar/TherapyCalendar.js
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getAllAppointments, updateAppointment } from "../../api/appointmentAPI.js";
-import AppointmentModal from "./AppointmentModal.js";
-import { DndContext, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { updateAppointment } from "../../api/appointmentAPI.js";
+import AppointmentModal from "./AppointmentModal.js";
+import AppointmentDetailsModal from "./AppointmentDetailsModal.js";
 
-const DraggableAppointment = ({ apt }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useDraggable({
+const DraggableAppointment = ({ apt, isDragging, onClick }) => {
+  const { attributes, listeners, setNodeRef } = useDraggable({
     id: apt.id,
     data: apt,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  if (isDragging) return null;
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
-      className="text-[0.7rem] truncate whitespace-nowrap cursor-move bg-[#788B84]  px-1 py-0.5 rounded my-0.5"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(apt);
+      }}
+      className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-full truncate whitespace-nowrap cursor-pointer"
     >
       {new Date(apt.date).toLocaleTimeString("fr-FR", {
         hour: "2-digit",
@@ -35,10 +43,17 @@ const DraggableAppointment = ({ apt }) => {
   );
 };
 
-const CalendarDay = ({ day, appointments, isToday, isCurrentMonth, onClick }) => {
-  const { setNodeRef } = useDroppable({
-    id: day.toDateString(),
-  });
+const AppointmentPreview = ({ apt }) => (
+  <div className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-[120px] shadow-md">
+    {new Date(apt.date).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })} – {apt.title}
+  </div>
+);
+
+const CalendarDay = ({ day, appointments, isToday, isCurrentMonth, onClick, activeId, onAppointmentClick }) => {
+  const { setNodeRef } = useDroppable({ id: day.toDateString() });
 
   return (
     <motion.div
@@ -47,20 +62,25 @@ const CalendarDay = ({ day, appointments, isToday, isCurrentMonth, onClick }) =>
         isToday
           ? "bg-[#B1BBB6] text-white font-bold"
           : isCurrentMonth
-          ? "bg-white text-gray-800 border "
+          ? "bg-white text-gray-800 border"
           : "bg-gray-100 text-gray-400"
       } hover:bg-blue-100`}
       onClick={() => onClick(day)}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
     >
       <div className="font-semibold text-right pr-1">{day.getDate()}</div>
-      <div className="flex-grow overflow-hidden">
+      <div className="flex-grow overflow-hidden space-y-0.5">
         {appointments.slice(0, 6).map((apt) => (
-          <DraggableAppointment key={apt.id} apt={apt} />
+          <DraggableAppointment
+            key={apt.id}
+            apt={apt}
+            isDragging={apt.id === activeId}
+            onClick={onAppointmentClick}
+          />
         ))}
         {appointments.length > 6 && (
-          <div className="text-[0.65rem] italic text-gray-500">+{appointments.length - 6} autres</div>
+          <div className="text-[0.65rem] italic text-gray-500">
+            +{appointments.length - 6} autres
+          </div>
         )}
       </div>
     </motion.div>
@@ -71,19 +91,24 @@ const TherapyCalendar = () => {
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
   const [calendarDays, setCalendarDays] = useState([]);
-  const [appointments, setAppointments] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [activeDragItem, setActiveDragItem] = useState(null);
 
+  const queryClient = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor));
+  const yearMonth = currentDate.toISOString().slice(0, 7);
 
-  const fetchAppointments = async () => {
-    const data = await getAllAppointments();
-    const formatted = data.map((apt) => ({
-      ...apt,
-      start: new Date(apt.date),
-    }));
-    setAppointments(formatted);
-  };
+  const { data: appointments = [], refetch } = useQuery({
+    queryKey: ["appointments", yearMonth],
+    queryFn: async () => {
+      const res = await fetch(`http://localhost:3001/appointments/month/${yearMonth}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      return data.map((apt) => ({ ...apt, start: new Date(apt.date) }));
+    },
+  });
 
   const generateCalendarDays = (date) => {
     const startOfWeek = new Date(date);
@@ -95,13 +120,11 @@ const TherapyCalendar = () => {
       day.setDate(startOfWeek.getDate() + i);
       days.push(day);
     }
-
     setCalendarDays(days);
   };
 
   useEffect(() => {
     generateCalendarDays(currentDate);
-    fetchAppointments();
   }, [currentDate]);
 
   const handleMonthChange = (direction) => {
@@ -114,12 +137,14 @@ const TherapyCalendar = () => {
     setSelectedDate(date);
   };
 
-  const closeModal = () => {
+  const closeModals = () => {
     setSelectedDate(null);
-    fetchAppointments();
+    setSelectedAppointment(null);
+    refetch();
   };
 
   const handleDragEnd = async ({ active, over }) => {
+    setActiveDragItem(null);
     if (!active || !over) return;
 
     const dragged = active.data.current;
@@ -140,7 +165,7 @@ const TherapyCalendar = () => {
         ...dragged,
         date: newDate.toISOString(),
       });
-      fetchAppointments();
+      refetch();
     }
   };
 
@@ -173,7 +198,11 @@ const TherapyCalendar = () => {
         ))}
       </div>
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={({ active }) => setActiveDragItem(active.data.current)}
+        onDragEnd={handleDragEnd}
+      >
         <div className="grid grid-cols-7 gap-1 mt-2" style={{ maxHeight: "calc(100% - 100px)", overflowY: "auto" }}>
           {calendarDays.map((day, index) => {
             const isToday = day.toDateString() === today.toDateString();
@@ -190,13 +219,29 @@ const TherapyCalendar = () => {
                 isToday={isToday}
                 isCurrentMonth={isCurrentMonth}
                 onClick={handleDateClick}
+                onAppointmentClick={setSelectedAppointment}
+                activeId={activeDragItem?.id}
               />
             );
           })}
         </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeDragItem ? <AppointmentPreview apt={activeDragItem} /> : null}
+        </DragOverlay>
       </DndContext>
 
-      {selectedDate && <AppointmentModal event={{ date: selectedDate }} onClose={closeModal} />}
+      {selectedDate && <AppointmentModal event={{ date: selectedDate }} onClose={closeModals} />}
+      {selectedAppointment && (
+        <AppointmentDetailsModal
+          appointment={selectedAppointment}
+          onClose={closeModals}
+          onEdit={(apt) => {
+            setSelectedAppointment(null);
+            setSelectedDate(new Date(apt.date));
+          }}
+        />
+      )}
     </motion.div>
   );
 };

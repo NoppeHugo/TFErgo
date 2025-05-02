@@ -61,45 +61,46 @@ const PatientDetails = () => {
   if (!patient) return <div className="p-4">Patient introuvable</div>;
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden bg-white">
-      {/* En-tête patient */}
-      <div className="flex justify-between items-center mb-6 border-b pb-4">
-        <h2 className="text-2xl font-bold text-gray-800">
-          {patient.lastName} {patient.firstName}
-        </h2>
-        <button
-          className="bg-[#AB3130] text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm transition"
-          onClick={handleDelete}
-        >
-          Supprimer
-        </button>
-      </div>
-
-      {/* Tabs navigation */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {[
-          { key: "details", label: "Détails" },
-          { key: "carnet", label: "Carnet de notes" },
-          { key: "donnees", label: "Données patient" },
-          { key: "dossier", label: "Dossier patient" },
-          { key: "rendezvous", label: "Rendez-vous" }
-        ].map(({ key, label }) => (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* 🔒 Partie fixe */}
+      <div className="flex-shrink-0 bg-white px-6 pt-6 pb-4 border-b">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {patient.lastName} {patient.firstName}
+          </h2>
           <button
-            key={key}
-            className={`py-2 px-4 rounded-lg transition text-sm font-medium ${
-              activeTab === key
-                ? "bg-middleBlueErgogo text-white"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-            }`}
-            onClick={() => setActiveTab(key)}
+            className="bg-[#AB3130] text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm transition"
+            onClick={handleDelete}
           >
-            {label}
+            Supprimer
           </button>
-        ))}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {[
+            { key: "details", label: "Détails" },
+            { key: "carnet", label: "Carnet de notes" },
+            { key: "donnees", label: "Données patient" },
+            { key: "dossier", label: "Dossier patient" },
+            { key: "rendezvous", label: "Rendez-vous" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              className={`py-2 px-4 rounded-lg transition text-sm font-medium ${
+                activeTab === key
+                  ? "bg-middleBlueErgogo text-white"
+                  : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+              }`}
+              onClick={() => setActiveTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Contenu */}
-      <div className="grow overflow-y-auto custom-scrollbar pr-1">
+      {/* 🧭 Partie scrollable */}
+      <div className="flex-grow overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
         {activeTab === "details" && (
           <PatientDetailsTab
             patient={patient}
@@ -113,7 +114,7 @@ const PatientDetails = () => {
         {activeTab === "carnet" && <PatientNotesTab patient={patient} />}
         {activeTab === "donnees" && <PatientDataTab patient={patient} />}
         {activeTab === "dossier" && <PatientFileTab patient={patient} />}
-        {activeTab === "rendezvous" && <PatientAppointmentsTab patient={patient} />} 
+        {activeTab === "rendezvous" && <PatientAppointmentsTab patient={patient} />}
       </div>
     </div>
   );

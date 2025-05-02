@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
-import { createActivity, uploadFileToActivity } from '../../api/activityAPI.js';
+import { createActivity, uploadFileToActivity, getActivities } from '../../api/activityAPI.js';
 import { getGoals, createGoal } from '../../api/goalAPI.js';
 import MaterialSelect from './MaterialSelect.js';
 import GoalSelect from './GoalSelect.js';
@@ -53,8 +53,19 @@ const ActivityForm = ({ onCreated, showToast }) => {
       return;
     }
 
+    const existingActivities = await getActivities(); 
+    const duplicateActivity = existingActivities.data.find(activity => activity.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+    if (duplicateActivity) {
+      setErrors({ name: 'Une activité avec ce nom existe déjà.' });
+      setFadeErrors(false);
+      setTimeout(() => setFadeErrors(true), 2500);
+      setTimeout(() => setErrors({}), 3000);
+      return;
+    }
+
     const newActivity = await createActivity({
-      therapistId: 1, // ⚠️ À remplacer par l'ID du thérapeute connecté
+      therapistId: 1, 
       name,
       description,
       link,
