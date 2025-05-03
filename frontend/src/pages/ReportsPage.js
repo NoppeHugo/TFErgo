@@ -10,7 +10,7 @@ const ReportsPage = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const res = await axios.get('http://localhost:3001/patients', { withCredentials: true });
+        const res = await API.get('/patients', { withCredentials: true });
         setPatients(res.data.map(p => ({
           value: p.id,
           label: `${p.firstName || ''} ${p.lastName || ''}`

@@ -1,6 +1,7 @@
 // src/pages/LoginPage.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,7 +11,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:3001/auth/login", {
+    const res = await API.get("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

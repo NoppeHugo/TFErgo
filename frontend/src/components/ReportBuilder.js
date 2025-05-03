@@ -46,8 +46,8 @@ const ReportBuilder = ({ patientId }) => {
     const selectedSections = order.filter((id) => enabledSections[id]);
 
     try {
-      const res = await axios.post(
-        `http://localhost:3001/reports/${patientId}`,
+      const res = await API.post(
+        `/reports/${patientId}`,
         { selectedSections },
         {
           responseType: "blob",

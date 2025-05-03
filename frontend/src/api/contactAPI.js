@@ -1,26 +1,23 @@
 import axios from "axios";
+import API from './api';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3001',
-  withCredentials: true,
-});
 
 export const getPatientContacts = async (patientId) => {
-  const res = await api.get(`/contacts/${patientId}`);
+  const res = await API.get(`/contacts/${patientId}`);
   return res.data;
 };
 
 export const addContact = async (patientId, contactData) => {
-  const res = await api.post(`/contacts/${patientId}`, contactData);
+  const res = await API.post(`/contacts/${patientId}`, contactData);
   return res.data;
 };
 
 export const updateContact = async (contactId, contactData) => {
-  const res = await api.patch(`/contacts/${contactId}`, contactData);
+  const res = await API.patch(`/contacts/${contactId}`, contactData);
   return res.data;
 };
 
 export const deleteContact = async (contactId) => {
-  const res = await api.delete(`/contacts/${contactId}`);
+  const res = await API.delete(`/contacts/${contactId}`);
   return res.data;
 };

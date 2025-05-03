@@ -1,27 +1,24 @@
 import axios from "axios";
+import API from './api';
 
-const api = axios.create({
-  baseURL: 'http://localhost:3001',
-  withCredentials: true,
-});
 
 export const getEvaluationItemsByPatient = async (patientId) => {
-  const res = await api.get(`/appointments/patients/${patientId}/evaluation-items`);
+  const res = await API.get(`/appointments/patients/${patientId}/evaluation-items`);
   return res.data;
 };
 
 export const createEvaluationItem = async (patientId, title) => {
-    const res = await api.post(`/appointments/evaluation-items`, { patientId, title });
+    const res = await API.post(`/appointments/evaluation-items`, { patientId, title });
     return res.data;
   };
 
 export const getAppointmentFeedbacks = async (appointmentId) => {
-  const res = await api.get(`/appointments/${appointmentId}/feedbacks`);
+  const res = await API.get(`/appointments/${appointmentId}/feedbacks`);
   return res.data;
 };
 
 export const addAppointmentFeedbacks = async (appointmentId, feedbacks) => {
-  const res = await api.post(`/appointments/${appointmentId}/feedbacks`, {
+  const res = await API.post(`/appointments/${appointmentId}/feedbacks`, {
     feedbacks,
   });
   return res.data;

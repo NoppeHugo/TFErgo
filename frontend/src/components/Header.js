@@ -9,14 +9,14 @@ const Header = () => {
   const location = useLocation(); 
 
   useEffect(() => {
-    fetch('http://localhost:3001/auth/me', { credentials: 'include' })
+    API.get('/auth/me', { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
       .then(data => data && setTherapist(data))
       .catch(() => {})
   }, [])
 
   const handleLogout = async () => {
-    await fetch('http://localhost:3001/auth/logout', {
+    await API.get('/auth/logout', {
       method: 'POST',
       credentials: 'include'
     })

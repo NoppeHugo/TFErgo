@@ -8,13 +8,13 @@ const bcrypt = require('bcrypt')
 const prisma = new PrismaClient()
 
 async function main() {
-  const password = 'test1234'
+  const password = 'Ergogo0211.'
   const hash = await bcrypt.hash(password, 10)
 
   const therapist = await prisma.therapist.create({
     data: {
-      name: 'rig Carla',
-      email: 'Carla@example.com',
+      name: 'Carla Serrig',
+      email: 'serrigcarla@gmail.com',
       passwordHash: hash
     }
   })

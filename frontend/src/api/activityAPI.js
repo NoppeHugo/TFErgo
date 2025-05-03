@@ -1,9 +1,5 @@
 import axios from 'axios';
-
-const API = axios.create({
-  baseURL: 'http://localhost:3001',
-  withCredentials: true,
-});
+import API from './api';
 
 export const getActivities = () => API.get('/activities');
 export const getActivityById = (id) => API.get(`/activities/${id}`);

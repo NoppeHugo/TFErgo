@@ -113,7 +113,7 @@ const TherapyCalendar = () => {
   const { data: appointments = [], refetch } = useQuery({
     queryKey: ["appointments", yearMonth],
     queryFn: async () => {
-      const res = await fetch(`http://localhost:3001/appointments/month/${yearMonth}`, {
+      const res = await API.get(`/appointments/month/${yearMonth}`, {
         credentials: "include",
       });
       const data = await res.json();
