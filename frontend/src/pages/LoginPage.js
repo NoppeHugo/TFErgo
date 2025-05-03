@@ -11,12 +11,8 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await API.get("/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+    const res = await API.post("/auth/login", { email, password });
+
 
     if (res.ok) {
       alert("Connexion réussie !");

@@ -11,17 +11,20 @@ const Header = () => {
   const location = useLocation(); 
 
   useEffect(() => {
-    API.get('/auth/me', { credentials: 'include' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => data && setTherapist(data))
-      .catch(() => {})
-  }, [])
+    const fetchTherapist = async () => {
+      try {
+        const res = await API.get('/auth/me');
+        setTherapist(res.data);
+      } catch (err) {
+        // pas connecté ou erreur
+      }
+    };
+    fetchTherapist();
+  }, []);
+  
 
   const handleLogout = async () => {
-    await API.get('/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    })
+    await API.post('/auth/logout');
     navigate('/login')
   }
 
