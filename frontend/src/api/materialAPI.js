@@ -1,6 +1,5 @@
 import axios from 'axios';
-import API from './api';
-
+import API from './api.js';
 
 export const getMaterials = () => API.get('/materials');
 export const createMaterial = (data) => API.post('/materials', data);

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import API from "../api/api.js";
+
 
 export default function RequireAuth({ children }) {
   const [loading, setLoading] = useState(true)

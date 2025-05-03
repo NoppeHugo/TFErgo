@@ -1,7 +1,7 @@
 // src/pages/LoginPage.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../api/api";
+import API from "../api/api.js";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

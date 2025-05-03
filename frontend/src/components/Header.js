@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiChevronDown } from 'react-icons/fi'
+import API from "../api/api.js";
+
 
 const Header = () => {
   const [therapist, setTherapist] = useState(null)

@@ -1,6 +1,5 @@
 import axios from 'axios';
-import API from './api';
-
+import API from './api.js';
 
 export const getGoals = () => API.get('/goals');
 export const createGoal = (data) => API.post('/goals', data);

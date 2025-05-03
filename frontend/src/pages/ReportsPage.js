@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import ReportBuilder from '../components/ReportBuilder.js';
+import API from "../api/api.js";
+
 
 const ReportsPage = () => {
   const [patients, setPatients] = useState([]);

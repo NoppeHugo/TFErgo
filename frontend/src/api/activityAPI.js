@@ -1,5 +1,5 @@
 import axios from 'axios';
-import API from './api';
+import API from './api.js';
 
 export const getActivities = () => API.get('/activities');
 export const getActivityById = (id) => API.get(`/activities/${id}`);

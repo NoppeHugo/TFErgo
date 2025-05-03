@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import ToggleSwitch from "./ToggleSwitch.js";
+import API from "../api/api.js";
+
 
 const sectionLabels = {
   patientInfo: "Données client",

@@ -16,6 +16,8 @@ import { updateAppointment } from "../../api/appointmentAPI.js";
 import AppointmentModal from "./AppointmentModal.js";
 import AppointmentDetailsModal from "./AppointmentDetailsModal.js";
 import { FiMove } from "react-icons/fi";
+import API from "../api/api.js";
+
 
 const DraggableAppointment = ({ apt, onClick }) => {
   const { attributes, listeners, setNodeRef } = useDraggable({

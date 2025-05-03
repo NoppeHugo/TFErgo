@@ -1,6 +1,5 @@
 import axios from "axios"
-import API from './api';
-
+import API from './api.js';
 
 export const getPatientNotes = async (patientId) => {
   const res = await API.get(`/notes/${patientId}`)

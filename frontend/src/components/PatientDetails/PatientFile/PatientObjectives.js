@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import QuillEditor from "../../QuillEditor.js";
 import { createLongTermObjective, createShortTermObjective } from "../../../api/objectiveAPI.js";
+import API from "../api/api.js";
+
 
 const PatientObjectives = ({ motif }) => {
   const [longObjectives, setLongObjectives] = useState([]);

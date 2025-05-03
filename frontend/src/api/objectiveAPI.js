@@ -1,6 +1,5 @@
 import axios from "axios";
-import API from './api';
-
+import API from './api.js';
 
 export const createLongTermObjective = async (motifId, data) => {
   const res = await API.post(`/objectives/long/${motifId}`, data);

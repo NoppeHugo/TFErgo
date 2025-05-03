@@ -1,5 +1,5 @@
 import axios from 'axios'
-import API from './api';
+import API from './api.js';
 
 // GET all patients
 export const getAllPatients = async () => {
