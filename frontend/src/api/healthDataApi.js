@@ -7,6 +7,6 @@ export const getPatientHealthData = async (patientId) => {
 };
 
 export const updatePatientHealthData = async (patientId, updates) => {
-  const res = await APÏ.patch(`/health/${patientId}`, updates);
+  const res = await API.patch(`/health/${patientId}`, updates);
   return res.data;
 };
