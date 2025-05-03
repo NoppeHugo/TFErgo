@@ -1,0 +1,622 @@
+import React from "react";
+import { motion } from "framer-motion";
+import { deleteAppointment } from "../../api/appointmentAPI.js";
+import { useQueryClient } from "@tanstack/react-query";
+
+const AppointmentDetailsModal = ({ appointment, onClose, onEdit }) => {
+  const queryClient = useQueryClient();
+
+  const handleDelete = async () => {
+    if (window.confirm("Supprimer ce rendez-vous ?")) {
+      await deleteAppointment(appointment.id);
+      queryClient.invalidateQueries(["appointments"]);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white rounded-xl w-full max-w-lg p-6 shadow-lg"
+      >
+        <h2 className="text-xl font-semibold text-[#776B89] mb-4">
+          📝 Détails du rendez-vous
+        </h2>
+
+        <div className="space-y-2 text-sm">
+          <p><strong>🧠 Titre :</strong> {appointment.title}</p>
+          <p><strong>👤 Patient :</strong> {appointment.patient?.firstName} {appointment.patient?.lastName}</p>
+          <p><strong>📅 Date :</strong> {new Date(appointment.date).toLocaleString("fr-FR")}</p>
+          <p><strong>⏱️ Durée :</strong> {appointment.duration} min</p>
+          <p><strong>📋 Description :</strong> {appointment.description || "–"}</p>
+          <p>
+            <strong>🎯 Activités :</strong>{" "}
+            {appointment.activities?.map((a) => a.activity.name).join(", ") || "–"}
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={handleDelete}
+            className="text-red-600 hover:underline text-sm"
+          >
+            Supprimer
+          </button>
+          <button
+            onClick={() => onEdit(appointment)}
+            className="text-[#A294F9] hover:underline text-sm"
+          >
+            Modifier
+          </button>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:underline text-sm"
+          >
+            Fermer
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default AppointmentDetailsModal;
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Select from "react-select";
+import {
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+  linkActivitiesToAppointment,
+} from "../../api/appointmentAPI.js";
+import { getAllPatients } from "../../api/patientAPI.js";
+import { getActivities } from "../../api/activityAPI.js";
+import { useQueryClient } from "@tanstack/react-query";
+
+const AppointmentModal = ({ event, onClose }) => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [patients, setPatients] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [form, setForm] = useState({
+    title: "",
+    patientId: "",
+    activityIds: [],
+    description: "",
+    date: "",
+    duration: 60,
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [pats, actsRes] = await Promise.all([
+        getAllPatients(),
+        getActivities(),
+      ]);
+      setPatients(pats);
+      setActivities(actsRes.data);
+    };
+    fetchData();
+
+    if (event?.id) {
+      setForm({
+        title: event.title.split(" - ")[0] || "",
+        patientId: event.patient?.id || "",
+        activityIds: event.activities?.map((a) => a.activity?.id) || [],
+        description: event.description || "",
+        date: event.start?.toISOString().slice(0, 16) || "",
+        duration: (event.end - event.start) / 60000 || 60,
+      });
+    } else if (event?.date) {
+      setForm((prev) => ({
+        ...prev,
+        date: new Date(event.date).toISOString().slice(0, 16),
+      }));
+    }
+  }, [event]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!form.title || !form.patientId) {
+      setError("Le titre et le patient sont obligatoires.");
+      return;
+    }
+
+    const selectedDate = new Date(form.date);
+    if (selectedDate < new Date()) {
+      setError("La date du rendez-vous ne peut pas être dans le passé.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+
+    const data = {
+      ...form,
+      duration: parseInt(form.duration),
+    };
+
+    try {
+      if (event?.id) {
+        await updateAppointment(event.id, data);
+        await linkActivitiesToAppointment(event.id, form.activityIds);
+      } else {
+        const newApt = await createAppointment(data);
+        await linkActivitiesToAppointment(newApt.id, form.activityIds);
+      }
+
+      // ✅ Forcer le refresh des composants qui utilisent ["appointments", "all"]
+      queryClient.invalidateQueries(["appointments", "all"]);
+
+      onClose();
+    } catch (e) {
+      setError("Erreur lors de l'enregistrement.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (event?.id && window.confirm("Supprimer ce rendez-vous ?")) {
+      await deleteAppointment(event.id);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white rounded-2xl px-8 py-6 w-full max-w-[90%] md:max-w-[520px] shadow-xl">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          {event?.id ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}
+        </h2>
+
+        {error && (
+          <p className="text-sm text-red-600 mb-2 bg-red-100 px-3 py-2 rounded">
+            {error}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Titre</label>
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="Ex: Séance d’évaluation cognitive"
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Patient</label>
+            <select
+              name="patientId"
+              value={form.patientId}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            >
+              <option value="">-- Sélectionner un patient --</option>
+              {patients.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.firstName} {p.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Activités</label>
+            <Select
+              isMulti
+              name="activities"
+              options={activities.map((a) => ({ value: a.id, label: a.name }))}
+              value={activities
+                .filter((a) => form.activityIds.includes(a.id))
+                .map((a) => ({ value: a.id, label: a.name }))}
+              onChange={(selected) =>
+                setForm((prev) => ({
+                  ...prev,
+                  activityIds: selected.map((opt) => opt.value),
+                }))
+              }
+              className="text-sm"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Préparation / description</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Ex : matériel à prévoir, consignes à suivre..."
+              className="border rounded-lg px-3 py-2 text-sm min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Date & heure</label>
+            <input
+              type="datetime-local"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Durée</label>
+            <select
+              name="duration"
+              value={form.duration}
+              onChange={handleChange}
+              className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+            >
+              {[30, 45, 60, 90, 120].map((d) => (
+                <option key={d} value={d}>
+                  {d} minutes
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-between pt-1 text-sm">
+            {form.patientId && (
+              <button
+                onClick={() => navigate(`/patient/${form.patientId}`)}
+                className="text-[#A294F9] hover:underline"
+              >
+                Voir le dossier du patient
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-between mt-6 items-center">
+          {event?.id && (
+            <button
+              className="text-red-500 hover:underline text-sm"
+              onClick={handleDelete}
+            >
+              🗑️ Supprimer
+            </button>
+          )}
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm border border-[#A294F9] text-[#A294F9] rounded-lg hover:bg-[#f6f4ff] transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm bg-[#A294F9] text-white rounded-lg shadow hover:bg-[#8c7ef1] transition disabled:opacity-50"
+            >
+              {isSaving ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AppointmentModal;
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  DndContext,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { updateAppointment } from "../../api/appointmentAPI.js";
+import AppointmentModal from "./AppointmentModal.js";
+import AppointmentDetailsModal from "./AppointmentDetailsModal.js";
+
+const DraggableAppointment = ({ apt, isDragging, onClick }) => {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: apt.id,
+    data: apt,
+  });
+
+  if (isDragging) return null;
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(apt);
+      }}
+      className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-full truncate whitespace-nowrap cursor-pointer"
+    >
+      {new Date(apt.date).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })} – {apt.title}
+    </div>
+  );
+};
+
+const AppointmentPreview = ({ apt }) => (
+  <div className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-[120px] shadow-md">
+    {new Date(apt.date).toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })} – {apt.title}
+  </div>
+);
+
+const CalendarDay = ({ day, appointments, isToday, isCurrentMonth, onClick, activeId, onAppointmentClick }) => {
+  const { setNodeRef } = useDroppable({ id: day.toDateString() });
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      className={`p-1 text-left rounded-lg text-xs sm:text-sm cursor-pointer transition-all relative flex flex-col h-[185px] overflow-y-auto ${
+        isToday
+          ? "bg-[#B1BBB6] text-white font-bold"
+          : isCurrentMonth
+          ? "bg-white text-gray-800 border"
+          : "bg-gray-100 text-gray-400"
+      } hover:bg-blue-100`}
+      onClick={() => onClick(day)}
+    >
+      <div className="font-semibold text-right pr-1">{day.getDate()}</div>
+      <div className="flex-grow overflow-hidden space-y-0.5">
+        {appointments.slice(0, 6).map((apt) => (
+          <DraggableAppointment
+            key={apt.id}
+            apt={apt}
+            isDragging={apt.id === activeId}
+            onClick={onAppointmentClick}
+          />
+        ))}
+        {appointments.length > 6 && (
+          <div className="text-[0.65rem] italic text-gray-500">
+            +{appointments.length - 6} autres
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+const TherapyCalendar = () => {
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(today);
+  const [calendarDays, setCalendarDays] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [activeDragItem, setActiveDragItem] = useState(null);
+
+  const queryClient = useQueryClient();
+  const sensors = useSensors(useSensor(PointerSensor));
+  const yearMonth = currentDate.toISOString().slice(0, 7);
+
+  const { data: appointments = [], refetch } = useQuery({
+    queryKey: ["appointments", yearMonth],
+    queryFn: async () => {
+      const res = await fetch(`http://localhost:3001/appointments/month/${yearMonth}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      return data.map((apt) => ({ ...apt, start: new Date(apt.date) }));
+    },
+  });
+
+  const generateCalendarDays = (date) => {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
+
+    const days = [];
+    for (let i = 0; i < 28; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    setCalendarDays(days);
+  };
+
+  useEffect(() => {
+    generateCalendarDays(currentDate);
+  }, [currentDate]);
+
+  const handleMonthChange = (direction) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() + direction);
+    setCurrentDate(newDate);
+  };
+
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+  };
+
+  const closeModals = () => {
+    setSelectedDate(null);
+    setSelectedAppointment(null);
+    refetch();
+  };
+
+  const handleDragEnd = async ({ active, over }) => {
+    setActiveDragItem(null);
+    if (!active || !over) return;
+
+    const dragged = active.data.current;
+    const draggedDate = new Date(dragged.date || dragged.start);
+    const dropTarget = new Date(over.id);
+
+    const newDate = new Date(
+      dropTarget.getFullYear(),
+      dropTarget.getMonth(),
+      dropTarget.getDate(),
+      draggedDate.getHours(),
+      draggedDate.getMinutes(),
+      draggedDate.getSeconds()
+    );
+
+    if (draggedDate.toDateString() !== newDate.toDateString()) {
+      await updateAppointment(dragged.id, {
+        ...dragged,
+        date: newDate.toISOString(),
+      });
+      refetch();
+    }
+  };
+
+  return (
+    <motion.div className="p-6 bg-white rounded-2xl w-full h-full min-h-[80vh] max-h-[80vh] overflow-hidden">
+      <div className="flex justify-between items-center mb-4 px-4 py-2 rounded-lg">
+        <button
+          onClick={() => handleMonthChange(-1)}
+          className="text-[#A294F9] p-2 rounded-full hover:bg-[#eae7fd]"
+        >
+          <FiChevronLeft size={20} />
+        </button>
+        <h2
+          className="text-xl sm:text-2xl font-semibold text-gray-800 cursor-pointer hover:text-[#A294F9]"
+          onClick={() => setCurrentDate(today)}
+        >
+          {currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+        </h2>
+        <button
+          onClick={() => handleMonthChange(1)}
+          className="text-[#A294F9] p-2 rounded-full hover:bg-[#eae7fd]"
+        >
+          <FiChevronRight size={20} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 text-center font-bold text-gray-600 text-xs sm:text-base">
+        {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
+          <div key={day}>{day}</div>
+        ))}
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        onDragStart={({ active }) => setActiveDragItem(active.data.current)}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-7 gap-1 mt-2" style={{ maxHeight: "calc(100% - 100px)", overflowY: "auto" }}>
+          {calendarDays.map((day, index) => {
+            const isToday = day.toDateString() === today.toDateString();
+            const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+            const dayAppointments = appointments
+              .filter((apt) => new Date(apt.start).toDateString() === day.toDateString())
+              .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+            return (
+              <CalendarDay
+                key={index}
+                day={day}
+                appointments={dayAppointments}
+                isToday={isToday}
+                isCurrentMonth={isCurrentMonth}
+                onClick={handleDateClick}
+                onAppointmentClick={setSelectedAppointment}
+                activeId={activeDragItem?.id}
+              />
+            );
+          })}
+        </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeDragItem ? <AppointmentPreview apt={activeDragItem} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      {selectedDate && <AppointmentModal event={{ date: selectedDate }} onClose={closeModals} />}
+      {selectedAppointment && (
+        <AppointmentDetailsModal
+          appointment={selectedAppointment}
+          onClose={closeModals}
+          onEdit={(apt) => {
+            setSelectedAppointment(null);
+            setSelectedDate(new Date(apt.date));
+          }}
+        />
+      )}
+    </motion.div>
+  );
+};
+
+export default TherapyCalendar;
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { getAllAppointments } from "../../api/appointmentAPI.js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const TodayAppointments = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: appointments = [], refetch } = useQuery({
+    queryKey: ["appointments", "all"],
+    queryFn: getAllAppointments,
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const todayAppointments = appointments
+    .filter((apt) => new Date(apt.date).toISOString().split("T")[0] === today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (todayAppointments.length === 0) {
+    return <p className="text-gray-500">Aucun rendez-vous aujourd’hui.</p>;
+  }
+
+  return (
+    <div className="bg-white rounded-lg p-4">
+      <h2 className="text-xl font-semibold mb-3 text-[#776B89]">📅 Rendez-vous aujourd’hui</h2>
+      <ul className="space-y-3">
+        {todayAppointments.map((apt) => (
+          <li
+            key={apt.id}
+            className="p-3 border rounded hover:bg-gray-100 cursor-pointer"
+            onClick={() => navigate(`/patient/${apt.patient?.id}`)}
+          >
+            <div className="text-sm text-gray-600">
+              {new Date(apt.date).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+            <div className="font-semibold text-gray-800">{apt.title}</div>
+            <div className="text-sm text-gray-700">
+              {apt.patient?.firstName} {apt.patient?.lastName}
+              {" · "}
+              {apt.activity?.name}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default TodayAppointments;

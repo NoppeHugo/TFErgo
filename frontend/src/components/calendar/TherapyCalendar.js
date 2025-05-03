@@ -15,30 +15,41 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { updateAppointment } from "../../api/appointmentAPI.js";
 import AppointmentModal from "./AppointmentModal.js";
 import AppointmentDetailsModal from "./AppointmentDetailsModal.js";
+import { FiMove } from "react-icons/fi";
 
-const DraggableAppointment = ({ apt, isDragging, onClick }) => {
+const DraggableAppointment = ({ apt, onClick }) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: apt.id,
     data: apt,
   });
 
-  if (isDragging) return null;
-
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.(apt);
-      }}
-      className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-full truncate whitespace-nowrap cursor-pointer"
+      className="text-[0.7rem] bg-[#788B84] px-1 py-0.5 rounded my-0.5 w-full truncate whitespace-nowrap cursor-default flex items-center justify-between gap-1"
     >
-      {new Date(apt.date).toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })} – {apt.title}
+      <div
+        className="flex-grow truncate cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.(apt);
+        }}
+      >
+        {new Date(apt.date).toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })} – {apt.title}
+      </div>
+
+      {/* zone de drag */}
+      <div
+        {...listeners}
+        {...attributes}
+        className="p-1 text-white hover:text-gray-300 cursor-grab"
+        onClick={(e) => e.stopPropagation()} // évite conflit click
+      >
+        <FiMove size={12} />
+      </div>
     </div>
   );
 };
