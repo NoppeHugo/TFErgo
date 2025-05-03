@@ -8,15 +8,10 @@ export default function RequireAuth({ children }) {
   const navigate = useNavigate()
 
   useEffect(() => {
-    API.get('/auth/me', {
-      credentials: 'include'
-    })
-      .then(res => {
-        if (!res.ok) navigate('/login')
-        else setLoading(false)
-      })
-      .catch(() => navigate('/login'))
-  }, [navigate])
+    API.get('/auth/me')
+      .then(() => setLoading(false))
+      .catch(() => navigate('/login'));
+  }, [navigate]);  
 
   if (loading) return <div>Chargement...</div>
 

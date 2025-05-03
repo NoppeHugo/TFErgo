@@ -1,4 +1,3 @@
-// src/pages/LoginPage.js
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api.js";
@@ -11,13 +10,16 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await API.post("/auth/login", { email, password });
+    try {
+      const res = await API.post('/auth/login', {
+        email,
+        password
+      });
 
-
-    if (res.ok) {
-      alert("Connexion réussie !");
-      navigate("/"); // à adapter selon ta route
-    } else {
+      alert('Connexion réussie !');
+      navigate('/');
+    } catch (err) {
+      console.error(err.response?.data || err.message);
       alert("Échec de la connexion. Vérifie tes identifiants.");
     }
   };
