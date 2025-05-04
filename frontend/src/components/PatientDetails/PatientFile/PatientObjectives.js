@@ -21,10 +21,9 @@ const PatientObjectives = ({ motif }) => {
 
   const fetchObjectives = async () => {
     try {
-      const res = await API.get(`/objectives/${motif.id}/objectives`, {
-        credentials: "include",
-      });
-      const data = await res.json();
+      const res = await API.get(`/objectives/${motif.id}/objectives`);
+      const data = res.data;
+
       setLongObjectives(data?.longTermObjectives || []);
     } catch (err) {
       console.error("Erreur chargement objectifs", err);
