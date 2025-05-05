@@ -58,9 +58,9 @@ const createActivity = async (req, res) => {
       return res.status(400).json({ error: 'therapistId et name sont requis' });
     }
 
-    const existingActivity = await prisma.activity.findUnique({
+    const existingActivity = await prisma.activity.findFirst({
       where: { name },
-    });
+    });    
 
     if (existingActivity) {
       return res.status(400).json({ error: 'Une activité avec ce nom existe déjà' });
