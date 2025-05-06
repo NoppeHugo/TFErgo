@@ -55,6 +55,8 @@ async function updatePatient(req, res) {
     const { id } = req.params
     const therapistId = req.user.id
     const data = req.body
+
+    console.log("DATA REÇUE POUR UPDATE", data);
   
     try {
       const patient = await prisma.patient.updateMany({

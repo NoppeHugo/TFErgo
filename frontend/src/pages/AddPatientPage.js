@@ -8,19 +8,34 @@ const AddPatientPage = () => {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  // 🔧 Fonction pour nettoyer et formater les données avant envoi
-  const sanitizePatientData = (data) => ({
-    ...data,
-    birthdate: data.birthdate
-      ? new Date(data.birthdate + "T00:00:00.000Z").toISOString()
-      : null,
-    childrenCount:
-      data.childrenCount !== "" && !isNaN(data.childrenCount)
-        ? parseInt(data.childrenCount, 10)
-        : null,
-  });
+  // ✅ Nettoyage des données avant envoi
+  const sanitizePatientData = (data) => {
+    const cleaned = { ...data };
 
-  // ✅ Validation des données
+    // birthdate → ISO string ou null
+    if (!cleaned.birthdate || cleaned.birthdate === "") {
+      cleaned.birthdate = null;
+    } else {
+      cleaned.birthdate = new Date(cleaned.birthdate + "T00:00:00.000Z").toISOString();
+    }
+
+    // childrenCount → Int ou null
+    if (!cleaned.childrenCount || cleaned.childrenCount === "") {
+      cleaned.childrenCount = null;
+    } else {
+      const parsed = parseInt(cleaned.childrenCount, 10);
+      cleaned.childrenCount = isNaN(parsed) ? null : parsed;
+    }
+
+    // Chaînes vides → null
+    Object.keys(cleaned).forEach((key) => {
+      if (cleaned[key] === "") cleaned[key] = null;
+    });
+
+    return cleaned;
+  };
+
+  // ✅ Validation minimale des champs obligatoires
   const validatePatientData = (data) => {
     const validationErrors = {};
 
@@ -28,8 +43,12 @@ const AddPatientPage = () => {
     if (!data.lastName?.trim()) validationErrors.lastName = "Le nom est obligatoire.";
     if (!data.sex) validationErrors.sex = "Le sexe est obligatoire.";
     if (!data.birthdate) validationErrors.birthdate = "La date de naissance est obligatoire.";
-    if (data.birthdate && new Date(data.birthdate) > new Date()) validationErrors.birthdate = "La date de naissance ne peut pas être dans le futur.";
-    if (data.niss && !/^\d{11}$/.test(data.niss)) validationErrors.niss = "Le NISS doit contenir exactement 11 chiffres.";
+    if (data.birthdate && new Date(data.birthdate) > new Date()) {
+      validationErrors.birthdate = "La date de naissance ne peut pas être dans le futur.";
+    }
+    if (data.niss && !/^\d{11}$/.test(data.niss)) {
+      validationErrors.niss = "Le NISS doit contenir exactement 11 chiffres.";
+    }
 
     setErrors(validationErrors);
     return Object.keys(validationErrors).length === 0;
@@ -63,7 +82,7 @@ const AddPatientPage = () => {
       handleChange={handleChange}
       handleSubmit={handleAddPatient}
       isEditing={false}
-      errors={errors} 
+      errors={errors}
     />
   );
 };

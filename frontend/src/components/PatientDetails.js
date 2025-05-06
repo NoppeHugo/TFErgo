@@ -31,6 +31,38 @@ const PatientDetails = () => {
     fetchData();
   }, [patientId]);
 
+  const sanitizePatientUpdates = (data) => {
+    const cleaned = { ...data };
+
+    // Supprimer les champs système
+    delete cleaned.id;
+    delete cleaned.therapistId;
+    delete cleaned.createdAt;
+
+    // Nettoyage des champs int
+    if (cleaned.childrenCount === "" || cleaned.childrenCount == null) {
+      cleaned.childrenCount = null;
+    } else {
+      cleaned.childrenCount = parseInt(cleaned.childrenCount, 10);
+      if (isNaN(cleaned.childrenCount)) cleaned.childrenCount = null;
+    }
+
+    // Format ISO date pour birthdate
+    if (cleaned.birthdate === "" || cleaned.birthdate == null) {
+      cleaned.birthdate = null;
+    } else {
+      const parsed = new Date(cleaned.birthdate);
+      cleaned.birthdate = parsed.toISOString();
+    }
+
+    // Chaînes vides → null
+    Object.keys(cleaned).forEach((key) => {
+      if (cleaned[key] === "") cleaned[key] = null;
+    });
+
+    return cleaned;
+  };
+
   const handleDelete = async () => {
     const confirmed = window.confirm("Supprimer ce patient ?");
     if (!confirmed) return;
@@ -43,8 +75,9 @@ const PatientDetails = () => {
   };
 
   const handleUpdate = async () => {
+    const cleanedData = sanitizePatientUpdates(updatedPatient);
     try {
-      await updatePatient(patientId, updatedPatient);
+      await updatePatient(patientId, cleanedData);
       const refreshed = await getPatient(patientId);
       setPatient(refreshed);
       setIsEditing(false);
@@ -62,7 +95,6 @@ const PatientDetails = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* 🔒 Partie fixe */}
       <div className="flex-shrink-0 bg-white px-6 pt-6 pb-4 border-b">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">
@@ -99,7 +131,6 @@ const PatientDetails = () => {
         </div>
       </div>
 
-      {/* 🧭 Partie scrollable */}
       <div className="flex-grow overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
         {activeTab === "details" && (
           <PatientDetailsTab
