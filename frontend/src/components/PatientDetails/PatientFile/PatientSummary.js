@@ -4,15 +4,35 @@ import QuillEditor from "../../QuillEditor.js";
 const PatientSummary = ({ motif, updateMotif }) => {
   const [editing, setEditing] = useState(false);
   const [synthese, setSynthese] = useState(motif?.synthese || "");
+  const [newSituation, setNewSituation] = useState(motif?.situation || {});
 
   useEffect(() => {
     setSynthese(motif?.synthese || "");
+    setNewSituation(motif?.situation || {});
   }, [motif]);
+
+  useEffect(() => {
+    if (editing) {
+      const delay = setTimeout(() => {
+        const syntheseChanged = synthese !== (motif?.synthese || "");
+        const situationChanged = Object.values(newSituation).some(
+          (value, index) =>
+            value !== Object.values(motif?.situation || {})[index]
+        );
+
+        if (syntheseChanged || situationChanged) {
+          updateMotif({ ...motif, synthese, situation: newSituation });
+        }
+      }, 10000);
+
+      return () => clearTimeout(delay);
+    }
+  }, [synthese, newSituation, editing]);
 
   const handleSave = async () => {
     if (!motif) return;
     try {
-      await updateMotif({ ...motif, synthese });
+      await updateMotif({ ...motif, synthese, situation: newSituation });
       setEditing(false);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de la synthèse :", error);
@@ -22,6 +42,7 @@ const PatientSummary = ({ motif, updateMotif }) => {
   const handleCancel = () => {
     setEditing(false);
     setSynthese(motif?.synthese || "");
+    setNewSituation(motif?.situation || {});
   };
 
   return (

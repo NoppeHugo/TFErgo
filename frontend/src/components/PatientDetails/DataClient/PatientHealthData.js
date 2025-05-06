@@ -19,6 +19,16 @@ const PatientHealthData = ({ patientId }) => {
     }
   }, [patientId]);
 
+  useEffect(() => {
+    if (editing) {
+      const autosaveInterval = setInterval(() => {
+        handleAutoSave();
+      }, 10000);
+
+      return () => clearInterval(autosaveInterval);
+    }
+  }, [editing, healthData]);
+
   const loadHealthData = async () => {
     try {
       const data = await getPatientHealthData(patientId);
@@ -40,6 +50,15 @@ const PatientHealthData = ({ patientId }) => {
     } catch (err) {
       console.error("Erreur mise à jour:", err);
       alert("❌ Erreur sauvegarde.");
+    }
+  };
+
+  const handleAutoSave = async () => {
+    try {
+      await updatePatientHealthData(patientId, healthData);
+      console.log("✅ Données autosauvegardées !");
+    } catch (err) {
+      console.error("Erreur autosauvegarde:", err);
     }
   };
 

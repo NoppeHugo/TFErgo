@@ -9,6 +9,18 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
     setDiagnostic(motif?.diagnostic || "");
   }, [motif]);
 
+  useEffect(() => {
+    if (editing) {
+      const delay = setTimeout(() => {
+        if (diagnostic !== motif?.diagnostic) {
+          updateMotif({ ...motif, diagnostic });
+        }
+      }, 10000);
+
+      return () => clearTimeout(delay);
+    }
+  }, [diagnostic, editing]);
+
   const handleSave = async () => {
     if (!motif) return;
 

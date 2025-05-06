@@ -26,6 +26,18 @@ const PatientSituation = ({ motif, updateMotif }) => {
     setEditing(false);
   };
 
+  useEffect(() => {
+    if (editing) {
+      const delay = setTimeout(() => {
+        if (Object.values(newSituation).some((value, index) => value !== Object.values(motif?.situation || {})[index])) {
+          updateMotif({ ...motif, situation: newSituation });
+        }
+      }, 10000);
+
+      return () => clearTimeout(delay);
+    }
+  }, [newSituation, editing]);
+
   const handleCancel = () => {
     setEditing(false);
     setNewSituation({

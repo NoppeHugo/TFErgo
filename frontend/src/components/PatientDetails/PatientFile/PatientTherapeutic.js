@@ -11,13 +11,16 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   });
 
   useEffect(() => {
-    setTherapeuticData({
-      assesments: motif?.therapeutic?.assesments || "",
-      syntheseEvaluation: motif?.therapeutic?.syntheseEvaluation || "",
-      restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
-      diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
-    });
-  }, [motif]);
+    if (editing) {
+      const delay = setTimeout(() => {
+        if (Object.values(therapeuticData).some((value, index) => value !== Object.values(motif?.therapeutic || {})[index])) {
+          updateMotif({ ...motif, therapeutic: therapeuticData });
+        }
+      }, 10000);
+
+      return () => clearTimeout(delay);
+    }
+  }, [therapeuticData, editing]);
 
   const handleInputChange = (field, value) => {
     setTherapeuticData((prev) => ({ ...prev, [field]: value }));
