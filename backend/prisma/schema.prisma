@@ -228,17 +228,19 @@ model LongTermObjective {
 }
 
 model ShortTermObjective {
-  id                  Int       @id @default(autoincrement())
-  longTermObjectiveId Int
-  title               String
-  startDate           DateTime
-  endDate             DateTime?
-  status              String    @default("ouvert")
-  createdAt           DateTime  @default(now())
+  id                   Int       @id @default(autoincrement())
+  longTermObjectiveId  Int
+  title                String
+  startDate            DateTime
+  endDate              DateTime?
+  status               String    @default("ouvert")
+  description          String?   
+  createdAt            DateTime  @default(now())
 
-  longTermObjective LongTermObjective            @relation(fields: [longTermObjectiveId], references: [id], onDelete: Cascade)
-  activities        ShortTermObjectiveActivity[]
+  longTermObjective    LongTermObjective            @relation(fields: [longTermObjectiveId], references: [id], onDelete: Cascade)
+  activities           ShortTermObjectiveActivity[]
 }
+
 
 model ShortTermObjectiveActivity {
   shortTermObjectiveId Int
