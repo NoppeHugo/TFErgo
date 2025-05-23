@@ -12,7 +12,8 @@ const {
   linkActivitiesToAppointment,
   getAppointmentFeedbacksByAppointment,
   createEvaluationItem,
-  getAppointmentsByMonth
+  getAppointmentsByMonth,
+  deleteEvaluationItem,
 } = require('../controllers/appointmentController');
 
 const { authenticateJWT } = require("../middleware/authenticateJWT");
@@ -42,6 +43,8 @@ router.get('/:id/feedbacks', getAppointmentFeedbacksByAppointment);
 
 router.post('/:appointmentId/feedbacks', addAppointmentFeedbacks);
 router.patch('/feedbacks/:id', updateAppointmentFeedback);
+router.delete('/evaluation-items/:id', deleteEvaluationItem);
+
 
 
 router.post('/:id/activities', linkActivitiesToAppointment);

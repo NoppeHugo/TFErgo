@@ -337,6 +337,27 @@ async function linkActivitiesToAppointment(req, res) {
   }
 }
 
+async function deleteEvaluationItem(req, res) {
+  const { id } = req.params;
+  try {
+    // Supprimer d'abord les feedbacks associés à cet item
+    await prisma.appointmentFeedback.deleteMany({
+      where: { evaluationItemId: parseInt(id) },
+    });
+
+    // Puis supprimer l'élément
+    await prisma.evaluationItem.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("deleteEvaluationItem error:", err);
+    res.status(500).json({ error: "Erreur suppression de l'élément à évaluer" });
+  }
+}
+
+
 
 module.exports = {
   getAppointments,
@@ -351,5 +372,6 @@ module.exports = {
   linkActivitiesToAppointment,
   getAppointmentFeedbacksByAppointment,
   createEvaluationItem,
-  getAppointmentsByMonth
+  getAppointmentsByMonth, 
+  deleteEvaluationItem,
 };

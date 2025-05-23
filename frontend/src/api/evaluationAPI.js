@@ -21,3 +21,8 @@ export const addAppointmentFeedbacks = async (appointmentId, feedbacks) => {
   });
   return res.data;
 };
+
+export const deleteEvaluationItem = async (id) => {
+  const res = await API.delete(`/appointments/evaluation-items/${id}`);
+  return res.data;
+};
