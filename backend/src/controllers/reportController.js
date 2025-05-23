@@ -22,6 +22,15 @@ const generatePatientReport = async (req, res) => {
       },
     });
 
+    // Ajout récupération des notes du patient
+    let notes = [];
+    if (selectedSections.includes('notes')) {
+      notes = await prisma.note.findMany({
+        where: { patientId: patient.id },
+        orderBy: { noteDate: 'desc' },
+      });
+    }
+
     const appointments = await prisma.appointment.findMany({
       where: { patientId: patient.id },
       include: {
@@ -33,7 +42,66 @@ const generatePatientReport = async (req, res) => {
 
     const references = patient.contacts.filter((c) => c.type === "reference");
     const personals = patient.contacts.filter((c) => c.type === "personal");
-    const motif = patient.interventionReasons[0] || {};
+    let motif = patient.interventionReasons[0] || {};
+
+    // Correction : parser les champs JSON du motif
+    if (motif) {
+      if (typeof motif.situation === 'string') {
+        try { motif.situation = JSON.parse(motif.situation); } catch { motif.situation = {}; }
+      }
+      if (typeof motif.therapeutic === 'string') {
+        try { motif.therapeutic = JSON.parse(motif.therapeutic); } catch { motif.therapeutic = {}; }
+      }
+      if (typeof motif.objectives === 'string') {
+        try { motif.objectives = JSON.parse(motif.objectives); } catch { motif.objectives = []; }
+      }
+      if (typeof motif.compteRenduInterventions === 'string') {
+        try { motif.compteRenduInterventions = JSON.parse(motif.compteRenduInterventions); } catch { motif.compteRenduInterventions = []; }
+      }
+      // Ajout : parser batteries Code CIF si présent
+      if (typeof motif.batteriesCIF === 'string') {
+        try { motif.batteriesCIF = JSON.parse(motif.batteriesCIF); } catch { motif.batteriesCIF = []; }
+      }
+    }
+
+    // Correction robustesse batteriesCIF :
+    // 1. Gérer batteriesCIF venant de batteriesCodeCIF si batteriesCIF absent
+    if (!motif.batteriesCIF && motif.batteriesCodeCIF) {
+      // batteriesCodeCIF peut être string (JSON) ou array
+      if (typeof motif.batteriesCodeCIF === 'string') {
+        try { motif.batteriesCIF = JSON.parse(motif.batteriesCodeCIF); } catch { motif.batteriesCIF = []; }
+      } else if (Array.isArray(motif.batteriesCodeCIF)) {
+        motif.batteriesCIF = motif.batteriesCodeCIF;
+      } else {
+        motif.batteriesCIF = [];
+      }
+    }
+    // 2. Si batteriesCIF est string, parser
+    if (typeof motif.batteriesCIF === 'string') {
+      try { motif.batteriesCIF = JSON.parse(motif.batteriesCIF); } catch { motif.batteriesCIF = []; }
+    }
+    // 3. Si batteriesCIF est un objet unique, transformer en array
+    if (motif.batteriesCIF && !Array.isArray(motif.batteriesCIF)) {
+      motif.batteriesCIF = [motif.batteriesCIF];
+    }
+
+    // Correction batteriesCIF : récupérer depuis therapeutic.assesments si batteriesCIF vide
+    if ((!motif.batteriesCIF || motif.batteriesCIF.length === 0) && motif.therapeutic && motif.therapeutic.assesments) {
+      // assesments peut être string (JSON), array, ou string simple
+      if (typeof motif.therapeutic.assesments === 'string') {
+        try {
+          const parsed = JSON.parse(motif.therapeutic.assesments);
+          motif.batteriesCIF = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          // Si ce n'est pas du JSON, on considère comme string simple
+          motif.batteriesCIF = [motif.therapeutic.assesments];
+        }
+      } else if (Array.isArray(motif.therapeutic.assesments)) {
+        motif.batteriesCIF = motif.therapeutic.assesments;
+      } else {
+        motif.batteriesCIF = [motif.therapeutic.assesments];
+      }
+    }
 
     const appointmentsSection = {
       title: "Rendez-vous",
@@ -62,22 +130,97 @@ const generatePatientReport = async (req, res) => {
       }).join("<hr/>")
     };
 
+    // Génération dynamique des champs non vides pour la section Données client
+    const patientFieldLabels = {
+      firstName: "Prénom",
+      lastName: "Nom",
+      birthdate: "Date de naissance",
+      sex: "Sexe",
+      nationality: "Nationalité",
+      address: "Adresse",
+      phone1: "Téléphone 1",
+      phone2: "Téléphone 2",
+      email: "Email",
+      facturerA: "Facturer à",
+      zoneResidence: "Zone de résidence",
+      etatCivil: "État civil",
+      nbrEnfants: "Nombre d'enfants",
+      profession: "Profession",
+      employeur: "Employeur",
+      mutuelle: "Mutuelle",
+      numeroMutuelle: "Numéro mutuelle",
+      numeroRegistre: "Numéro registre national",
+      medecinTraitant: "Médecin traitant",
+      medecinSpecialiste: "Médecin spécialiste",
+      // Ajoute ici d'autres champs pertinents si besoin
+    };
+    const patientInfoRows = Object.entries(patientFieldLabels)
+      .filter(([key]) => patient[key])
+      .map(([key, label]) => `<tr><td style='font-weight:bold;padding-right:10px;'>${label}</td><td>${patient[key]}</td></tr>`)
+      .join("");
+
     const sections = {
       patientInfo: {
         title: "Données client",
-        content: `
-<strong>Sexe :</strong> ${patient.sex || ""}<br/>
-<strong>Nationalité :</strong> ${patient.nationality || ""}<br/>
-<strong>Adresse :</strong> ${patient.address || ""}<br/>
-<strong>Téléphone :</strong> ${patient.phone1 || ""}, ${patient.phone2 || ""}<br/>
-<strong>Email :</strong> ${patient.email || ""}`
+        content: `<table style='border:none;'>${patientInfoRows}</table>`
       },
       contacts: {
         title: "Références & Contacts",
         content: `
-${references.map((r) => `${r.relation || ""} (${r.firstName || ""} ${r.lastName || ""})`).join("<br/>")}
-<br/>
-${personals.map((p) => `${p.relation || ""} (${p.firstName || ""} ${p.lastName || ""})`).join("<br/>")}`
+<h4 style='margin-bottom:4px;'>Références</h4>
+<table style='border-collapse:collapse;width:100%;margin-bottom:10px;'>
+  <thead>
+    <tr style='background:#f0f0f0;'>
+      <th style='border:1px solid #ccc;padding:4px;'>Nom</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Prénom</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Relation</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Téléphone</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Email</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Commentaire</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${references.length > 0
+      ? references.map(c => `
+        <tr>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.lastName || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.firstName || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.relation || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.phone || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.email || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.comment || ""}</td>
+        </tr>
+      `).join("")
+      : `<tr><td colspan='6' style='text-align:center;'>Aucune référence renseignée</td></tr>`}
+  </tbody>
+</table>
+<h4 style='margin-bottom:4px;'>Contacts personnels</h4>
+<table style='border-collapse:collapse;width:100%;margin-bottom:10px;'>
+  <thead>
+    <tr style='background:#f0f0f0;'>
+      <th style='border:1px solid #ccc;padding:4px;'>Nom</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Prénom</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Relation</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Téléphone</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Email</th>
+      <th style='border:1px solid #ccc;padding:4px;'>Commentaire</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${personals.length > 0
+      ? personals.map(c => `
+        <tr>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.lastName || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.firstName || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.relation || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.phone || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.email || ""}</td>
+          <td style='border:1px solid #ccc;padding:4px;'>${c.comment || ""}</td>
+        </tr>
+      `).join("")
+      : `<tr><td colspan='6' style='text-align:center;'>Aucun contact personnel renseigné</td></tr>`}
+  </tbody>
+</table>`
       },
       medicalData: {
         title: "Données de Santé",
@@ -92,31 +235,56 @@ ${patient.healthChronicle || ""}`
       motif: {
         title: "Motif d’intervention",
         content: `
-<h3>Synthèse de l'évaluation</h3>
-${motif?.therapeutic?.syntheseEvaluation || ""}
-<h3>Restrictions de participation</h3>
-${motif?.therapeutic?.restrictionsSouhaits || ""}
-<h3>Diagnostic occupationnel</h3>
-${motif?.therapeutic?.diagnosticOccupationnel || ""}`
+<h3>Situation personnelle</h3>
+${motif?.situation?.personne || ""}<br/>
+${motif?.situation?.occupation || ""}<br/>
+${motif?.situation?.environnement || ""}
+
+<h3>Perspective thérapeutique</h3>
+${Array.isArray(motif.batteriesCIF) && motif.batteriesCIF.length > 0
+  ? `<div style='margin-top:8px;'><strong>Batteries Code CIF :</strong><ul>${motif.batteriesCIF.map(b => `<li>${b.nom || b.name || b}</li>`).join("")}</ul></div>`
+  : "<div style='margin-top:8px;'><strong>Batteries Code CIF :</strong> <em>Aucune batterie renseignée</em></div>"}
+${motif?.therapeutic?.syntheseEvaluation || ""}<br/>
+${motif?.therapeutic?.restrictionsSouhaits || ""}<br/>
+${motif?.therapeutic?.diagnosticOccupationnel || ""}
+
+
+
+<h3>Objectifs</h3>
+${Array.isArray(motif.objectives) && motif.objectives.length > 0
+  ? `<ul>${motif.objectives.map(obj => `
+      <li>
+        <strong>${obj.titre || obj.title || "Sans titre"}</strong><br/>
+        <span style='font-size:12px;color:#888;'>Début : ${obj.dateDebut ? new Date(obj.dateDebut).toLocaleDateString("fr-FR") : "-"} / Fin : ${obj.dateFin ? new Date(obj.dateFin).toLocaleDateString("fr-FR") : "-"}</span><br/>
+        <span>${obj.description || ""}</span><br/>
+        <span>Statut : ${obj.statut || obj.status || "-"}</span>
+      </li>`).join("")}</ul>`
+  : "<em>Aucun objectif renseigné</em>"}
+
+<h3>Diagnostic</h3>
+${motif?.diagnostic || "<em>Non renseigné</em>"}
+
+<h3>Compte rendu</h3>
+${Array.isArray(motif.compteRenduInterventions) && motif.compteRenduInterventions.length > 0
+  ? motif.compteRenduInterventions.map(i => `<p><strong>${i.date ? new Date(i.date).toLocaleDateString("fr-FR") : ""}</strong><br/>${i.texte || i.text || ""}</p>`).join("")
+  : "<em>Aucun compte rendu</em>"}
+
+<h3>Synthèse</h3>
+${motif?.synthese || "<em>Non renseigné</em>"}`
       },
-      diagnostic: {
-        title: "Diagnostic",
-        content: patient.diagnostics
-          .map((d) => `<p><strong>${new Date(d.createdAt).toLocaleDateString()}</strong> — ${d.diagnosticText}</p>`)
-          .join("")
+      appointments: appointmentsSection,
+      notes: {
+        title: "Carnet de notes",
+        content: notes.length > 0
+          ? `<ul>${notes.map(note => `
+              <li style='margin-bottom:10px;'>
+                <strong>${note.title || "Sans titre"}</strong><br/>
+                <span style='font-size:12px;color:#888;'>${new Date(note.noteDate).toLocaleDateString("fr-FR")}</span><br/>
+                <span>${note.description || ""}</span>
+              </li>
+            `).join("")}</ul>`
+          : "<em>Aucune note pour ce patient.</em>"
       },
-      comptesRendus: {
-        title: "Comptes rendus",
-        content:
-          motif?.compteRenduInterventions
-            ?.map((i) => `<p><strong>${i.date}</strong><br/>${i.texte}</p>`)
-            .join("") || ""
-      },
-      synthese: {
-        title: "Synthèse",
-        content: motif?.synthese || ""
-      },
-      appointments: appointmentsSection
     };
 
     const reportContent = selectedSections.map((key) => ({
@@ -124,7 +292,10 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}`
       content: sections[key]?.content || "<em>Non renseigné</em>"
     }));
 
-    reportContent.forEach((section, sIndex) => {
+    // Nettoyage du sommaire : ne garder que les sections effectivement présentes
+    const filteredReportContent = reportContent.filter(section => section.title && section.content && section.content !== "<em>Non renseigné</em>");
+
+    filteredReportContent.forEach((section, sIndex) => {
       const regex = /<h3>(.*?)<\/h3>/g;
       section.subsections = [];
       let match;
@@ -162,7 +333,7 @@ ${motif?.therapeutic?.diagnosticOccupationnel || ""}`
       birthDate: new Date(patient.birthdate).toLocaleDateString(),
       reportDate: new Date().toLocaleDateString(),
       therapistName: `${patient.therapist.name}`,
-      reportContent,
+      reportContent: filteredReportContent,
     });
 
     const browser = await puppeteer.launch({

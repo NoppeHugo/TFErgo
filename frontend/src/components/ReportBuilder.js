@@ -14,6 +14,7 @@ const sectionLabels = {
   comptesRendus: "Comptes rendus",
   appointments: "Rendez-vous",
   synthese: "Synthèse",
+  notes: "Carnet de notes", // Ajouté ici
 };
 
 const initialOrder = Object.keys(sectionLabels);
