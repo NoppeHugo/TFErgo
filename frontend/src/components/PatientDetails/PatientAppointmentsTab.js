@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { getAppointmentsByPatient } from "../../api/appointmentAPI.js";
 import PatientAppointmentFeedback from "./PatientAppointmentFeedback.js";
 import { createEvaluationItem, getEvaluationItemsByPatient, deleteEvaluationItem } from "../../api/evaluationAPI.js";
+import Toast, { showSuccessToast, showErrorToast, showConfirmToast } from "../common/Toast.js";
 
 const PatientAppointmentsTab = ({ patient }) => {
   const [appointments, setAppointments] = useState([]);
   const [newItemTitle, setNewItemTitle] = useState("");
   const [reload, setReload] = useState(false);
   const [items, setItems] = useState([]); // ✅ éléments à évaluer
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (patient?.id) {
@@ -18,16 +20,44 @@ const PatientAppointmentsTab = ({ patient }) => {
 
   const handleAddItem = async () => {
     if (!newItemTitle.trim()) return;
-    await createEvaluationItem(patient.id, newItemTitle);
-    setNewItemTitle("");
-    setReload((r) => !r);
+    try {
+      await createEvaluationItem(patient.id, newItemTitle);
+      setNewItemTitle("");
+      setReload((r) => !r);
+      showSuccessToast(setToast, "Élément ajouté avec succès.");
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de l'ajout de l'élément.");
+    }
   };
 
-  const handleDeleteItem = async (id) => {
-    if (window.confirm("Supprimer cet élément ?")) {
-      await deleteEvaluationItem(id);
-      setReload((r) => !r);
-    }
+  function DeleteConfirmationToast({ message, onConfirm, onCancel }) {
+    return (
+      <span>
+        {message}
+        <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={onConfirm}>Oui</button>
+        <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={onCancel}>Non</button>
+      </span>
+    );
+  }
+
+  const handleDeleteItem = (id) => {
+    showConfirmToast(
+      setToast,
+      <DeleteConfirmationToast
+        message="Supprimer cet élément ?"
+        onConfirm={async () => {
+          try {
+            await deleteEvaluationItem(id);
+            setReload((r) => !r);
+            showSuccessToast(setToast, "Élément supprimé.");
+          } catch (err) {
+            showErrorToast(setToast, "Erreur lors de la suppression.");
+          }
+          setToast(null);
+        }}
+        onCancel={() => setToast(null)}
+      />
+    );
   };
 
   if (appointments.length === 0) {
@@ -36,6 +66,14 @@ const PatientAppointmentsTab = ({ patient }) => {
 
   return (
     <div className="space-y-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <div className="p-4 bg-white border rounded-xl mb-4">
         <h3 className="text-lg font-semibold mb-2">Ajouter un élément à évaluer</h3>
         <div className="flex gap-2 mb-3">

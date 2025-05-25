@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
+import Toast, { showSuccessToast, showErrorToast } from "../../common/Toast.js";
 
 const PatientDiagnosis = ({ motif, updateMotif }) => {
   const [editing, setEditing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(motif?.diagnostic || "");
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     setDiagnostic(motif?.diagnostic || "");
@@ -27,7 +29,9 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
     try {
       await updateMotif({ ...motif, diagnostic });
       setEditing(false);
+      showSuccessToast(setToast, "Diagnostic mis à jour !");
     } catch (error) {
+      showErrorToast(setToast, "Erreur lors de la sauvegarde du diagnostic");
       console.error("Erreur lors de la sauvegarde du diagnostic :", error);
     }
   };
@@ -39,6 +43,13 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
 
   return (
     <div className="flex flex-col h-full w-full">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+        />
+      )}
       {/* Boutons d'action en haut à droite */}
       <div className="flex justify-end mb-4">
         {editing ? (

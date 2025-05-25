@@ -1,5 +1,27 @@
 import React, { useState } from "react";
 import QuillEditor from "../../QuillEditor.js";
+import { showSuccessToast, showErrorToast, showConfirmToast } from "../../common/Toast.js";
+import Toast from "../../common/Toast.js";
+
+function DeleteConfirmationToast({ message, onConfirm, onCancel }) {
+  return (
+    <span>
+      {message}
+      <button
+        className="ml-4 bg-red-600 text-white px-2 py-1 rounded"
+        onClick={onConfirm}
+      >
+        Oui
+      </button>
+      <button
+        className="ml-2 bg-gray-400 text-white px-2 py-1 rounded"
+        onClick={onCancel}
+      >
+        Non
+      </button>
+    </span>
+  );
+}
 
 const PatientInterventions = ({ motif, updateMotif }) => {
   const [editingIndex, setEditingIndex] = useState(null);
@@ -8,6 +30,7 @@ const PatientInterventions = ({ motif, updateMotif }) => {
     texte: "",
   });
   const [showForm, setShowForm] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleInputChange = (field, value) => {
     setNewIntervention((prev) => ({ ...prev, [field]: value }));
@@ -26,8 +49,9 @@ const PatientInterventions = ({ motif, updateMotif }) => {
       await updateMotif(updatedMotif);
       setNewIntervention({ date: "", texte: "" });
       setShowForm(false);
+      showSuccessToast(setToast, "Intervention ajoutée avec succès.");
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde de l'intervention :", error);
+      showErrorToast(setToast, "Erreur lors de l'ajout de l'intervention.");
     }
   };
 
@@ -50,22 +74,32 @@ const PatientInterventions = ({ motif, updateMotif }) => {
       setEditingIndex(null);
       setNewIntervention({ date: "", texte: "" });
       setShowForm(false);
+      showSuccessToast(setToast, "Intervention modifiée avec succès.");
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'intervention :", error);
+      showErrorToast(setToast, "Erreur lors de la modification de l'intervention.");
     }
   };
 
-  const handleDeleteIntervention = async (index) => {
-    const updatedMotif = {
-      ...motif,
-      compteRenduInterventions: motif.compteRenduInterventions.filter((_, i) => i !== index),
-    };
-
-    try {
-      await updateMotif(updatedMotif);
-    } catch (error) {
-      console.error("Erreur lors de la suppression de l'intervention :", error);
-    }
+  const handleDeleteIntervention = (index) => {
+    showConfirmToast(
+      setToast,
+      <DeleteConfirmationToast
+        message="Voulez-vous vraiment supprimer cette intervention ?"
+        onConfirm={async () => {
+          const updatedMotif = {
+            ...motif,
+            compteRenduInterventions: motif.compteRenduInterventions.filter((_, i) => i !== index),
+          };
+          try {
+            await updateMotif(updatedMotif);
+            showSuccessToast(setToast, "Intervention supprimée.");
+          } catch (error) {
+            showErrorToast(setToast, "Erreur lors de la suppression de l'intervention.");
+          }
+        }}
+        onCancel={() => setToast(null)}
+      />
+    );
   };
 
   const handleCancel = () => {
@@ -76,6 +110,14 @@ const PatientInterventions = ({ motif, updateMotif }) => {
 
   return (
     <div className="p-4 bg-white shadow-md rounded-lg">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <h4 className="text-md font-semibold mb-4">Compte Rendu des Interventions</h4>
 
       <button

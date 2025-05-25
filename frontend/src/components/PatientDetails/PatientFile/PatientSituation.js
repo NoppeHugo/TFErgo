@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
+import Toast, { showSuccessToast, showErrorToast } from "../../common/Toast.js";
 
 const PatientSituation = ({ motif, updateMotif }) => {
   const [editing, setEditing] = useState(false);
@@ -8,6 +9,7 @@ const PatientSituation = ({ motif, updateMotif }) => {
     occupation: motif?.situation?.occupation || "",
     environnement: motif?.situation?.environnement || "",
   });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     setNewSituation({
@@ -47,8 +49,26 @@ const PatientSituation = ({ motif, updateMotif }) => {
     });
   };
 
+  const handleSaveSituation = async () => {
+    try {
+      await updateMotif({ ...motif, situation: newSituation });
+      showSuccessToast(setToast, "Situation modifiée avec succès.");
+      setEditing(false);
+    } catch (error) {
+      showErrorToast(setToast, "Erreur lors de la modification de la situation.");
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <div className="flex justify-between items-start mb-4">
         {!editing ? (
           <button
@@ -59,7 +79,7 @@ const PatientSituation = ({ motif, updateMotif }) => {
           </button>
         ) : (
           <div className="flex space-x-2 sticky top-4">
-            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSave}>
+            <button className="bg-green-500 text-white px-4 py-2 rounded-lg" onClick={handleSaveSituation}>
               Enregistrer
             </button>
             <button className="bg-gray-500 text-white px-4 py-2 rounded-lg" onClick={handleCancel}>

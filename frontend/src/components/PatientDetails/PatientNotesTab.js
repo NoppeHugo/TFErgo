@@ -5,6 +5,7 @@ import {
   updateNote,
   deleteNote,
 } from "../../api/noteAPI.js";
+import Toast, { showErrorToast, showSuccessToast } from "../common/Toast.js";
 
 const PatientNotesTab = ({ patient }) => {
   const [notes, setNotes] = useState([]);
@@ -15,6 +16,8 @@ const PatientNotesTab = ({ patient }) => {
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editText, setEditText] = useState("");
+  const [toast, setToast] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   useEffect(() => {
     if (!patient?.id) return;
@@ -24,8 +27,9 @@ const PatientNotesTab = ({ patient }) => {
         const notesList = await getPatientNotes(patient.id);
         setNotes(notesList || []);
       } catch (error) {
-        console.error("Error loading notes:", error);
+        showErrorToast(setToast, "Erreur lors du chargement des notes");
         setNotes([]);
+        console.error("Error loading notes:", error);
       }
     };
 
@@ -47,7 +51,9 @@ const PatientNotesTab = ({ patient }) => {
       setNewTitle("");
       setNewText("");
       setShowForm(false);
+      showSuccessToast(setToast, "Note ajoutée !");
     } catch (error) {
+      showErrorToast(setToast, "Erreur lors de l'ajout de la note");
       console.error("Error adding note:", error);
     }
     setLoading(false);
@@ -74,21 +80,59 @@ const PatientNotesTab = ({ patient }) => {
         )
       );
       setEditingNoteId(null);
+      showSuccessToast(setToast, "Note modifiée !");
     } catch (error) {
+      showErrorToast(setToast, "Erreur lors de la modification de la note");
       console.error("Error updating note:", error);
     }
   };
 
-  const handleDeleteNote = async (noteId) => {
-    if (!window.confirm("Delete this note?")) return;
-
-    try {
-      await deleteNote(noteId);
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    } catch (error) {
-      console.error("Error deleting note:", error);
-    }
+  const handleDeleteNote = (noteId) => {
+    setPendingDeleteId(noteId);
+    setToast({
+      message: (
+        <DeleteConfirmationToast
+          onConfirm={async () => {
+            try {
+              await deleteNote(noteId);
+              setNotes((prev) => prev.filter((n) => n.id !== noteId));
+              showSuccessToast(setToast, "Note supprimée !");
+            } catch (error) {
+              showErrorToast(setToast, "Erreur lors de la suppression de la note");
+              console.error("Error deleting note:", error);
+            }
+            setPendingDeleteId(null);
+          }}
+          onCancel={() => {
+            setPendingDeleteId(null);
+            setToast(null);
+          }}
+        />
+      ),
+      type: "error",
+      persistent: true
+    });
   };
+
+  function DeleteConfirmationToast({ onConfirm, onCancel }) {
+    return (
+      <span>
+        Confirmer la suppression ?
+        <button
+          className="ml-4 bg-red-600 text-white px-2 py-1 rounded"
+          onClick={onConfirm}
+        >
+          Oui
+        </button>
+        <button
+          className="ml-2 bg-gray-400 text-white px-2 py-1 rounded"
+          onClick={onCancel}
+        >
+          Non
+        </button>
+      </span>
+    );
+  }
 
   const handleCancelEdit = () => {
     setEditingNoteId(null);
@@ -98,6 +142,14 @@ const PatientNotesTab = ({ patient }) => {
 
   return (
     <div className="p-4 bg-white rounded-lg shadow h-[70vh] flex flex-col">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => { setToast(null); setPendingDeleteId(null); }}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       {/* En-tête + bouton ajout */}
       <div className="shrink-0 mb-4">
         <h3 className="text-lg font-bold mb-4">Notes</h3>

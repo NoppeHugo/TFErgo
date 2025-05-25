@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
+import { showSuccessToast, showErrorToast } from "../../common/Toast.js";
+import Toast from "../../common/Toast.js"; // Assurez-vous que le chemin d'importation est correct
 
 const PatientSummary = ({ motif, updateMotif }) => {
   const [editing, setEditing] = useState(false);
   const [synthese, setSynthese] = useState(motif?.synthese || "");
   const [newSituation, setNewSituation] = useState(motif?.situation || {});
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     setSynthese(motif?.synthese || "");
@@ -33,8 +36,10 @@ const PatientSummary = ({ motif, updateMotif }) => {
     if (!motif) return;
     try {
       await updateMotif({ ...motif, synthese, situation: newSituation });
+      showSuccessToast(setToast, "Résumé modifié avec succès.");
       setEditing(false);
     } catch (error) {
+      showErrorToast(setToast, "Erreur lors de la modification du résumé.");
       console.error("Erreur lors de la sauvegarde de la synthèse :", error);
     }
   };
@@ -47,6 +52,14 @@ const PatientSummary = ({ motif, updateMotif }) => {
 
   return (
     <div className="relative flex flex-col p-4 bg-white shadow-md rounded-lg h-full max-h-[calc(100vh-150px)] overflow-hidden">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       {/* Titre + Bouton Modifier sticky en haut */}
       <div className="flex justify-between items-start mb-4 sticky top-0 bg-white z-10 pb-2">
         {!editing ? (

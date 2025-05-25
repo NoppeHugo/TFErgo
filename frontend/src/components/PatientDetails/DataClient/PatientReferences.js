@@ -6,19 +6,7 @@ import {
   deleteContact,
 } from "../../../api/contactAPI.js";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
-
-// Notification Toast
-function Toast({ message, onClose }) {
-  return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-dark2GreenErgogo text-white px-6 py-3 rounded shadow-lg animate-fade-in-out flex items-center gap-2">
-        <span role="img" aria-label="copié">📋</span>
-        {message}
-        <button onClick={onClose} className="ml-4 text-white font-bold">&times;</button>
-      </div>
-    </div>
-  );
-}
+import Toast, { showErrorToast, showSuccessToast } from "../../common/Toast.js";
 
 const PatientReferences = ({ patient }) => {
   const [contacts, setContacts] = useState([]);
@@ -37,6 +25,7 @@ const PatientReferences = ({ patient }) => {
   });
 
   const [toast, setToast] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   useEffect(() => {
     if (patient?.id) loadContacts();
@@ -47,6 +36,7 @@ const PatientReferences = ({ patient }) => {
       const data = await getPatientContacts(patient.id);
       setContacts(data);
     } catch (err) {
+      showErrorToast(setToast, "Erreur lors du chargement des contacts");
       console.error("Erreur chargement contacts:", err);
     }
   };
@@ -85,30 +75,68 @@ const PatientReferences = ({ patient }) => {
 
   const saveContact = async () => {
     const contactData = { ...form, type: formType };
-
     try {
       if (isNew) {
         await addContact(patient.id, contactData);
+        showSuccessToast(setToast, "Contact ajouté !");
       } else {
         await updateContact(editing, contactData);
+        showSuccessToast(setToast, "Contact modifié !");
       }
       await loadContacts();
       cancelEdit();
     } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la sauvegarde du contact");
       console.error("Erreur sauvegarde contact:", err);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Supprimer ce contact ?")) {
-      try {
-        await deleteContact(id);
-        await loadContacts();
-      } catch (err) {
-        console.error("Erreur suppression contact:", err);
-      }
-    }
+  const handleDelete = (id) => {
+    setPendingDeleteId(id);
+    setToast({
+      message: (
+        <DeleteConfirmationToast
+          onConfirm={async () => {
+            try {
+              await deleteContact(id);
+              showSuccessToast(setToast, "Contact supprimé !");
+              await loadContacts();
+            } catch (err) {
+              showErrorToast(setToast, "Erreur lors de la suppression du contact");
+              console.error("Erreur suppression contact:", err);
+            }
+            setPendingDeleteId(null);
+          }}
+          onCancel={() => {
+            setPendingDeleteId(null);
+            setToast(null);
+          }}
+        />
+      ),
+      type: "error",
+      persistent: true,
+    });
   };
+
+  function DeleteConfirmationToast({ onConfirm, onCancel }) {
+    return (
+      <span>
+        Confirmer la suppression ?
+        <button
+          className="ml-4 bg-red-600 text-white px-2 py-1 rounded"
+          onClick={onConfirm}
+        >
+          Oui
+        </button>
+        <button
+          className="ml-2 bg-gray-400 text-white px-2 py-1 rounded"
+          onClick={onCancel}
+        >
+          Non
+        </button>
+      </span>
+    );
+  }
 
   const references = contacts.filter((c) => c.type === "reference");
   const personals = contacts.filter((c) => c.type === "personal");
@@ -116,43 +144,110 @@ const PatientReferences = ({ patient }) => {
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      setToast(`Copié : ${text}`);
-      setTimeout(() => setToast(null), 2000);
+      showSuccessToast(setToast, `Copié : ${text}`);
     } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la copie dans le presse-papier");
       console.error("Erreur de copie :", err);
     }
   };
 
-
   return (
     <div className="flex flex-col grow overflow-y-auto space-y-8 px-2">
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => {
+            setToast(null);
+            setPendingDeleteId(null);
+          }}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       {(editing !== null || isNew) && (
         <div className="bg-gray-100 p-4 rounded mb-2 space-y-2">
-          <input name="firstName" value={form.firstName || ""} onChange={handleChange} placeholder="Prénom" className="w-full p-2 border rounded" />
-          <input name="lastName" value={form.lastName || ""} onChange={handleChange} placeholder="Nom" className="w-full p-2 border rounded" />
+          <input
+            name="firstName"
+            value={form.firstName || ""}
+            onChange={handleChange}
+            placeholder="Prénom"
+            className="w-full p-2 border rounded"
+          />
+          <input
+            name="lastName"
+            value={form.lastName || ""}
+            onChange={handleChange}
+            placeholder="Nom"
+            className="w-full p-2 border rounded"
+          />
           {formType === "personal" && (
-            <input name="relation" value={form.relation || ""} onChange={handleChange} placeholder="Relation" className="w-full p-2 border rounded" />
+            <input
+              name="relation"
+              value={form.relation || ""}
+              onChange={handleChange}
+              placeholder="Relation"
+              className="w-full p-2 border rounded"
+            />
           )}
           {formType === "reference" && (
-            <input name="inami" value={form.inami || ""} onChange={handleChange} placeholder="INAMI" className="w-full p-2 border rounded" />
+            <input
+              name="inami"
+              value={form.inami || ""}
+              onChange={handleChange}
+              placeholder="INAMI"
+              className="w-full p-2 border rounded"
+            />
           )}
-          <input name="phone" value={form.phone || ""} onChange={handleChange} placeholder="Téléphone" className="w-full p-2 border rounded" />
-          <input name="email" value={form.email || ""} onChange={handleChange} placeholder="Email" className="w-full p-2 border rounded" />
-          <textarea name="comment" value={form.comment || ""} onChange={handleChange} placeholder="Commentaire" className="w-full p-2 border rounded" />
+          <input
+            name="phone"
+            value={form.phone || ""}
+            onChange={handleChange}
+            placeholder="Téléphone"
+            className="w-full p-2 border rounded"
+          />
+          <input
+            name="email"
+            value={form.email || ""}
+            onChange={handleChange}
+            placeholder="Email"
+            className="w-full p-2 border rounded"
+          />
+          <textarea
+            name="comment"
+            value={form.comment || ""}
+            onChange={handleChange}
+            placeholder="Commentaire"
+            className="w-full p-2 border rounded"
+          />
 
           <div className="flex justify-end space-x-2 mt-2">
-            <button onClick={saveContact} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Enregistrer</button>
-            <button onClick={cancelEdit} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Annuler</button>
+            <button
+              onClick={saveContact}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Enregistrer
+            </button>
+            <button
+              onClick={cancelEdit}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Annuler
+            </button>
           </div>
         </div>
       )}
 
-      {[{ title: "Références", data: references, type: "reference" }, { title: "Contacts Personnels", data: personals, type: "personal" }].map(({ title, data, type }) => (
+      {[
+        { title: "Références", data: references, type: "reference" },
+        { title: "Contacts Personnels", data: personals, type: "personal" },
+      ].map(({ title, data, type }) => (
         <div key={type}>
           <div className="flex justify-between items-center mb-2">
             <h4 className="text-lg font-semibold text-gray-700">{title}</h4>
-            <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600" onClick={() => startEdit(null, type)}>
+            <button
+              className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              onClick={() => startEdit(null, type)}
+            >
               Ajouter
             </button>
           </div>
@@ -163,7 +258,9 @@ const PatientReferences = ({ patient }) => {
                 <tr>
                   <th className="px-4 py-3">Nom</th>
                   <th className="px-4 py-3">Prénom</th>
-                  <th className="px-4 py-3">{type === "reference" ? "INAMI" : "Relation"}</th>
+                  <th className="px-4 py-3">
+                    {type === "reference" ? "INAMI" : "Relation"}
+                  </th>
                   <th className="px-4 py-3">Téléphone</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Commentaire</th>
@@ -173,13 +270,25 @@ const PatientReferences = ({ patient }) => {
               <tbody className="divide-y divide-gray-200">
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-4 text-gray-400 italic">Aucun contact</td>
+                    <td
+                      colSpan={7}
+                      className="text-center py-4 text-gray-400 italic"
+                    >
+                      Aucun contact
+                    </td>
                   </tr>
                 ) : (
                   data.map((c, idx) => (
-                    <tr key={c.id} className="odd:bg-white even:bg-gray-50 hover:bg-blue-50 transition">
-                      <td className="px-4 py-2 font-semibold text-gray-800">{c.lastName}</td>
-                      <td className="px-4 py-2 text-gray-800">{c.firstName}</td>
+                    <tr
+                      key={c.id}
+                      className="odd:bg-white even:bg-gray-50 hover:bg-blue-50 transition"
+                    >
+                      <td className="px-4 py-2 font-semibold text-gray-800">
+                        {c.lastName}
+                      </td>
+                      <td className="px-4 py-2 text-gray-800">
+                        {c.firstName}
+                      </td>
                       <td className="px-4 py-2 text-gray-700">
                         {type === "reference" ? c.inami : c.relation}
                       </td>

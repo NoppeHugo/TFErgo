@@ -9,6 +9,28 @@ import {
   deleteShortTermObjective,
 } from "../../../api/objectiveAPI.js";
 import API from "../../../api/api.js";
+import { showSuccessToast, showErrorToast, showConfirmToast } from "../../common/Toast.js";
+import Toast from "../../common/Toast.js";
+
+function DeleteConfirmationToast({ message, onConfirm, onCancel }) {
+  return (
+    <span>
+      {message}
+      <button
+        className="ml-4 bg-red-600 text-white px-2 py-1 rounded"
+        onClick={onConfirm}
+      >
+        Oui
+      </button>
+      <button
+        className="ml-2 bg-gray-400 text-white px-2 py-1 rounded"
+        onClick={onCancel}
+      >
+        Non
+      </button>
+    </span>
+  );
+}
 
 const PatientObjectives = ({ motif }) => {
   const [longObjectives, setLongObjectives] = useState([]);
@@ -16,6 +38,7 @@ const PatientObjectives = ({ motif }) => {
   const [newLongTitle, setNewLongTitle] = useState("");
   const [showShortTermForm, setShowShortTermForm] = useState(false);
   const [editingShortId, setEditingShortId] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const initialShortState = {
     title: "",
@@ -54,8 +77,10 @@ const PatientObjectives = ({ motif }) => {
       });
       setNewLongTitle("");
       fetchObjectives();
+      showSuccessToast(setToast, "Objectif long terme ajouté avec succès.");
     } catch (err) {
       console.error("Erreur ajout objectif long terme", err);
+      showErrorToast(setToast, "Erreur lors de l'ajout de l'objectif long terme.");
     }
   };
 
@@ -64,8 +89,10 @@ const PatientObjectives = ({ motif }) => {
     try {
       if (editingShortId) {
         await updateShortTermObjective(editingShortId, newShortObjective);
+        showSuccessToast(setToast, "Objectif court terme modifié avec succès.");
       } else {
         await createShortTermObjective(selectedLongObjective.id, newShortObjective);
+        showSuccessToast(setToast, "Objectif court terme ajouté avec succès.");
       }
       setNewShortObjective(initialShortState);
       setEditingShortId(null);
@@ -73,6 +100,7 @@ const PatientObjectives = ({ motif }) => {
       fetchObjectives();
     } catch (err) {
       console.error("Erreur ajout/modif objectif court terme", err);
+      showErrorToast(setToast, "Erreur lors de l'ajout ou de la modification de l'objectif court terme.");
     }
   };
 
@@ -88,15 +116,47 @@ const PatientObjectives = ({ motif }) => {
     setShowShortTermForm(true);
   };
 
-  const handleDeleteShort = async (id) => {
-    if (window.confirm("Supprimer cet objectif court terme ?")) {
-      try {
-        await deleteShortTermObjective(id);
-        fetchObjectives();
-      } catch (err) {
-        console.error("Erreur suppression objectif court terme", err);
-      }
-    }
+  const handleDeleteShort = (id) => {
+    showConfirmToast(
+      setToast,
+      <DeleteConfirmationToast
+        message="Voulez-vous vraiment supprimer cet objectif court terme ?"
+        onConfirm={async () => {
+          try {
+            await deleteShortTermObjective(id);
+            fetchObjectives();
+            showSuccessToast(setToast, "Objectif court terme supprimé avec succès.");
+          } catch (err) {
+            console.error("Erreur suppression objectif court terme", err);
+            showErrorToast(setToast, "Erreur lors de la suppression de l'objectif court terme.");
+          }
+        }}
+        onCancel={() => setToast(null)}
+      />
+    );
+  };
+
+  const handleDeleteLong = (id) => {
+    showConfirmToast(
+      setToast,
+      <DeleteConfirmationToast
+        message="Voulez-vous vraiment supprimer cet objectif ?"
+        onConfirm={async () => {
+          try {
+            await deleteLongTermObjective(id);
+            if (selectedLongObjective?.id === id) {
+              setSelectedLongObjective(null);
+            }
+            fetchObjectives();
+            showSuccessToast(setToast, "Objectif long terme supprimé avec succès.");
+          } catch (err) {
+            console.error("Erreur suppression objectif long terme", err);
+            showErrorToast(setToast, "Erreur lors de la suppression de l'objectif long terme.");
+          }
+        }}
+        onCancel={() => setToast(null)}
+      />
+    );
   };
 
   const renderShortTermForm = () => (
@@ -159,6 +219,14 @@ const PatientObjectives = ({ motif }) => {
 
   return (
     <div className="flex w-full h-full space-x-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <div className="w-1/4 h-full bg-gray-100 p-4 rounded-lg shadow flex flex-col overflow-y-auto custom-scrollbar">
         <h4 className="text-lg font-semibold mb-3">Objectifs Long Terme</h4>
         <input
@@ -205,16 +273,7 @@ const PatientObjectives = ({ motif }) => {
                   className="text-red-500 hover:text-red-700"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm("Supprimer cet objectif ?")) {
-                      deleteLongTermObjective(obj.id)
-                        .then(() => {
-                          if (selectedLongObjective?.id === obj.id) {
-                            setSelectedLongObjective(null);
-                          }
-                          fetchObjectives();
-                        })
-                        .catch(console.error);
-                    }
+                    handleDeleteLong(obj.id);
                   }}
                 >
                   🗑️

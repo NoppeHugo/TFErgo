@@ -4,6 +4,7 @@ import {
   getPatientHealthData,
   updatePatientHealthData,
 } from "../../../api/healthDataApi.js";
+import Toast, { showSuccessToast, showErrorToast } from "../../common/Toast.js";
 
 const PatientHealthData = ({ patientId }) => {
   const [editing, setEditing] = useState(false);
@@ -12,6 +13,7 @@ const PatientHealthData = ({ patientId }) => {
     medicalHistory: "",
     healthChronicle: "",
   });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (patientId) {
@@ -46,10 +48,10 @@ const PatientHealthData = ({ patientId }) => {
     try {
       await updatePatientHealthData(patientId, healthData);
       setEditing(false);
-      alert("✅ Données mises à jour !");
+      showSuccessToast(setToast, "Données mises à jour !");
     } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la sauvegarde.");
       console.error("Erreur mise à jour:", err);
-      alert("❌ Erreur sauvegarde.");
     }
   };
 
@@ -69,6 +71,13 @@ const PatientHealthData = ({ patientId }) => {
 
   return (
     <div className="flex flex-col bg-white h-full w-full rounded-lg shadow-md p-4">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+        />
+      )}
       {/* Header avec titre + bouton à droite */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-gray-800">Données de Santé</h3>

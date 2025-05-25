@@ -1,16 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import PatientForm from "./PatientForm.js";
+import Toast, { showErrorToast, showSuccessToast } from "../common/Toast.js";
 
 const PatientDetailsTab = ({ patient, isEditing, updatedPatient, handleChange, handleUpdate, setIsEditing }) => {
+  const [toast, setToast] = useState(null);
+
+  // Wrapper pour handleUpdate avec feedback utilisateur
+  const handleUpdateWithToast = async (e) => {
+    e.preventDefault && e.preventDefault();
+    try {
+      await handleUpdate();
+      showSuccessToast(setToast, "Détails du patient mis à jour !");
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la mise à jour du patient");
+      console.error("Erreur mise à jour patient:", err);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+        />
+      )}
       <h3 className="text-2xl font-bold mb-6 text-gray-800">Détails du Patient</h3>
 
       {isEditing ? (
         <PatientForm
           patientData={updatedPatient}
           handleChange={handleChange}
-          handleSubmit={handleUpdate}
+          handleSubmit={handleUpdateWithToast}
           isEditing={true}
           setIsEditing={setIsEditing}
         />

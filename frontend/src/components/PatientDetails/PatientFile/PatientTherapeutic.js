@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import QuillEditor from "../../QuillEditor.js";
+import Toast, { showSuccessToast, showErrorToast } from "../../common/Toast.js";
 
 const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
   const [editing, setEditing] = useState(false);
@@ -9,6 +10,7 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
     restrictionsSouhaits: motif?.therapeutic?.restrictionsSouhaits || "",
     diagnosticOccupationnel: motif?.therapeutic?.diagnosticOccupationnel || "",
   });
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (editing) {
@@ -26,8 +28,17 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
     setTherapeuticData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSaveTherapeutic = async () => {
+    try {
+      await updateMotif({ ...motif, therapeutic: therapeuticData });
+      showSuccessToast(setToast, "Données thérapeutiques modifiées avec succès.");
+    } catch (error) {
+      showErrorToast(setToast, "Erreur lors de la modification des données thérapeutiques.");
+    }
+  };
+
   const handleSave = async () => {
-    await updateMotif({ ...motif, therapeutic: therapeuticData });
+    await handleSaveTherapeutic();
     setEditing(false);
   };
 
@@ -43,6 +54,14 @@ const PatientTherapeutic = ({ motif, patientId, updateMotif }) => {
 
   return (
     <div className="relative p-4 bg-white shadow-md rounded-lg">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <div className="flex justify-between items-start mb-4">
         {!editing ? (
           <button className="bg-middleBlueErgogo text-white px-4 py-2 rounded-lg sticky top-4" onClick={() => setEditing(true)}>

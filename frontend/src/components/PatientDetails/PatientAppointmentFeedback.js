@@ -5,6 +5,7 @@ import {
   getAppointmentFeedbacks,
   createEvaluationItem,
 } from "../../api/evaluationAPI.js";
+import Toast, { showSuccessToast, showErrorToast } from "../common/Toast.js";
 
 const StarRating = ({ value, onChange }) => {
   return (
@@ -26,6 +27,7 @@ const PatientAppointmentFeedback = ({ appointmentId, patientId, reloadTrigger })
   const [items, setItems] = useState([]);
   const [feedbacks, setFeedbacks] = useState({});
   const [existingFeedbacks, setExistingFeedbacks] = useState([]);
+  const [toast, setToast] = useState(null);
 
   const loadItems = async () => {
     const data = await getEvaluationItemsByPatient(patientId);
@@ -47,8 +49,13 @@ const PatientAppointmentFeedback = ({ appointmentId, patientId, reloadTrigger })
       evaluationItemId,
       rating,
     }));
-    await addAppointmentFeedbacks(appointmentId, formatted);
-    await loadFeedbacks();
+    try {
+      await addAppointmentFeedbacks(appointmentId, formatted);
+      await loadFeedbacks();
+      showSuccessToast(setToast, "Évaluations enregistrées avec succès.");
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de l'enregistrement des évaluations.");
+    }
   };
 
   useEffect(() => {
@@ -60,6 +67,14 @@ const PatientAppointmentFeedback = ({ appointmentId, patientId, reloadTrigger })
 
   return (
     <div className="mt-6 bg-gray-50 p-4 rounded-xl">
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
       <h3 className="text-lg font-semibold mb-2">Évaluation de la séance</h3>
 
       <ul className="space-y-3">
