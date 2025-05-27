@@ -5,7 +5,7 @@ import { getGoals } from '../../api/goalAPI.js';
 import { FiX } from 'react-icons/fi';
 import MaterialSelect from './MaterialSelect.js';
 import { getMaterials } from '../../api/materialAPI.js';
-
+import Toast, { showErrorToast, showSuccessToast } from '../common/Toast.js';
 
 const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [name, setName] = useState(activity.name || '');
@@ -19,6 +19,7 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [newImages, setNewImages] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     getGoals().then(res => {
@@ -51,130 +52,153 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
     setNewImages(prev => [...prev, ...files]);
   };
 
+  const validate = () => {
+    const newErrors = {};
+    if (!name.trim()) newErrors.name = 'Le nom est requis.';
+    if (selectedGoals.length === 0) newErrors.goals = 'Veuillez sélectionner au moins un objectif.';
+    return newErrors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    await updateActivity(activity.id, {
-      name,
-      description,
-      link,
-      objectiveIds: selectedGoals.map(o => o.value),
-      materialIds: selectedMaterials.map(m => m.value),
-    });
-
-    // Upload en base64 comme pour la création
-    const uploads = newImages.map((file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          await uploadFileToActivity(activity.id, {
-            fileUrl: reader.result,
-            fileType: file.type,
-            fileName: file.name,
-          });
-          resolve();
-        };
-        reader.readAsDataURL(file);
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setToast({ message: Object.values(validationErrors).join(' '), type: 'error', persistent: false });
+      return;
+    }
+    try {
+      await updateActivity(activity.id, {
+        name,
+        description,
+        link,
+        objectiveIds: selectedGoals.map(o => o.value),
+        materialIds: selectedMaterials.map(m => m.value),
       });
-    });
-    await Promise.all(uploads);
-
-    setNewImages([]);
-    onUpdated();
-    onClose();
+      // Upload en base64 comme pour la création
+      const uploads = newImages.map((file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            try {
+              await uploadFileToActivity(activity.id, {
+                fileUrl: reader.result,
+                fileType: file.type,
+                fileName: file.name,
+              });
+              resolve();
+            } catch (err) {
+              showErrorToast(setToast, "Erreur lors de l'upload d'un fichier.");
+              resolve();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      await Promise.all(uploads);
+      showSuccessToast(setToast, "Activité modifiée !");
+      onUpdated();
+      onClose();
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la modification de l'activité.");
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded border shadow space-y-4 animate-fade-in">
-      <h2 className="text-xl font-semibold text-purple-700">Modifier l’activité</h2>
-
-      <input
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-        placeholder="Nom"
-        className="w-full border px-3 py-2 rounded"
-      />
-
-      <textarea
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-        placeholder="Description"
-        rows={3}
-        className="w-full border px-3 py-2 rounded"
-      />
-
-      <input
-        type="text"
-        value={link}
-        onChange={e => setLink(e.target.value)}
-        placeholder="Lien externe"
-        className="w-full border px-3 py-2 rounded"
-      />
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Objectifs :</label>
-        <Select
-          options={goals.map(g => ({ value: g.id, label: g.name }))}
-          isMulti
-          value={selectedGoals}
-          onChange={setSelectedGoals}
-          className="text-sm"
-        />
-      </div>
-
-      <MaterialSelect
-        selectedMaterials={selectedMaterials}
-        setSelectedMaterials={setSelectedMaterials}
-      />
-
-      {existingImages.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {existingImages.map((img) => (
-            <div key={img.id} className="relative">
-              <img src={img.fileUrl} alt="fichier activité" className="w-full h-[120px] object-cover rounded" />
-              <button
-                type="button"
-                onClick={() => handleImageRemove(img.id)}
-                className="absolute top-1 right-1 bg-white/70 hover:bg-white text-red-600 rounded-full p-1"
-              >
-                <FiX size={18} />
-              </button>
-            </div>
-          ))}
-        </div>
+    <>
+      {toast && (
+        <Toast message={toast.message} onClose={() => setToast(null)} type={toast.type} persistent={toast.persistent} />
       )}
+      <form onSubmit={handleSubmit} className="bg-white p-6 rounded border shadow space-y-4 animate-fade-in">
+        <h2 className="text-xl font-semibold text-purple-700">Modifier l’activité</h2>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Ajouter des images :</label>
         <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="text-sm"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Nom"
+          className="w-full border px-3 py-2 rounded"
         />
-        {newImages.length > 0 && (
-          <p className="text-sm text-gray-500 mt-1">{newImages.length} image(s) sélectionnée(s)</p>
-        )}
-      </div>
 
-      <div className="flex gap-4">
-        <button
-          type="submit"
-          className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition"
-        >
-          Enregistrer
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-gray-600 hover:underline"
-        >
-          Annuler
-        </button>
-      </div>
-    </form>
+        <textarea
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Description"
+          rows={3}
+          className="w-full border px-3 py-2 rounded"
+        />
+
+        <input
+          type="text"
+          value={link}
+          onChange={e => setLink(e.target.value)}
+          placeholder="Lien externe"
+          className="w-full border px-3 py-2 rounded"
+        />
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Objectifs :</label>
+          <Select
+            options={goals.map(g => ({ value: g.id, label: g.name }))}
+            isMulti
+            value={selectedGoals}
+            onChange={setSelectedGoals}
+            className="text-sm"
+          />
+        </div>
+
+        <MaterialSelect
+          selectedMaterials={selectedMaterials}
+          setSelectedMaterials={setSelectedMaterials}
+        />
+
+        {existingImages.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {existingImages.map((img) => (
+              <div key={img.id} className="relative">
+                <img src={img.fileUrl} alt="fichier activité" className="w-full h-[120px] object-cover rounded" />
+                <button
+                  type="button"
+                  onClick={() => handleImageRemove(img.id)}
+                  className="absolute top-1 right-1 bg-white/70 hover:bg-white text-red-600 rounded-full p-1"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ajouter des images :</label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="text-sm"
+          />
+          {newImages.length > 0 && (
+            <p className="text-sm text-gray-500 mt-1">{newImages.length} image(s) sélectionnée(s)</p>
+          )}
+        </div>
+
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition"
+          >
+            Enregistrer
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-600 hover:underline"
+          >
+            Annuler
+          </button>
+        </div>
+      </form>
+    </>
   );
 };
 

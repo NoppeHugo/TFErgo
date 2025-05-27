@@ -2,12 +2,13 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllAppointments } from "../../api/appointmentAPI.js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Spinner from '../../components/common/Spinner.js';
 
 const TodayAppointments = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: appointments = [], refetch } = useQuery({
+  const { data: appointments = [], isLoading, refetch } = useQuery({
     queryKey: ["appointments", "all"],
     queryFn: getAllAppointments,
   });
@@ -17,6 +18,10 @@ const TodayAppointments = () => {
   const todayAppointments = appointments
     .filter((apt) => new Date(apt.date).toISOString().split("T")[0] === today)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-24"><Spinner size={32} /></div>;
+  }
 
   if (todayAppointments.length === 0) {
     return <p className="text-gray-500">Aucun rendez-vous aujourd’hui.</p>;

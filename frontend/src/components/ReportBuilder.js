@@ -8,13 +8,13 @@ import API from "../api/api.js";
 const sectionLabels = {
   patientInfo: "Données client",
   contacts: "Références & Contacts",
+  notes: "Carnet de notes",
   medicalData: "Données de Santé",
   motif: "Motif d’intervention",
   diagnostic: "Diagnostic",
   comptesRendus: "Comptes rendus",
   appointments: "Rendez-vous",
   synthese: "Synthèse",
-  notes: "Carnet de notes", // Ajouté ici
 };
 
 const initialOrder = Object.keys(sectionLabels);

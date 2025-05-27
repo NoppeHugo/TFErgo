@@ -3,6 +3,7 @@ import { getAppointmentsByPatient } from "../../api/appointmentAPI.js";
 import PatientAppointmentFeedback from "./PatientAppointmentFeedback.js";
 import { createEvaluationItem, getEvaluationItemsByPatient, deleteEvaluationItem } from "../../api/evaluationAPI.js";
 import Toast, { showSuccessToast, showErrorToast, showConfirmToast } from "../common/Toast.js";
+import Spinner from '../common/Spinner.js';
 
 const PatientAppointmentsTab = ({ patient }) => {
   const [appointments, setAppointments] = useState([]);
@@ -10,11 +11,15 @@ const PatientAppointmentsTab = ({ patient }) => {
   const [reload, setReload] = useState(false);
   const [items, setItems] = useState([]); // ✅ éléments à évaluer
   const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (patient?.id) {
-      getAppointmentsByPatient(patient.id).then(setAppointments);
-      getEvaluationItemsByPatient(patient.id).then(setItems);
+      setLoading(true);
+      Promise.all([
+        getAppointmentsByPatient(patient.id).then(setAppointments),
+        getEvaluationItemsByPatient(patient.id).then(setItems)
+      ]).finally(() => setLoading(false));
     }
   }, [patient, reload]);
 
@@ -59,6 +64,10 @@ const PatientAppointmentsTab = ({ patient }) => {
       />
     );
   };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-40"><Spinner size={40} /></div>;
+  }
 
   if (appointments.length === 0) {
     return <p className="text-gray-500">Aucun rendez-vous pour ce patient.</p>;

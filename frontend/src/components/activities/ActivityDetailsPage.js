@@ -6,12 +6,14 @@ import { getMaterials } from '../../api/materialAPI.js';
 import { FiArrowLeft, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 import Select from 'react-select';
 import MaterialSelect from './MaterialSelect.js';
+import Spinner from '../common/Spinner.js';
 
 const ActivityDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activity, setActivity] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -29,6 +31,7 @@ const ActivityDetailsPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const res = await getActivityById(id);
       const act = res.data;
       setActivity(act);
@@ -41,6 +44,7 @@ const ActivityDetailsPage = () => {
       const mappedMaterials = act.materials.map((m) => ({ value: m.material.id, label: m.material.name }));
       setSelectedMaterials(mappedMaterials);
       setGoals(materialsRes.data);
+      setLoading(false);
     };
     fetchData();
   }, [id]);
@@ -131,6 +135,7 @@ const ActivityDetailsPage = () => {
     setDragging(false);
   };
 
+  if (loading) return <div className="flex justify-center items-center h-40"><Spinner size={40} /></div>;
   if (!activity) return <p className="text-center mt-10">Chargement...</p>;
 
   return (

@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllPatients } from "../api/patientAPI.js";
 import { motion } from "framer-motion";
+import Spinner from './common/Spinner.js';
 
 const Patients = () => {
   const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,6 +16,8 @@ const Patients = () => {
         setPatients(patientsList);
       } catch (error) {
         console.error("Erreur lors de la récupération des patients :", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -47,19 +51,23 @@ const Patients = () => {
 
       {/* Liste scrollable sans scrollbar visible */}
       <div className="grow overflow-y-auto custom-scrollbar">
-        <ul className="space-y-2 pr-2">
-          {patients.map(patient => (
-            <motion.li
-              key={patient.id}
-              className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200 flex justify-between items-center"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => goToPatientDetails(patient.id)}
-            >
-              <span>{patient.lastName} {patient.firstName}</span>
-            </motion.li>
-          ))}
-        </ul>
+        {loading ? (
+          <div className="flex justify-center items-center h-full"><Spinner size={40} /></div>
+        ) : (
+          <ul className="space-y-2 pr-2">
+            {patients.map(patient => (
+              <motion.li
+                key={patient.id}
+                className="cursor-pointer p-2 rounded-lg bg-gray-100 hover:bg-gray-200 flex justify-between items-center"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => goToPatientDetails(patient.id)}
+              >
+                <span>{patient.lastName} {patient.firstName}</span>
+              </motion.li>
+            ))}
+          </ul>
+        )}
       </div>
     </motion.div>
   );

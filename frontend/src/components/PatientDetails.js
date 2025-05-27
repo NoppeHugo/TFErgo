@@ -6,6 +6,7 @@ import PatientNotesTab from "./PatientDetails/PatientNotesTab.js";
 import PatientDataTab from "./PatientDetails/PatientDataTab.js";
 import PatientFileTab from "./PatientDetails/PatientFileTab.js";
 import PatientAppointmentsTab from "./PatientDetails/PatientAppointmentsTab.js";
+import Spinner from './common/Spinner.js';
 
 const PatientDetails = () => {
   const { patientId } = useParams();
@@ -90,7 +91,7 @@ const PatientDetails = () => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
   };
 
-  if (loading) return <div className="p-4">Chargement...</div>;
+  if (loading) return <div className="flex justify-center items-center h-full"><Spinner size={40} /></div>;
   if (!patient) return <div className="p-4">Patient introuvable</div>;
 
   return (
