@@ -2,10 +2,12 @@ import { useState } from "react";
 import PatientReferences from "./DataClient/PatientReferences.js";
 import PatientHealthData from "./DataClient/PatientHealthData.js";
 import { updatePatient } from "../../api/patientAPI.js";
+import Toast, { showSuccessToast, showErrorToast } from "../common/Toast.js";
 
 const PatientDataTab = ({ patient }) => {
   const [activeSubTab, setActiveSubTab] = useState("references");
   const [updatedPatient, setUpdatedPatient] = useState({ ...patient });
+  const [toast, setToast] = useState(null);
 
   const handleChange = (e) => {
     setUpdatedPatient({ ...updatedPatient, [e.target.name]: e.target.value });
@@ -14,10 +16,10 @@ const PatientDataTab = ({ patient }) => {
   const handleSave = async () => {
     try {
       await updatePatient(patient.id, updatedPatient);
-      alert("✅ Données mises à jour !");
+      showSuccessToast(setToast, "✅ Données mises à jour !");
     } catch (err) {
       console.error("❌ Erreur mise à jour :", err);
-      alert("❌ Erreur de sauvegarde.");
+      showErrorToast(setToast, "❌ Erreur de sauvegarde.");
     }
   };
 
@@ -65,6 +67,14 @@ const PatientDataTab = ({ patient }) => {
           />
         )}
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
     </div>
   );
 };

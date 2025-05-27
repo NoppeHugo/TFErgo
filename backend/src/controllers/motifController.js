@@ -22,6 +22,11 @@ async function addMotif(req, res) {
   const { patientId } = req.params;
   const data = req.body;
 
+  // Validation du champ obligatoire 'title'
+  if (!data.title) {
+    return res.status(400).json({ error: "Le champ 'title' est obligatoire pour un motif." });
+  }
+
   try {
     const newMotif = await prisma.interventionReason.create({
       data: {
@@ -49,6 +54,15 @@ async function updateMotif(req, res) {
   const { id } = req.params;
   const data = req.body;
 
+  // Validation pour les ajouts de compte rendu d'intervention
+  if (Array.isArray(data.compteRenduInterventions)) {
+    for (const cr of data.compteRenduInterventions) {
+      if (!cr.date || !cr.texte || !cr.texte.trim()) {
+        return res.status(400).json({ error: "Chaque compte rendu doit avoir une date et un texte non vide." });
+      }
+    }
+  }
+
   try {
     // on ignore les champs non modifiables
     const {
@@ -71,4 +85,16 @@ async function updateMotif(req, res) {
   }
 }
 
-module.exports = { getMotifs, addMotif, updateMotif };
+// DELETE motif d’intervention
+async function deleteMotif(req, res) {
+  const { id } = req.params;
+  try {
+    await prisma.interventionReason.delete({ where: { id: parseInt(id) } });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur suppression motif" });
+  }
+}
+
+module.exports = { getMotifs, addMotif, updateMotif, deleteMotif };

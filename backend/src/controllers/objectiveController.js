@@ -4,7 +4,10 @@ const prisma = new PrismaClient();
 async function addLongTermObjective(req, res) {
     const { motifId } = req.params;
     const { title, startDate, endDate, status } = req.body;
-  
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Le champ 'title' est obligatoire pour un objectif long terme." });
+    }
     try {
       // 1. Retrouver le motif
       const motif = await prisma.interventionReason.findUnique({
@@ -35,8 +38,14 @@ async function addLongTermObjective(req, res) {
 
 async function addShortTermObjective(req, res) {
   const { longTermObjectiveId } = req.params;
-  const { title, startDate, endDate, status, description } = req.body; 
+  const { title, startDate, endDate, status, description } = req.body;
 
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: "Le champ 'title' est obligatoire pour un objectif court terme." });
+  }
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: "Les champs 'startDate' et 'endDate' sont obligatoires pour un objectif court terme." });
+  }
   try {
     const newObjective = await prisma.shortTermObjective.create({
       data: {
@@ -81,7 +90,9 @@ async function updateLongTermObjective(req, res) {
   const { id } = req.params;
   const { title, startDate, endDate, status, description } = req.body;
 
-
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: "Le champ 'title' est obligatoire pour un objectif long terme." });
+  }
   try {
     const updated = await prisma.longTermObjective.update({
       where: { id: parseInt(id) },

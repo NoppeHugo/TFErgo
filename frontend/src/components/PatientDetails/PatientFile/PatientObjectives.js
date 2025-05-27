@@ -38,6 +38,8 @@ const PatientObjectives = ({ motif }) => {
   const [newLongTitle, setNewLongTitle] = useState("");
   const [showShortTermForm, setShowShortTermForm] = useState(false);
   const [editingShortId, setEditingShortId] = useState(null);
+  const [editingLongId, setEditingLongId] = useState(null);
+  const [editLongTitle, setEditLongTitle] = useState("");
   const [toast, setToast] = useState(null);
 
   const initialShortState = {
@@ -69,7 +71,10 @@ const PatientObjectives = ({ motif }) => {
   }, [fetchObjectives]);
 
   const handleAddLongTermObjective = async () => {
-    if (!newLongTitle.trim()) return;
+    if (!newLongTitle.trim()) {
+      showErrorToast(setToast, "Le titre de l'objectif long terme est obligatoire");
+      return;
+    }
     try {
       await createLongTermObjective(motif.id, {
         title: newLongTitle,
@@ -85,6 +90,14 @@ const PatientObjectives = ({ motif }) => {
   };
 
   const handleAddOrEditShortTermObjective = async () => {
+    if (!newShortObjective.title.trim()) {
+      showErrorToast(setToast, "Le titre de l'objectif court terme est obligatoire");
+      return;
+    }
+    if (!newShortObjective.startDate || !newShortObjective.endDate) {
+      showErrorToast(setToast, "Les dates de début et de fin sont obligatoires pour un objectif court terme");
+      return;
+    }
     if (!selectedLongObjective) return;
     try {
       if (editingShortId) {
@@ -114,6 +127,27 @@ const PatientObjectives = ({ motif }) => {
     });
     setEditingShortId(obj.id);
     setShowShortTermForm(true);
+  };
+
+  const handleEditLong = (obj) => {
+    setEditingLongId(obj.id);
+    setEditLongTitle(obj.title);
+  };
+
+  const handleUpdateLongTermObjective = async (id) => {
+    if (!editLongTitle.trim()) {
+      showErrorToast(setToast, "Le titre de l'objectif long terme est obligatoire");
+      return;
+    }
+    try {
+      await updateLongTermObjective(id, { title: editLongTitle });
+      showSuccessToast(setToast, "Objectif long terme modifié avec succès.");
+      setEditingLongId(null);
+      setEditLongTitle("");
+      fetchObjectives();
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la modification de l'objectif long terme.");
+    }
   };
 
   const handleDeleteShort = (id) => {
@@ -253,18 +287,36 @@ const PatientObjectives = ({ motif }) => {
                   : "bg-gray-200"
               }`}
             >
-              <span onClick={() => setSelectedLongObjective(obj)}>{obj.title}</span>
+              {editingLongId === obj.id ? (
+                <div className="flex w-full">
+                  <input
+                    type="text"
+                    value={editLongTitle}
+                    onChange={(e) => setEditLongTitle(e.target.value)}
+                    className="flex-1 p-2 border rounded-l-lg"
+                  />
+                  <button
+                    className="bg-green-500 text-white px-3 rounded-r-lg"
+                    onClick={() => handleUpdateLongTermObjective(obj.id)}
+                  >
+                    ✔️
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-3 rounded-r-lg ml-2"
+                    onClick={() => setEditingLongId(null)}
+                  >
+                    ❌
+                  </button>
+                </div>
+              ) : (
+                <span onClick={() => setSelectedLongObjective(obj)}>{obj.title}</span>
+              )}
               <div className="space-x-1 opacity-0 group-hover:opacity-100 transition">
                 <button
                   className="text-yellow-500 hover:text-yellow-700"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const newTitle = prompt("Nouveau titre :", obj.title);
-                    if (newTitle) {
-                      updateLongTermObjective(obj.id, { ...obj, title: newTitle })
-                        .then(fetchObjectives)
-                        .catch(console.error);
-                    }
+                    handleEditLong(obj);
                   }}
                 >
                   ✏️

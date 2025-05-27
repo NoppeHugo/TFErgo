@@ -36,6 +36,11 @@ async function createPatient(req, res) {
   const therapistId = req.user.id
   const data = req.body
 
+  // Validation des champs obligatoires côté backend
+  if (!data.firstName || !data.lastName || !data.sex || !data.birthdate) {
+    return res.status(400).json({ message: "Champs obligatoires manquants (firstName, lastName, sex, birthdate)" });
+  }
+
   // Normalisation de la date pour Prisma (accepte 'YYYY-MM-DD' ou ISO)
   if (data.birthdate && !data.birthdate.includes('T')) {
     data.birthdate = new Date(data.birthdate + 'T00:00:00.000Z').toISOString();

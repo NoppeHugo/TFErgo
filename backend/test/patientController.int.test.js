@@ -49,4 +49,26 @@ describe('Patients API', () => {
     expect(found.firstName).toBe('JeanTest');
     expect(found.lastName).toBe('DupontTest');
   });
+
+  it('refuse la création de patient sans authentification', async () => {
+    const patientData = {
+      firstName: 'NoAuth',
+      lastName: 'Test',
+      sex: 'M',
+      birthdate: '1990-01-01',
+      niss: '12345678999',
+    };
+    const res = await request(app)
+      .post('/patients')
+      .send(patientData);
+    expect([401, 403]).toContain(res.statusCode);
+  });
+
+  it('refuse la création de patient si un champ obligatoire est manquant', async () => {
+    const res = await request(app)
+      .post('/patients')
+      .set('Cookie', [`token=${token}`])
+      .send({ lastName: 'Test', sex: 'M', birthdate: '1990-01-01' }); // firstName manquant
+    expect([400, 422, 500]).toContain(res.statusCode);
+  });
 });

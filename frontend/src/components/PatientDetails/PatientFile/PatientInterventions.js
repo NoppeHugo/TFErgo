@@ -37,6 +37,10 @@ const PatientInterventions = ({ motif, updateMotif }) => {
   };
 
   const handleSaveIntervention = async () => {
+    if (!newIntervention.date || !newIntervention.texte || !newIntervention.texte.trim()) {
+      showErrorToast(setToast, "La date et le texte du compte rendu sont obligatoires");
+      return;
+    }
     const updatedMotif = {
       ...motif,
       compteRenduInterventions: [

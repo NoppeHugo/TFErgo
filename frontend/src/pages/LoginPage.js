@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api.js";
+import Toast, { showSuccessToast, showErrorToast } from "../components/common/Toast.js";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -16,11 +18,11 @@ export default function LoginPage() {
         password
       });
 
-      alert('Connexion réussie !');
-      navigate('/');
+      showSuccessToast(setToast, 'Connexion réussie !');
+      setTimeout(() => navigate('/'), 1000);
     } catch (err) {
       console.error(err.response?.data || err.message);
-      alert("Échec de la connexion. Vérifie tes identifiants.");
+      showErrorToast(setToast, "Échec de la connexion. Vérifie tes identifiants.");
     }
   };
 
@@ -67,6 +69,14 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
+      {toast && (
+        <Toast
+          message={toast.message}
+          onClose={() => setToast(null)}
+          type={toast.type}
+          persistent={toast.persistent}
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,11 @@ async function addContact(req, res) {
   const { patientId } = req.params;
   const data = req.body;
 
+  // Vérifie que le champ 'type' est bien fourni
+  if (!data.type) {
+    return res.status(400).json({ message: "Le champ 'type' est obligatoire pour un contact." });
+  }
+
   try {
     const contact = await prisma.contact.create({
       data: { ...data, patientId: parseInt(patientId) }

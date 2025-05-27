@@ -24,5 +24,4 @@ describe('validatePatientData', () => {
     expect(result).toBe(false);
   });
 
-  // Ajoute d'autres cas limites ici
 });

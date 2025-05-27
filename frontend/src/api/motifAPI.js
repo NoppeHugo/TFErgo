@@ -14,3 +14,8 @@ export const updateMotif = async (id, updates) => {
   const res = await API.patch(`/motifs/${id}`, updates);
   return res.data;
 };
+
+export const deleteMotif = async (id) => {
+  const res = await API.delete(`/motifs/${id}`);
+  return res.data;
+};
