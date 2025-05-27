@@ -237,14 +237,17 @@ async function getAppointmentFeedbacksByAppointment(req, res) {
   try {
     const feedbacks = await prisma.appointmentFeedback.findMany({
       where: { appointmentId: parseInt(id) },
+      include: {
+        evaluationItem: true,
+      },
     });
+
     res.json(feedbacks);
   } catch (err) {
     console.error("❌ getAppointmentFeedbacksByAppointment error:", err);
-    res.status(500).json({ error: "Erreur chargement des feedbacks" });
+    res.status(500).json({ error: 'Erreur récupération des feedbacks' });
   }
 }
-
 
 async function updateAppointmentFeedback(req, res) {
   const { id } = req.params;
@@ -277,42 +280,6 @@ async function createEvaluationItem(req, res) {
     res.status(500).json({ error: "Erreur création élément à évaluer" });
   }
 }
-
-async function getAppointmentFeedbacksByAppointment(req, res) {
-  const { id } = req.params;
-
-  try {
-    const feedbacks = await prisma.appointmentFeedback.findMany({
-      where: { appointmentId: parseInt(id) },
-      include: {
-        evaluationItem: true,
-      },
-    });
-
-    res.json(feedbacks);
-  } catch (err) {
-    console.error("❌ getAppointmentFeedbacksByAppointment error:", err);
-    res.status(500).json({ error: 'Erreur récupération des feedbacks' });
-  }
-}
-
-async function createEvaluationItem(req, res) {
-  const { patientId, title } = req.body;
-
-  try {
-    const newItem = await prisma.evaluationItem.create({
-      data: {
-        patientId: parseInt(patientId),
-        title,
-      },
-    });
-    res.status(201).json(newItem);
-  } catch (err) {
-    console.error("❌ createEvaluationItem error:", err);
-    res.status(500).json({ error: "Erreur création de l'élément à évaluer" });
-  }
-}
-
 
 async function linkActivitiesToAppointment(req, res) {
   const appointmentId = parseInt(req.params.id);

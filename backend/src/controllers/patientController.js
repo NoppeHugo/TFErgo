@@ -35,7 +35,12 @@ async function getPatientById(req, res) {
 async function createPatient(req, res) {
   const therapistId = req.user.id
   const data = req.body
-  
+
+  // Normalisation de la date pour Prisma (accepte 'YYYY-MM-DD' ou ISO)
+  if (data.birthdate && !data.birthdate.includes('T')) {
+    data.birthdate = new Date(data.birthdate + 'T00:00:00.000Z').toISOString();
+  }
+
   try {
     const patient = await prisma.patient.create({
       data: {

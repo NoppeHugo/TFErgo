@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node src/index.js",
     "start": "node server.js",
-    "create:therapist": "node scripts/createTestTherapist.js"
+    "create:therapist": "node scripts/createTestTherapist.js",
+    "test": "jest --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
@@ -20,7 +21,9 @@
     "puppeteer": "^24.6.0"
   },
   "devDependencies": {
-    "prisma": "^6.4.1"
+    "prisma": "^6.4.1",
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0"
   },
   "keywords": [],
   "author": "",

@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPatient } from "../api/patientAPI.js";
 import PatientForm from "../components/PatientDetails/PatientForm.js";
+import Toast, { showErrorToast, showSuccessToast } from "../components/common/Toast.js";
 
 const AddPatientPage = () => {
   const [newPatient, setNewPatient] = useState({});
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
   // ✅ Nettoyage des données avant envoi
@@ -59,16 +61,17 @@ const AddPatientPage = () => {
     const isValid = validatePatientData(preparedData);
 
     if (!isValid) {
-      alert("Veuillez corriger les erreurs avant de soumettre.");
+      showErrorToast(setToast, "Veuillez corriger les erreurs avant de soumettre.");
       return;
     }
 
     try {
       await createPatient(preparedData);
-      navigate("/patients");
+      showSuccessToast(setToast, "Patient ajouté avec succès !");
+      setTimeout(() => navigate("/patients"), 1200); // Laisse le toast s'afficher avant de naviguer
     } catch (err) {
       console.error("Erreur lors de l'ajout du patient :", err);
-      alert("Une erreur est survenue lors de l'ajout du patient.");
+      showErrorToast(setToast, "Une erreur est survenue lors de l'ajout du patient.");
     }
   };
 
@@ -77,13 +80,23 @@ const AddPatientPage = () => {
   };
 
   return (
-    <PatientForm
-      patientData={newPatient}
-      handleChange={handleChange}
-      handleSubmit={handleAddPatient}
-      isEditing={false}
-      errors={errors}
-    />
+    <>
+      <PatientForm
+        patientData={newPatient}
+        handleChange={handleChange}
+        handleSubmit={handleAddPatient}
+        isEditing={false}
+        errors={errors}
+      />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          persistent={toast.persistent}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </>
   );
 };
 
