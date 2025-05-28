@@ -7,6 +7,7 @@ import { FiArrowLeft, FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi'
 import Select from 'react-select';
 import MaterialSelect from './MaterialSelect.js';
 import Spinner from '../common/Spinner.js';
+import Toast, { showSuccessToast, showErrorToast, showConfirmToast } from '../common/Toast.js';
 
 const ActivityDetailsPage = () => {
   const { id } = useParams();
@@ -14,6 +15,7 @@ const ActivityDetailsPage = () => {
   const [activity, setActivity] = useState(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -50,42 +52,57 @@ const ActivityDetailsPage = () => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (window.confirm('Supprimer cette activité ?')) {
-      await deleteActivity(activity.id);
-      navigate('/activities');
-    }
+    showConfirmToast(setToast, (
+      <span>
+        Supprimer cette activité ?
+        <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={async () => {
+          try {
+            await deleteActivity(activity.id);
+            showSuccessToast(setToast, 'Activité supprimée.');
+            setTimeout(() => navigate('/activities'), 1200);
+          } catch (err) {
+            showErrorToast(setToast, 'Erreur lors de la suppression.');
+          }
+          setToast(null);
+        }}>Oui</button>
+        <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+      </span>
+    ));
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    await updateActivity(activity.id, {
-      name,
-      description,
-      link,
-      objectiveIds: selectedGoals.map((o) => o.value),
-      materialIds: selectedMaterials.map((m) => m.value),
-    });
-
-    for (const file of newImages) {
-      const reader = new FileReader();
-      await new Promise((resolve) => {
-        reader.onloadend = async () => {
-          await uploadFileToActivity(activity.id, {
-            fileUrl: reader.result,
-            fileType: file.type,
-            fileName: file.name,
-          });
-          resolve();
-        };
-        reader.readAsDataURL(file);
+    try {
+      await updateActivity(activity.id, {
+        name,
+        description,
+        link,
+        objectiveIds: selectedGoals.map((o) => o.value),
+        materialIds: selectedMaterials.map((m) => m.value),
       });
+      for (const file of newImages) {
+        const reader = new FileReader();
+        await new Promise((resolve) => {
+          reader.onloadend = async () => {
+            await uploadFileToActivity(activity.id, {
+              fileUrl: reader.result,
+              fileType: file.type,
+              fileName: file.name,
+            });
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      setEditing(false);
+      const updated = await getActivityById(id);
+      setActivity(updated.data);
+      setExistingImages(updated.data.files?.filter((f) => f.fileType.startsWith('image/')) || []);
+      setNewImages([]);
+      showSuccessToast(setToast, 'Activité modifiée avec succès.');
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la modification de l'activité.");
     }
-
-    setEditing(false);
-    const updated = await getActivityById(id);
-    setActivity(updated.data);
-    setExistingImages(updated.data.files?.filter((f) => f.fileType.startsWith('image/')) || []);
-    setNewImages([]);
   };
 
   const handleRemoveImage = async (fileId) => {
@@ -140,6 +157,9 @@ const ActivityDetailsPage = () => {
 
   return (
     <div className="w-full min-h-screen bg-white px-4 md:px-12 py-8 overflow-x-hidden">
+      {toast && (
+        <Toast message={toast.message} onClose={() => setToast(null)} type={toast.type} persistent={toast.persistent} />
+      )}
       <div className="max-w-5xl mx-auto relative">
         <button
           onClick={() => navigate(-1)}
