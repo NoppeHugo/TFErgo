@@ -5,7 +5,8 @@ import { getGoals } from '../../api/goalAPI.js';
 import { FiX } from 'react-icons/fi';
 import MaterialSelect from './MaterialSelect.js';
 import { getMaterials } from '../../api/materialAPI.js';
-import Toast, { showErrorToast, showSuccessToast } from '../common/Toast.js';
+import Toast, { showErrorToast, showSuccessToast, showConfirmToast } from '../common/Toast.js';
+import { UNSAFE_NavigationContext } from 'react-router-dom';
 
 const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [name, setName] = useState(activity.name || '');
@@ -21,6 +22,7 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [isDirty, setIsDirty] = useState(false);
   const nameInputRef = useRef();
   const descriptionInputRef = useRef();
 
@@ -43,11 +45,76 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
     });
   }, [activity]);
 
-  const handleImageRemove = async (fileId) => {
-    if (window.confirm('Supprimer cette image ?')) {
-      await deleteFile(fileId);
-      setExistingImages(prev => prev.filter(img => img.id !== fileId));
+  // Détecte toute modification sur les champs du formulaire
+  useEffect(() => {
+    if (
+      name !== activity.name ||
+      description !== activity.description ||
+      link !== activity.link ||
+      selectedGoals.length !== activity.objectives.length ||
+      selectedMaterials.length !== activity.materials.length ||
+      newImages.length > 0
+    ) {
+      setIsDirty(true);
+    } else {
+      setIsDirty(false);
     }
+  }, [name, description, link, selectedGoals, selectedMaterials, newImages, activity]);
+
+  // Confirmation lors d'un rafraîchissement ou fermeture d'onglet
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Confirmation lors d'une navigation interne (React Router) avec toast UX
+  function useBlockerWithToast(blocker, when = true) {
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    useEffect(() => {
+      if (!when) return;
+      const push = navigator.push;
+      navigator.push = (...args) => {
+        if (blocker()) {
+          showConfirmToast(setToast, (
+            <span>
+              Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter cette page ?
+              <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={() => {
+                navigator.push = push;
+                push(...args);
+                setToast(null);
+              }}>Oui</button>
+              <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+            </span>
+          ));
+        } else {
+          push(...args);
+        }
+      };
+      return () => {
+        navigator.push = push;
+      };
+    }, [blocker, when, navigator]);
+  }
+  useBlockerWithToast(() => isDirty, isDirty);
+
+  const handleImageRemove = async (fileId) => {
+    showConfirmToast(setToast, (
+      <span>
+        Supprimer cette image ?
+        <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={async () => {
+          await deleteFile(fileId);
+          setExistingImages(prev => prev.filter(img => img.id !== fileId));
+          setToast(null);
+        }}>Oui</button>
+        <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+      </span>
+    ));
   };
 
   const handleImageUpload = (e) => {

@@ -11,6 +11,7 @@ import {
 import API from "../../../api/api.js";
 import { showSuccessToast, showErrorToast, showConfirmToast } from "../../common/Toast.js";
 import Toast from "../../common/Toast.js";
+import { UNSAFE_NavigationContext } from 'react-router-dom';
 
 function DeleteConfirmationToast({ message, onConfirm, onCancel }) {
   return (
@@ -42,6 +43,7 @@ const PatientObjectives = ({ motif }) => {
   const [editLongTitle, setEditLongTitle] = useState("");
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [isDirty, setIsDirty] = useState(false);
 
   const initialShortState = {
     title: "",
@@ -278,6 +280,63 @@ const PatientObjectives = ({ motif }) => {
       </div>
     </div>
   );
+
+  // Détection des modifications sur les formulaires d'objectifs (édition inline)
+  useEffect(() => {
+    if (
+      newLongTitle ||
+      editLongTitle ||
+      Object.values(newShortObjective).some(v => v) ||
+      editingShortId !== null ||
+      editingLongId !== null
+    ) {
+      setIsDirty(true);
+    } else {
+      setIsDirty(false);
+    }
+  }, [newLongTitle, editLongTitle, newShortObjective, editingShortId, editingLongId]);
+
+  // Confirmation lors d'un rafraîchissement ou fermeture d'onglet
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Confirmation lors d'une navigation interne (React Router) avec toast UX
+  function useBlockerWithToast(blocker, when = true) {
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    useEffect(() => {
+      if (!when) return;
+      const push = navigator.push;
+      navigator.push = (...args) => {
+        if (blocker()) {
+          showConfirmToast(setToast, (
+            <span>
+              Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter cette page ?
+              <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={() => {
+                navigator.push = push;
+                push(...args);
+                setToast(null);
+              }}>Oui</button>
+              <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+            </span>
+          ));
+        } else {
+          push(...args);
+        }
+      };
+      return () => {
+        navigator.push = push;
+      };
+    }, [blocker, when, navigator]);
+  }
+  useBlockerWithToast(() => isDirty, isDirty);
 
   return (
     <div className="flex w-full h-full space-x-4">

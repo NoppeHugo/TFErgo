@@ -4,7 +4,8 @@ import { createActivity, uploadFileToActivity, getActivities } from '../../api/a
 import { getGoals, createGoal } from '../../api/goalAPI.js';
 import MaterialSelect from './MaterialSelect.js';
 import GoalSelect from './GoalSelect.js';
-import Toast, { showErrorToast } from '../common/Toast.js';
+import Toast, { showErrorToast, showConfirmToast } from '../common/Toast.js';
+import { useNavigate, UNSAFE_NavigationContext } from 'react-router-dom';
 
 const ActivityForm = ({ onCreated, showToast }) => {
   const [visible, setVisible] = useState(false);
@@ -22,6 +23,8 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [isDirty, setIsDirty] = useState(false);
+  const navigate = useNavigate();
 
   const nameInputRef = useRef();
   const descriptionInputRef = useRef();
@@ -116,6 +119,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
     setFiles([]);
     setVisible(false);
     setErrors({});
+    setIsDirty(false);
   };
 
   const handleAddGoal = async () => {
@@ -131,6 +135,58 @@ const ActivityForm = ({ onCreated, showToast }) => {
     await loadGoals();
     showToast && showToast("Objectif ajouté !");
   };
+
+  // Détecte toute modification sur les champs du formulaire
+  useEffect(() => {
+    if (name || description || link || selectedGoals.length > 0 || selectedMaterials.length > 0 || files.length > 0) {
+      setIsDirty(true);
+    } else {
+      setIsDirty(false);
+    }
+  }, [name, description, link, selectedGoals, selectedMaterials, files]);
+
+  // Confirmation lors d'un rafraîchissement ou fermeture d'onglet
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Confirmation lors d'une navigation interne (React Router)
+  // Remplace le window.confirm par un toast UX pour la navigation interne
+  function useBlockerWithToast(blocker, when = true) {
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    useEffect(() => {
+      if (!when) return;
+      const push = navigator.push;
+      navigator.push = (...args) => {
+        if (blocker()) {
+          showConfirmToast(setToast, (
+            <span>
+              Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter cette page ?
+              <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={() => {
+                navigator.push = push;
+                push(...args);
+                setToast(null);
+              }}>Oui</button>
+              <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+            </span>
+          ));
+        } else {
+          push(...args);
+        }
+      };
+      return () => {
+        navigator.push = push;
+      };
+    }, [blocker, when, navigator]);
+  }
+  useBlockerWithToast(() => isDirty, isDirty);
 
   if (!visible) {
     return (

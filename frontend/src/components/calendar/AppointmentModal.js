@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, UNSAFE_NavigationContext } from "react-router-dom";
 import Select from "react-select";
 import {
   createAppointment,
@@ -21,6 +21,7 @@ const AppointmentModal = ({ event, onClose }) => {
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [isDirty, setIsDirty] = useState(false);
 
   const titleInputRef = useRef();
   const patientInputRef = useRef();
@@ -138,6 +139,64 @@ const AppointmentModal = ({ event, onClose }) => {
       setForm((prev) => ({ ...prev, date: "" }));
     }
   }, [event]);
+
+  // Détection des modifications du formulaire
+  useEffect(() => {
+    if (
+      form.title !== (event?.title?.split(" - ")[0] || "") ||
+      form.patientId !== (event?.patient?.id || "") ||
+      form.description !== (event?.description || "") ||
+      form.date !== (event?.start?.toISOString().slice(0, 16) || "") ||
+      form.duration !== ((event?.end - event?.start) / 60000 || 60) ||
+      (event?.activities && form.activityIds.join() !== (event.activities?.map((a) => a.activity?.id).join() || ""))
+    ) {
+      setIsDirty(true);
+    } else {
+      setIsDirty(false);
+    }
+  }, [form, event]);
+
+  // Confirmation lors d'un rafraîchissement ou fermeture d'onglet
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Confirmation lors d'une navigation interne (React Router) avec toast UX
+  function useBlockerWithToast(blocker, when = true) {
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    useEffect(() => {
+      if (!when) return;
+      const push = navigator.push;
+      navigator.push = (...args) => {
+        if (blocker()) {
+          showConfirmToast(setToast, (
+            <span>
+              Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter cette page ?
+              <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={() => {
+                navigator.push = push;
+                push(...args);
+                setToast(null);
+              }}>Oui</button>
+              <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+            </span>
+          ));
+        } else {
+          push(...args);
+        }
+      };
+      return () => {
+        navigator.push = push;
+      };
+    }, [blocker, when, navigator]);
+  }
+  useBlockerWithToast(() => isDirty, isDirty);
 
   return (
     <>
