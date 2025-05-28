@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import { createActivity, uploadFileToActivity, getActivities } from '../../api/activityAPI.js';
 import { getGoals, createGoal } from '../../api/goalAPI.js';
@@ -21,6 +21,10 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const [fadeGoalError, setFadeGoalError] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [toast, setToast] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+
+  const nameInputRef = useRef();
+  const descriptionInputRef = useRef();
 
   const loadGoals = () => {
     getGoals().then(res => {
@@ -48,7 +52,10 @@ const ActivityForm = ({ onCreated, showToast }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
+    setFormErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
+      if (validationErrors.name && nameInputRef.current) nameInputRef.current.focus();
+      else if (validationErrors.description && descriptionInputRef.current) descriptionInputRef.current.focus();
       setToast({ message: Object.values(validationErrors).join(' '), type: 'error', persistent: false });
       return;
     }
@@ -150,12 +157,13 @@ const ActivityForm = ({ onCreated, showToast }) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nom de l’activité"
-            className="border border-gray-300 px-3 py-1.5 rounded-md text-sm"
+            ref={nameInputRef}
+            className={`border px-3 py-1.5 rounded-md text-sm ${formErrors.name ? 'border-red-500' : 'border-gray-300'}`}
+            aria-invalid={!!formErrors.name}
+            aria-describedby={formErrors.name ? 'name-error' : undefined}
           />
-          {errors.name && (
-            <div className={`text-purple-700 text-sm animate-fade-in ${fadeErrors ? 'opacity-0' : 'opacity-100'}`}>
-              {errors.name}
-            </div>
+          {formErrors.name && (
+            <div id="name-error" className="text-red-600 text-sm mb-2">{formErrors.name}</div>
           )}
         </div>
 
@@ -166,9 +174,15 @@ const ActivityForm = ({ onCreated, showToast }) => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description de l’activité"
-            className="border border-gray-300 px-4 py-2 rounded-md resize-none"
+            ref={descriptionInputRef}
+            className={`border px-4 py-2 rounded-md resize-none ${formErrors.description ? 'border-red-500' : 'border-gray-300'}`}
             rows={2}
+            aria-invalid={!!formErrors.description}
+            aria-describedby={formErrors.description ? 'desc-error' : undefined}
           />
+          {formErrors.description && (
+            <div id="desc-error" className="text-red-600 text-sm mb-2">{formErrors.description}</div>
+          )}
         </div>
 
         {/* Lien */}

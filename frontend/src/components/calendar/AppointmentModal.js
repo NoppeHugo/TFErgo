@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
 import {
@@ -20,6 +20,11 @@ const AppointmentModal = ({ event, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+
+  const titleInputRef = useRef();
+  const patientInputRef = useRef();
+  const dateInputRef = useRef();
 
   const [form, setForm] = useState({
     title: "",
@@ -63,14 +68,22 @@ const AppointmentModal = ({ event, onClose }) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!form.title.trim()) errors.title = 'Le titre est obligatoire.';
+    if (!form.patientId) errors.patientId = 'Le patient est obligatoire.';
+    if (!form.date) errors.date = 'La date est obligatoire.';
+    return errors;
+  };
+
   const handleSave = async () => {
-    if (!form.title || !form.patientId) {
-      setError("Le titre et le patient sont obligatoires.");
-      return;
-    }
-    const selectedDate = new Date(form.date);
-    if (selectedDate < new Date()) {
-      setError("La date du rendez-vous ne peut pas être dans le passé.");
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      if (errors.title && titleInputRef.current) titleInputRef.current.focus();
+      else if (errors.patientId && patientInputRef.current) patientInputRef.current.focus();
+      else if (errors.date && dateInputRef.current) dateInputRef.current.focus();
+      setError(Object.values(errors).join(' '));
       return;
     }
     setIsSaving(true);
@@ -152,8 +165,12 @@ const AppointmentModal = ({ event, onClose }) => {
                 value={form.title}
                 onChange={handleChange}
                 placeholder="Ex: Séance d’évaluation cognitive"
-                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+                ref={titleInputRef}
+                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition ${formErrors.title ? 'border-red-500' : ''}`}
+                aria-invalid={!!formErrors.title}
+                aria-describedby={formErrors.title ? 'title-error' : undefined}
               />
+              {formErrors.title && <div id="title-error" className="text-red-600 text-sm mb-2">{formErrors.title}</div>}
             </div>
 
             <div className="flex flex-col gap-1">
@@ -162,7 +179,10 @@ const AppointmentModal = ({ event, onClose }) => {
                 name="patientId"
                 value={form.patientId}
                 onChange={handleChange}
-                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+                ref={patientInputRef}
+                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition ${formErrors.patientId ? 'border-red-500' : ''}`}
+                aria-invalid={!!formErrors.patientId}
+                aria-describedby={formErrors.patientId ? 'patient-error' : undefined}
               >
                 <option value="">-- Sélectionner un patient --</option>
                 {patients.map((p) => (
@@ -171,6 +191,7 @@ const AppointmentModal = ({ event, onClose }) => {
                   </option>
                 ))}
               </select>
+              {formErrors.patientId && <div id="patient-error" className="text-red-600 text-sm mb-2">{formErrors.patientId}</div>}
             </div>
 
             <div className="flex flex-col gap-1">
@@ -210,8 +231,12 @@ const AppointmentModal = ({ event, onClose }) => {
                 name="date"
                 value={form.date}
                 onChange={handleChange}
-                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition"
+                ref={dateInputRef}
+                className={`border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A294F9] transition ${formErrors.date ? 'border-red-500' : ''}`}
+                aria-invalid={!!formErrors.date}
+                aria-describedby={formErrors.date ? 'date-error' : undefined}
               />
+              {formErrors.date && <div id="date-error" className="text-red-600 text-sm mb-2">{formErrors.date}</div>}
             </div>
 
             <div className="flex flex-col gap-1">

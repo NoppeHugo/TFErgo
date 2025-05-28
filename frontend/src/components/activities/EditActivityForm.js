@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import { updateActivity, uploadFileToActivity, deleteFile } from '../../api/activityAPI.js';
 import { getGoals } from '../../api/goalAPI.js';
@@ -20,6 +20,9 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [toast, setToast] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const nameInputRef = useRef();
+  const descriptionInputRef = useRef();
 
   useEffect(() => {
     getGoals().then(res => {
@@ -56,13 +59,17 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
     const newErrors = {};
     if (!name.trim()) newErrors.name = 'Le nom est requis.';
     if (selectedGoals.length === 0) newErrors.goals = 'Veuillez sélectionner au moins un objectif.';
+    if (!description.trim()) newErrors.description = 'La description est requise.';
     return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
+    setFormErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) {
+      if (validationErrors.name && nameInputRef.current) nameInputRef.current.focus();
+      else if (validationErrors.description && descriptionInputRef.current) descriptionInputRef.current.focus();
       setToast({ message: Object.values(validationErrors).join(' '), type: 'error', persistent: false });
       return;
     }
@@ -116,16 +123,24 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Nom"
-          className="w-full border px-3 py-2 rounded"
+          ref={nameInputRef}
+          className={`w-full border px-3 py-2 rounded ${formErrors.name ? 'border-red-500' : ''}`}
+          aria-invalid={!!formErrors.name}
+          aria-describedby={formErrors.name ? 'name-error' : undefined}
         />
+        {formErrors.name && <div id="name-error" className="text-red-600 text-sm mb-2">{formErrors.name}</div>}
 
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           placeholder="Description"
           rows={3}
-          className="w-full border px-3 py-2 rounded"
+          ref={descriptionInputRef}
+          className={`w-full border px-3 py-2 rounded ${formErrors.description ? 'border-red-500' : ''}`}
+          aria-invalid={!!formErrors.description}
+          aria-describedby={formErrors.description ? 'desc-error' : undefined}
         />
+        {formErrors.description && <div id="desc-error" className="text-red-600 text-sm mb-2">{formErrors.description}</div>}
 
         <input
           type="text"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import QuillEditor from "../../QuillEditor.js";
 import {
   createLongTermObjective,
@@ -41,6 +41,7 @@ const PatientObjectives = ({ motif }) => {
   const [editingLongId, setEditingLongId] = useState(null);
   const [editLongTitle, setEditLongTitle] = useState("");
   const [toast, setToast] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
 
   const initialShortState = {
     title: "",
@@ -50,6 +51,19 @@ const PatientObjectives = ({ motif }) => {
     status: "ouvert",
   };
   const [newShortObjective, setNewShortObjective] = useState(initialShortState);
+
+  const longTitleInputRef = useRef();
+  const shortTitleInputRef = useRef();
+  const shortStartDateRef = useRef();
+  const shortEndDateRef = useRef();
+
+  const validateShort = () => {
+    const errors = {};
+    if (!newShortObjective.title.trim()) errors.title = "Le titre de l'objectif court terme est obligatoire";
+    if (!newShortObjective.startDate) errors.startDate = "Date de début obligatoire";
+    if (!newShortObjective.endDate) errors.endDate = "Date de fin obligatoire";
+    return errors;
+  };
 
   const fetchObjectives = useCallback(async () => {
     if (!motif?.id) return;
@@ -72,9 +86,12 @@ const PatientObjectives = ({ motif }) => {
 
   const handleAddLongTermObjective = async () => {
     if (!newLongTitle.trim()) {
+      setFormErrors({ longTitle: "Le titre de l'objectif long terme est obligatoire" });
+      if (longTitleInputRef.current) longTitleInputRef.current.focus();
       showErrorToast(setToast, "Le titre de l'objectif long terme est obligatoire");
       return;
     }
+    setFormErrors({});
     try {
       await createLongTermObjective(motif.id, {
         title: newLongTitle,
@@ -90,6 +107,15 @@ const PatientObjectives = ({ motif }) => {
   };
 
   const handleAddOrEditShortTermObjective = async () => {
+    const errors = validateShort();
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      if (errors.title && shortTitleInputRef.current) shortTitleInputRef.current.focus();
+      else if (errors.startDate && shortStartDateRef.current) shortStartDateRef.current.focus();
+      else if (errors.endDate && shortEndDateRef.current) shortEndDateRef.current.focus();
+      showErrorToast(setToast, Object.values(errors).join(' '));
+      return;
+    }
     if (!newShortObjective.title.trim()) {
       showErrorToast(setToast, "Le titre de l'objectif court terme est obligatoire");
       return;
@@ -198,42 +224,44 @@ const PatientObjectives = ({ motif }) => {
       <input
         type="text"
         value={newShortObjective.title}
-        onChange={(e) =>
-          setNewShortObjective((prev) => ({ ...prev, title: e.target.value }))
-        }
+        onChange={(e) => setNewShortObjective((prev) => ({ ...prev, title: e.target.value }))}
         placeholder="Titre"
-        className="w-full p-2 border rounded"
+        ref={shortTitleInputRef}
+        className={`w-full p-2 border rounded ${formErrors.title ? 'border-red-500' : ''}`}
+        aria-invalid={!!formErrors.title}
+        aria-describedby={formErrors.title ? 'short-title-error' : undefined}
       />
+      {formErrors.title && <div id="short-title-error" className="text-red-600 text-sm mb-2">{formErrors.title}</div>}
       <div className="flex space-x-2">
         <input
           type="date"
           value={newShortObjective.startDate}
-          onChange={(e) =>
-            setNewShortObjective((prev) => ({ ...prev, startDate: e.target.value }))
-          }
-          className="w-1/2 p-2 border rounded"
+          onChange={(e) => setNewShortObjective((prev) => ({ ...prev, startDate: e.target.value }))}
+          ref={shortStartDateRef}
+          className={`w-1/2 p-2 border rounded ${formErrors.startDate ? 'border-red-500' : ''}`}
+          aria-invalid={!!formErrors.startDate}
+          aria-describedby={formErrors.startDate ? 'short-startdate-error' : undefined}
         />
+        {formErrors.startDate && <div id="short-startdate-error" className="text-red-600 text-sm mb-2">{formErrors.startDate}</div>}
         <input
           type="date"
           value={newShortObjective.endDate}
-          onChange={(e) =>
-            setNewShortObjective((prev) => ({ ...prev, endDate: e.target.value }))
-          }
-          className="w-1/2 p-2 border rounded"
+          onChange={(e) => setNewShortObjective((prev) => ({ ...prev, endDate: e.target.value }))}
+          ref={shortEndDateRef}
+          className={`w-1/2 p-2 border rounded ${formErrors.endDate ? 'border-red-500' : ''}`}
+          aria-invalid={!!formErrors.endDate}
+          aria-describedby={formErrors.endDate ? 'short-enddate-error' : undefined}
         />
       </div>
+      {formErrors.endDate && <div id="short-enddate-error" className="text-red-600 text-sm mb-2">{formErrors.endDate}</div>}
       <QuillEditor
         value={newShortObjective.description}
-        onChange={(val) =>
-          setNewShortObjective((prev) => ({ ...prev, description: val }))
-        }
+        onChange={(val) => setNewShortObjective((prev) => ({ ...prev, description: val }))}
         readOnly={false}
       />
       <select
         value={newShortObjective.status}
-        onChange={(e) =>
-          setNewShortObjective((prev) => ({ ...prev, status: e.target.value }))
-        }
+        onChange={(e) => setNewShortObjective((prev) => ({ ...prev, status: e.target.value }))}
         className="w-full p-2 border rounded"
       >
         <option value="ouvert">Ouvert</option>
@@ -268,8 +296,12 @@ const PatientObjectives = ({ motif }) => {
           value={newLongTitle}
           onChange={(e) => setNewLongTitle(e.target.value)}
           placeholder="Titre..."
-          className="w-full p-2 border rounded-lg mb-2"
+          ref={longTitleInputRef}
+          className={`w-full p-2 border rounded-lg mb-2 ${formErrors.longTitle ? 'border-red-500' : ''}`}
+          aria-invalid={!!formErrors.longTitle}
+          aria-describedby={formErrors.longTitle ? 'long-title-error' : undefined}
         />
+        {formErrors.longTitle && <div id="long-title-error" className="text-red-600 text-sm mb-2">{formErrors.longTitle}</div>}
         <button
           className="bg-dark2GreenErgogo text-white px-4 py-2 rounded-lg w-full mb-4"
           onClick={handleAddLongTermObjective}

@@ -28,8 +28,11 @@ const ActivityDetailsPage = () => {
   const [dragging, setDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [formErrors, setFormErrors] = useState({});
 
   const imagesContainerRef = useRef(null);
+  const nameInputRef = useRef();
+  const descriptionInputRef = useRef();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,8 +73,23 @@ const ActivityDetailsPage = () => {
     ));
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!name.trim()) errors.name = 'Le nom est obligatoire.';
+    if (!description.trim()) errors.description = 'La description est obligatoire.';
+    return errors;
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      // Focus sur le premier champ invalide
+      if (errors.name && nameInputRef.current) nameInputRef.current.focus();
+      else if (errors.description && descriptionInputRef.current) descriptionInputRef.current.focus();
+      return;
+    }
     try {
       await updateActivity(activity.id, {
         name,
@@ -238,18 +256,34 @@ const ActivityDetailsPage = () => {
         ) : (
           <form onSubmit={handleUpdate} className="bg-white p-6 rounded border shadow space-y-4 mt-6">
             <h2 className="text-xl font-semibold text-purple-700">Modifier l’activité</h2>
-
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom" className="w-full border px-3 py-2 rounded" />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={3} className="w-full border px-3 py-2 rounded" />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nom"
+              ref={nameInputRef}
+              className={`w-full border px-3 py-2 rounded ${formErrors.name ? 'border-red-500' : ''}`}
+              aria-invalid={!!formErrors.name}
+              aria-describedby={formErrors.name ? 'name-error' : undefined}
+            />
+            {formErrors.name && <div id="name-error" className="text-red-600 text-sm mb-2">{formErrors.name}</div>}
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description"
+              rows={3}
+              ref={descriptionInputRef}
+              className={`w-full border px-3 py-2 rounded ${formErrors.description ? 'border-red-500' : ''}`}
+              aria-invalid={!!formErrors.description}
+              aria-describedby={formErrors.description ? 'desc-error' : undefined}
+            />
+            {formErrors.description && <div id="desc-error" className="text-red-600 text-sm mb-2">{formErrors.description}</div>}
             <input type="text" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Lien externe" className="w-full border px-3 py-2 rounded" />
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Objectifs :</label>
               <Select options={goals.map((g) => ({ value: g.id, label: g.name }))} isMulti value={selectedGoals} onChange={setSelectedGoals} />
             </div>
-
             <MaterialSelect selectedMaterials={selectedMaterials} setSelectedMaterials={setSelectedMaterials} />
-
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
               {existingImages.map((img) => (
                 <div key={img.id} className="relative">
@@ -260,13 +294,11 @@ const ActivityDetailsPage = () => {
                 </div>
               ))}
             </div>
-
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">Ajouter des images :</label>
               <input type="file" multiple accept="image/*" onChange={handleAddImages} />
               {newImages.length > 0 && <p className="text-sm text-gray-500 mt-1">{newImages.length} image(s) sélectionnée(s)</p>}
             </div>
-
             <div className="flex gap-4 mt-4">
               <button type="submit" className="bg-dark2GreenErgogo hover:bg-green-700 text-white px-4 py-2 rounded transition">Enregistrer</button>
               <button type="button" onClick={() => setEditing(false)} className="text-gray-600 hover:underline">Annuler</button>
