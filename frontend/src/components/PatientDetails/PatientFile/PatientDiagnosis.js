@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { UNSAFE_NavigationContext } from 'react-router-dom';
 import QuillEditor from "../../QuillEditor.js";
-import Toast, { showSuccessToast, showErrorToast } from "../../common/Toast.js";
+import Toast, { showSuccessToast, showErrorToast, showConfirmToast } from "../../common/Toast.js";
 
 const PatientDiagnosis = ({ motif, updateMotif }) => {
   const [editing, setEditing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(motif?.diagnostic || "");
   const [toast, setToast] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     setDiagnostic(motif?.diagnostic || "");
@@ -22,6 +24,53 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
       return () => clearTimeout(delay);
     }
   }, [diagnostic, editing]);
+
+  // Détection de modification en cours
+  useEffect(() => {
+    setIsDirty(editing && diagnostic !== (motif?.diagnostic || ""));
+  }, [editing, diagnostic, motif]);
+
+  // Confirmation lors d'un rafraîchissement ou fermeture d'onglet
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // Confirmation lors d'une navigation interne (React Router) avec toast UX
+  function useBlockerWithToast(blocker, when = true) {
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    useEffect(() => {
+      if (!when) return;
+      const push = navigator.push;
+      navigator.push = (...args) => {
+        if (blocker()) {
+          showConfirmToast(setToast, (
+            <span>
+              Vous avez des modifications non sauvegardées. Voulez-vous vraiment quitter cette page ?
+              <button className="ml-4 bg-red-600 text-white px-2 py-1 rounded" onClick={() => {
+                navigator.push = push;
+                push(...args);
+                setToast(null);
+              }}>Oui</button>
+              <button className="ml-2 bg-gray-400 text-white px-2 py-1 rounded" onClick={() => setToast(null)}>Non</button>
+            </span>
+          ));
+        } else {
+          push(...args);
+        }
+      };
+      return () => {
+        navigator.push = push;
+      };
+    }, [blocker, when, navigator]);
+  }
+  useBlockerWithToast(() => isDirty, isDirty);
 
   const handleSave = async () => {
     if (!motif) return;
@@ -44,11 +93,7 @@ const PatientDiagnosis = ({ motif, updateMotif }) => {
   return (
     <div className="flex flex-col h-full w-full">
       {toast && (
-        <Toast
-          message={toast.message}
-          onClose={() => setToast(null)}
-          type={toast.type}
-        />
+        <Toast message={toast.message} onClose={() => setToast(null)} type={toast.type} persistent={toast.persistent} />
       )}
       {/* Boutons d'action en haut à droite */}
       <div className="flex justify-end mb-4">
