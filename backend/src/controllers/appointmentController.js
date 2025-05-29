@@ -98,11 +98,21 @@ async function createAppointment(req, res) {
   }
 
   const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) {
+    return res.status(422).json({ error: "Date invalide." });
+  }
   if (parsedDate < new Date()) {
     return res.status(400).json({ error: "La date ne peut pas être dans le passé." });
   }
 
   try {
+    // Vérifie doublon (même patient, même date)
+    const existing = await prisma.appointment.findFirst({
+      where: { patientId: parseInt(patientId), date: parsedDate },
+    });
+    if (existing) {
+      return res.status(409).json({ error: "Doublon de rendez-vous (même patient/date)" });
+    }
     const appointment = await prisma.appointment.create({
       data: {
         therapistId,
@@ -131,6 +141,9 @@ async function updateAppointment(req, res) {
   }
 
   const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) {
+    return res.status(422).json({ error: "Date invalide." });
+  }
   if (parsedDate < new Date()) {
     return res.status(400).json({ error: "La date ne peut pas être dans le passé." });
   }
@@ -149,6 +162,10 @@ async function updateAppointment(req, res) {
     });
     res.json(updated);
   } catch (err) {
+    // Si l'appointment n'existe pas, retourne 404
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Rendez-vous non trouvé' });
+    }
     console.error('❌ updateAppointment error:', err);
     res.status(500).json({ error: 'Erreur mise à jour du rendez-vous' });
   }

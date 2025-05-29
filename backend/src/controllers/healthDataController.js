@@ -20,6 +20,11 @@ const updateHealthData = async (req, res) => {
 const getHealthData = async (req, res) => {
   const { id } = req.params;
 
+  // Vérifie l'authentification (middleware déjà présent, mais on protège contre un appel direct)
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Non authentifié' });
+  }
+
   try {
     const patient = await prisma.patient.findUnique({
       where: { id: Number(id) },
@@ -30,6 +35,9 @@ const getHealthData = async (req, res) => {
         healthChronicle: true,
       },
     });
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient non trouvé' });
+    }
     res.json(patient);
   } catch (err) {
     console.error('Erreur get health data:', err);

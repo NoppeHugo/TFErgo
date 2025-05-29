@@ -24,6 +24,11 @@ async function addNote(req, res) {
   const therapistId = req.user.id
   const { title, description } = req.body
 
+  // Validation du champ title
+  if (!title || !title.trim()) {
+    return res.status(400).json({ message: "Le champ 'title' est obligatoire." });
+  }
+
   try {
     const note = await prisma.note.create({
       data: {

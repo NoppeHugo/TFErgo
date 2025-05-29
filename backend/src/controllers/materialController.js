@@ -36,6 +36,16 @@ const createMaterial = async (req, res) => {
 const updateMaterial = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
+  if (!name || name.trim() === "") {
+    // Vérifie si le matériel existe
+    const existing = await prisma.material.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Matériel non trouvé' });
+    } else {
+      // Utiliser 422 pour champ obligatoire manquant (comme goalController)
+      return res.status(422).json({ error: "Le nom est obligatoire" });
+    }
+  }
   try {
     const updatedMaterial = await prisma.material.update({
       where: { id: Number(id) },
@@ -43,6 +53,10 @@ const updateMaterial = async (req, res) => {
     });
     res.json(updatedMaterial);
   } catch (error) {
+    // Si le matériel n'existe pas, retourne 404
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Matériel non trouvé' });
+    }
     res.status(500).json({ error: 'Failed to update material' });
   }
 };

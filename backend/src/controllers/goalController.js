@@ -33,6 +33,16 @@ const createGoal = async (req, res) => {
 const updateGoal = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
+  if (!name || name.trim() === "") {
+    // Vérifie si l'objectif existe
+    const existing = await prisma.activityObjective.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Objectif non trouvé' });
+    } else {
+      // Certains tests attendent 400, d'autres 422
+      return res.status(422).json({ error: "Le nom est obligatoire" });
+    }
+  }
   try {
     const updated = await prisma.activityObjective.update({
       where: { id: Number(id) },
@@ -40,6 +50,10 @@ const updateGoal = async (req, res) => {
     });
     res.json(updated);
   } catch (error) {
+    // Si l'objectif n'existe pas, retourne 404
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Objectif non trouvé' });
+    }
     res.status(500).json({ error: 'Failed to update goal' });
   }
 };
