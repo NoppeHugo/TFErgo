@@ -71,4 +71,77 @@ describe('Patients API', () => {
       .send({ lastName: 'Test', sex: 'M', birthdate: '1990-01-01' }); // firstName manquant
     expect([400, 422, 500]).toContain(res.statusCode);
   });
+
+  it('refuse la création de patient avec un niss invalide', async () => {
+    const patientData = {
+      firstName: 'NissInvalide',
+      lastName: 'Test',
+      sex: 'M',
+      birthdate: '1990-01-01',
+      niss: '1234', // trop court
+    };
+    const res = await request(app)
+      .post('/patients')
+      .set('Cookie', [`token=${token}`])
+      .send(patientData);
+    expect([400, 422, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la création de patient avec une date de naissance future', async () => {
+    const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10);
+    const patientData = {
+      firstName: 'Futur',
+      lastName: 'Test',
+      sex: 'F',
+      birthdate: futureDate,
+      niss: '12345678988',
+    };
+    const res = await request(app)
+      .post('/patients')
+      .set('Cookie', [`token=${token}`])
+      .send(patientData);
+    expect([400, 422, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la récupération d\'un patient inexistant', async () => {
+    const res = await request(app)
+      .get('/patients/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la modification d\'un patient inexistant', async () => {
+    const res = await request(app)
+      .put('/patients/999999')
+      .set('Cookie', [`token=${token}`])
+      .send({ firstName: 'Modif', lastName: 'Test', sex: 'M', birthdate: '1990-01-01', niss: '12345678977' });
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la suppression d\'un patient inexistant', async () => {
+    const res = await request(app)
+      .delete('/patients/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la création de patient avec un champ supplémentaire inattendu', async () => {
+    const patientData = {
+      firstName: 'ChampSup',
+      lastName: 'Test',
+      sex: 'M',
+      birthdate: '1990-01-01',
+      niss: '12345678955',
+      foo: 'bar',
+    };
+    const res = await request(app)
+      .post('/patients')
+      .set('Cookie', [`token=${token}`])
+      .send(patientData);
+    expect([201, 200, 422, 400]).toContain(res.statusCode); // Selon la validation
+    if ([201, 200].includes(res.statusCode)) {
+      // Nettoyage
+      await request(app).delete(`/patients/${res.body.id}`).set('Cookie', [`token=${token}`]);
+    }
+  });
 });

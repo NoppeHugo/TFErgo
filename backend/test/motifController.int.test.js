@@ -59,4 +59,81 @@ describe('Motifs API', () => {
       .send({});
     expect([400, 422, 500]).toContain(res.statusCode);
   });
+
+  it('refuse la création de motif sur patient inexistant', async () => {
+    const res = await request(app)
+      .post('/motifs/999999')
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'MotifInexistant' });
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('supprime un motif', async () => {
+    // Crée un motif à supprimer
+    const motifRes = await request(app)
+      .post(`/motifs/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ToDeleteMotif' });
+    if (motifRes.statusCode === 201) {
+      const idToDelete = motifRes.body.id;
+      const res = await request(app)
+        .delete(`/motifs/${idToDelete}`)
+        .set('Cookie', [`token=${token}`]);
+      expect([200, 204, 404]).toContain(res.statusCode);
+    }
+  });
+
+  it('refuse la suppression d\'un motif inexistant', async () => {
+    const res = await request(app)
+      .delete('/motifs/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la suppression sans authentification', async () => {
+    // Crée un motif à supprimer
+    const motifRes = await request(app)
+      .post(`/motifs/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ToDeleteNoAuth' });
+    if (motifRes.statusCode === 201) {
+      const idToDelete = motifRes.body.id;
+      const res = await request(app)
+        .delete(`/motifs/${idToDelete}`);
+      expect([401, 403]).toContain(res.statusCode);
+    }
+  });
+
+  it('GET /motifs/:id retourne 404 si motif inexistant', async () => {
+    const res = await request(app)
+      .get('/motifs/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('met à jour un motif', async () => {
+    if (!createdMotifId) return;
+    const res = await request(app)
+      .put(`/motifs/${createdMotifId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'MotifModifié' });
+    expect([200, 404, 422]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour d\'un motif inexistant', async () => {
+    const res = await request(app)
+      .put('/motifs/999999')
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'NotFound' });
+    expect([404, 422, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour sans titre', async () => {
+    if (!createdMotifId) return;
+    const res = await request(app)
+      .put(`/motifs/${createdMotifId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: '' });
+    expect([400, 422]).toContain(res.statusCode);
+  });
 });

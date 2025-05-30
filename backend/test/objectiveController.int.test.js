@@ -2,17 +2,97 @@ const request = require('supertest');
 const app = require('../src/app');
 
 describe('Objectives API', () => {
-  let createdObjectiveId;
+  let createdMotifId;
+  let createdLongObjectiveId;
+  let createdShortObjectiveId;
   let token;
-  beforeAll(() => {
+  beforeAll(async () => {
     token = require('jsonwebtoken').sign({ id: 1, email: 'test@test.com', name: 'Test' }, process.env.JWT_SECRET);
+    // Crée un motif pour lier l'objectif
+    const motifRes = await request(app)
+      .post('/motifs')
+      .set('Cookie', [`token=${token}`])
+      .send({ patientId: 1, title: 'MotifTest' });
+    createdMotifId = motifRes.body.id;
   });
   afterAll(async () => {
-    if (createdObjectiveId) {
+    if (createdShortObjectiveId) {
       await request(app)
-        .delete(`/objectives/${createdObjectiveId}`)
+        .delete(`/objectives/short/${createdShortObjectiveId}`)
         .set('Cookie', [`token=${token}`]);
     }
+    if (createdLongObjectiveId) {
+      await request(app)
+        .delete(`/objectives/long/${createdLongObjectiveId}`)
+        .set('Cookie', [`token=${token}`]);
+    }
+    if (createdMotifId) {
+      await request(app)
+        .delete(`/motifs/${createdMotifId}`)
+        .set('Cookie', [`token=${token}`]);
+    }
+  });
+  it('crée un objectif long terme', async () => {
+    const res = await request(app)
+      .post(`/objectives/long/${createdMotifId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ObjectifLong', startDate: '2025-01-01' });
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('id');
+    createdLongObjectiveId = res.body.id;
+  });
+  it('refuse la création d\'objectif long terme sans titre', async () => {
+    const res = await request(app)
+      .post(`/objectives/long/${createdMotifId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ startDate: '2025-01-01' });
+    expect([400, 422]).toContain(res.statusCode);
+  });
+  it('refuse la création d\'objectif long terme sur motif inexistant', async () => {
+    const res = await request(app)
+      .post(`/objectives/long/999999`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ObjectifLong', startDate: '2025-01-01' });
+    expect([404, 500]).toContain(res.statusCode);
+  });
+  it('crée un objectif court terme', async () => {
+    if (!createdLongObjectiveId) { return; }
+    const res = await request(app)
+      .post(`/objectives/short/${createdLongObjectiveId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ObjectifCourt', startDate: '2025-01-01', endDate: '2025-02-01' });
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('id');
+    createdShortObjectiveId = res.body.id;
+  });
+  it('refuse la création d\'objectif court terme sans titre', async () => {
+    if (!createdLongObjectiveId) { return; }
+    const res = await request(app)
+      .post(`/objectives/short/${createdLongObjectiveId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ startDate: '2025-01-01', endDate: '2025-02-01' });
+    expect([400, 422]).toContain(res.statusCode);
+  });
+  it('refuse la création d\'objectif court terme sans dates', async () => {
+    if (!createdLongObjectiveId) { return; }
+    const res = await request(app)
+      .post(`/objectives/short/${createdLongObjectiveId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ObjectifCourt' });
+    expect([400, 422]).toContain(res.statusCode);
+  });
+  it('refuse la création d\'objectif court terme sur objectif long inexistant', async () => {
+    const res = await request(app)
+      .post(`/objectives/short/999999`)
+      .set('Cookie', [`token=${token}`])
+      .send({ title: 'ObjectifCourt', startDate: '2025-01-01', endDate: '2025-02-01' });
+    expect([404, 500]).toContain(res.statusCode);
+  });
+  it('refuse la création d\'objectif sans authentification', async () => {
+    const res = await request(app)
+      .post(`/objectives/long/${createdMotifId}`)
+      .send({ title: 'NoAuth', startDate: '2025-01-01' });
+    expect([401, 403]).toContain(res.statusCode);
   });
   it('POST /objectives/long/1 should return 401 or 500', async () => {
     const res = await request(app)

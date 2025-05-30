@@ -77,4 +77,63 @@ describe('Health Data Controller', () => {
       .send({ medicalDiagnosis: 'NotFound' });
     expect([404, 500]).toContain(res.statusCode);
   });
+
+  it('refuse la mise à jour des données santé avec des champs manquants', async () => {
+    const res = await request(app)
+      .patch(`/healthData/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({});
+    expect([400, 422, 404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour des données santé avec un champ inattendu', async () => {
+    const res = await request(app)
+      .patch(`/healthData/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ foo: 'bar' });
+    expect([400, 422, 404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour des données santé avec un type incorrect', async () => {
+    const res = await request(app)
+      .patch(`/healthData/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ medicalDiagnosis: 123, medicalHistory: [], healthChronicle: {} });
+    expect([400, 422, 404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la récupération des données santé d\'un patient inexistant', async () => {
+    const res = await request(app)
+      .get(`/healthData/999999`)
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la récupération des données santé sans authentification', async () => {
+    const res = await request(app)
+      .get(`/healthData/${createdPatientId}`);
+    expect([401, 403, 404]).toContain(res.statusCode);
+  });
+
+  it('refuse la récupération des données santé sans id', async () => {
+    const res = await request(app)
+      .get('/healthData/')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 400, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour des données santé sans id', async () => {
+    const res = await request(app)
+      .patch('/healthData/')
+      .set('Cookie', [`token=${token}`])
+      .send({ medicalDiagnosis: 'Test' });
+    expect([404, 400, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour des données santé sans body', async () => {
+    const res = await request(app)
+      .patch(`/healthData/${createdPatientId}`)
+      .set('Cookie', [`token=${token}`]);
+    expect([400, 422, 404, 500]).toContain(res.statusCode);
+  });
 });

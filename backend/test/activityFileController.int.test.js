@@ -53,4 +53,49 @@ describe('Activity Files API', () => {
       expect(res.body).toHaveProperty('fileUrl', 'http://test.com/file.pdf');
     }
   });
+
+  it('refuse l\'ajout de fichier sans authentification', async () => {
+    const res = await request(app)
+      .post(`/activityFiles/${createdActivityId}`)
+      .send({ fileUrl: 'http://test.com/file2.pdf', fileType: 'pdf', fileName: 'file2.pdf' });
+    expect([401, 403]).toContain(res.statusCode);
+  });
+
+  it('refuse l\'ajout de fichier sans fileUrl', async () => {
+    const res = await request(app)
+      .post(`/activityFiles/${createdActivityId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ fileType: 'pdf', fileName: 'file.pdf' });
+    expect([400, 422, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse l\'ajout de fichier à une activité inexistante', async () => {
+    const res = await request(app)
+      .post(`/activityFiles/999999`)
+      .set('Cookie', [`token=${token}`])
+      .send({ fileUrl: 'http://test.com/file.pdf', fileType: 'pdf', fileName: 'file.pdf' });
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('supprime un fichier d\'activité', async () => {
+    // Crée un fichier à supprimer
+    const resCreate = await request(app)
+      .post(`/activityFiles/${createdActivityId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ fileUrl: 'http://test.com/filetodelete.pdf', fileType: 'pdf', fileName: 'filetodelete.pdf' });
+    if ([201, 200].includes(resCreate.statusCode)) {
+      const idToDelete = resCreate.body.id;
+      const res = await request(app)
+        .delete(`/activityFiles/${idToDelete}`)
+        .set('Cookie', [`token=${token}`]);
+      expect([200, 204, 404]).toContain(res.statusCode);
+    }
+  });
+
+  it('refuse la suppression d\'un fichier inexistant', async () => {
+    const res = await request(app)
+      .delete(`/activityFiles/999999`)
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
 });

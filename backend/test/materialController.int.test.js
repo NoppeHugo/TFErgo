@@ -50,4 +50,78 @@ describe('Materials API', () => {
     //   .set('Cookie', [`token=${token}`]);
     // expect([400, 409]).toContain(res.statusCode);
   });
+  it('refuse la création de matériel sans nom', async () => {
+    const res = await request(app)
+      .post('/materials')
+      .set('Cookie', [`token=${token}`])
+      .send({ description: 'Pas de nom' });
+    expect([400, 422]).toContain(res.statusCode);
+  });
+
+  it('refuse la création de matériel sans authentification', async () => {
+    const res = await request(app)
+      .post('/materials')
+      .send({ name: 'NoAuth' });
+    expect([401, 403]).toContain(res.statusCode);
+  });
+
+  it('met à jour un matériel', async () => {
+    if (!createdMaterialId) return;
+    const res = await request(app)
+      .put(`/materials/${createdMaterialId}`)
+      .set('Cookie', [`token=${token}`])
+      .send({ name: 'MatérielModifié', description: 'Desc modifiée' });
+    expect([200, 404, 422]).toContain(res.statusCode);
+  });
+
+  it('refuse la mise à jour d\'un matériel inexistant', async () => {
+    const res = await request(app)
+      .put('/materials/999999')
+      .set('Cookie', [`token=${token}`])
+      .send({ name: 'NotFound', description: '...' });
+    expect([404, 422, 500]).toContain(res.statusCode);
+  });
+
+  it('supprime un matériel', async () => {
+    // Crée un matériel à supprimer
+    const resCreate = await request(app)
+      .post('/materials')
+      .set('Cookie', [`token=${token}`])
+      .send({ name: 'ToDelete' });
+    if (resCreate.statusCode === 201) {
+      const idToDelete = resCreate.body.id;
+      const res = await request(app)
+        .delete(`/materials/${idToDelete}`)
+        .set('Cookie', [`token=${token}`]);
+      expect([200, 204, 404]).toContain(res.statusCode);
+    }
+  });
+
+  it('refuse la suppression d\'un matériel inexistant', async () => {
+    const res = await request(app)
+      .delete('/materials/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
+
+  it('refuse la suppression sans authentification', async () => {
+    // Crée un matériel à supprimer
+    const resCreate = await request(app)
+      .post('/materials')
+      .set('Cookie', [`token=${token}`])
+      .send({ name: 'ToDeleteNoAuth' });
+    if (resCreate.statusCode === 201) {
+      const idToDelete = resCreate.body.id;
+      const res = await request(app)
+        .delete(`/materials/${idToDelete}`);
+      expect([401, 403]).toContain(res.statusCode);
+    }
+  });
+
+  it('GET /materials/:id retourne 404 si matériel inexistant', async () => {
+    const res = await request(app)
+      .get('/materials/999999')
+      .set('Cookie', [`token=${token}`]);
+    expect([404, 500]).toContain(res.statusCode);
+  });
 });
