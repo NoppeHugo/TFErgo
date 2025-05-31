@@ -20,7 +20,7 @@ jobs:
 
       - name: Rsync code to VPS
         run: |
-          rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ \
+          rsync -avz --delete -e "ssh -p 2222 -o StrictHostKeyChecking=no" ./ \
           ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
 
       - name: Restart Docker on VPS
