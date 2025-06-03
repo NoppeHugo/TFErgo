@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    restart: always
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    env_file:
+      - ./frontend/.env.production
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: ergogo_db
+      POSTGRES_USER: ergogo
+      POSTGRES_PASSWORD: mdpergogo5646
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
