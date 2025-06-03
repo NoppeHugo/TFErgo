@@ -18,10 +18,23 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      - name: Rsync code to VPS
+      - name: Rsync code to VPS (without deleting .env files)
         run: |
-          rsync -avz --delete -e "ssh -p 2222 -o StrictHostKeyChecking=no" ./ \
-          ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
+          rsync -avz --delete \
+            --exclude 'backend/.env' \
+            --exclude 'frontend/.env.production' \
+            -e "ssh -p 2222 -o StrictHostKeyChecking=no" ./ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
+
+      - name: Check if .env files are present
+        run: |
+          ssh -p 2222 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          cd ${{ secrets.VPS_PATH }}
+          if [ ! -f backend/.env ] || [ ! -f frontend/.env.production ]; then
+            echo "::error ::Missing one or both .env files"
+            exit 1
+          fi
+          EOF
 
       - name: Restart Docker on VPS
         run: |
