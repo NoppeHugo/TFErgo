@@ -6,9 +6,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
+
 # Copie du reste du code
 COPY . .
 
+RUN npx prisma generate
 # Installation de PM2 globalement
 RUN npm install -g pm2
 
