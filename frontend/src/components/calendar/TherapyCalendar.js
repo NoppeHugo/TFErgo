@@ -107,10 +107,12 @@ const TherapyCalendar = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [activeDragItem, setActiveDragItem] = useState(null);
+  const [weekIndex, setWeekIndex] = useState(0); // Pour mobile : semaine affichée
 
   const queryClient = useQueryClient();
   const sensors = useSensors(useSensor(PointerSensor));
   const yearMonth = currentDate.toISOString().slice(0, 7);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 640;
 
   const { data: appointments = [], refetch } = useQuery({
     queryKey: ["appointments", yearMonth],
@@ -120,10 +122,10 @@ const TherapyCalendar = () => {
     },
   });
 
+  // Génère les jours du mois (4 semaines)
   const generateCalendarDays = (date) => {
     const startOfWeek = new Date(date);
     startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
-
     const days = [];
     for (let i = 0; i < 28; i++) {
       const day = new Date(startOfWeek);
@@ -179,67 +181,99 @@ const TherapyCalendar = () => {
     }
   };
 
+  // Découpe en semaines pour mobile
+  const weeks = [];
+  for (let i = 0; i < calendarDays.length; i += 7) {
+    weeks.push(calendarDays.slice(i, i + 7));
+  }
+  const currentWeekDays = isMobile ? weeks[weekIndex] || [] : calendarDays;
+
+  // Navigation semaine sur mobile
+  const handleWeekChange = (direction) => {
+    setWeekIndex((prev) => {
+      const next = prev + direction;
+      if (next < 0) return 0;
+      if (next >= weeks.length) return weeks.length - 1;
+      return next;
+    });
+  };
+  useEffect(() => {
+    setWeekIndex(0); // reset semaine à chaque changement de mois
+  }, [currentDate]);
+
   return (
-    <motion.div className="p-6 bg-white rounded-2xl w-full h-full min-h-[80vh] max-h-[80vh] overflow-hidden">
-      <div className="flex justify-between items-center mb-4 px-4 py-2 rounded-lg">
+    <motion.div className="p-2 sm:p-6 bg-white rounded-2xl w-full h-full min-h-[80vh] max-h-[80vh] overflow-hidden">
+      <div className="flex items-center justify-center mb-4 px-2 sm:px-4 py-2 rounded-lg gap-2 w-full">
         <button
-          onClick={() => handleMonthChange(-1)}
-          className="text-[#A294F9] p-2 rounded-full hover:bg-[#eae7fd]"
+          onClick={() => isMobile ? handleWeekChange(-1) : handleMonthChange(-1)}
+          className="text-[#A294F9] p-3 sm:p-2 rounded-full hover:bg-[#eae7fd] text-xl sm:text-base shadow-md active:scale-95 transition"
+          disabled={isMobile && weekIndex === 0}
         >
-          <FiChevronLeft size={20} />
+          <FiChevronLeft size={24} />
         </button>
         <h2
-          className="text-xl sm:text-2xl font-semibold text-gray-800 cursor-pointer hover:text-[#A294F9]"
+          className="flex-1 text-lg sm:text-2xl font-semibold text-gray-800 cursor-pointer hover:text-[#A294F9] text-center w-full sm:w-auto"
           onClick={() => setCurrentDate(today)}
         >
           {currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+          {isMobile && weeks.length > 1 && (
+            <span className="ml-2 text-xs text-gray-500">Semaine {weekIndex + 1}/{weeks.length}</span>
+          )}
         </h2>
         <button
-          onClick={() => handleMonthChange(1)}
-          className="text-[#A294F9] p-2 rounded-full hover:bg-[#eae7fd]"
+          onClick={() => isMobile ? handleWeekChange(1) : handleMonthChange(1)}
+          className="text-[#A294F9] p-3 sm:p-2 rounded-full hover:bg-[#eae7fd] text-xl sm:text-base shadow-md active:scale-95 transition"
+          disabled={isMobile && weekIndex === weeks.length - 1}
         >
-          <FiChevronRight size={20} />
+          <FiChevronRight size={24} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 text-center font-bold text-gray-600 text-xs sm:text-base">
-        {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
-          <div key={day}>{day}</div>
-        ))}
-      </div>
+      <div className="overflow-x-auto w-full pb-2">
+        <div className="min-w-[600px] sm:min-w-0">
+          <div className="grid grid-cols-7 text-center font-bold text-gray-600 text-xs sm:text-base">
+            {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
+              <div key={day} className="py-2 uppercase tracking-wide">{day}</div>
+            ))}
+          </div>
 
-      <DndContext
-        sensors={sensors}
-        onDragStart={({ active }) => setActiveDragItem(active.data.current)}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="grid grid-cols-7 gap-1 mt-2" style={{ maxHeight: "calc(100% - 100px)", overflowY: "auto" }}>
-          {calendarDays.map((day, index) => {
-            const isToday = day.toDateString() === today.toDateString();
-            const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-            const dayAppointments = appointments
-              .filter((apt) => new Date(apt.start).toDateString() === day.toDateString())
-              .sort((a, b) => new Date(a.start) - new Date(b.start));
+          <DndContext
+            sensors={sensors}
+            onDragStart={({ active }) => setActiveDragItem(active.data.current)}
+            onDragEnd={handleDragEnd}
+          >
+            <div
+              className={`grid grid-cols-7 gap-1 mt-2 min-w-[600px] ${isMobile ? 'max-h-[70vh] overflow-y-auto' : ''}`}
+              style={isMobile ? { height: '60vh' } : { maxHeight: 'calc(100% - 100px)', overflowY: 'auto' }}
+            >
+              {(isMobile ? currentWeekDays : calendarDays).map((day, index) => {
+                const isToday = day.toDateString() === today.toDateString();
+                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                const dayAppointments = appointments
+                  .filter((apt) => new Date(apt.start).toDateString() === day.toDateString())
+                  .sort((a, b) => new Date(a.start) - new Date(b.start));
 
-            return (
-              <CalendarDay
-                key={index}
-                day={day}
-                appointments={dayAppointments}
-                isToday={isToday}
-                isCurrentMonth={isCurrentMonth}
-                onClick={handleDateClick}
-                onAppointmentClick={setSelectedAppointment}
-                activeId={activeDragItem?.id}
-              />
-            );
-          })}
+                return (
+                  <CalendarDay
+                    key={index}
+                    day={day}
+                    appointments={dayAppointments}
+                    isToday={isToday}
+                    isCurrentMonth={isCurrentMonth}
+                    onClick={handleDateClick}
+                    onAppointmentClick={setSelectedAppointment}
+                    activeId={activeDragItem?.id}
+                  />
+                );
+              })}
+            </div>
+
+            <DragOverlay dropAnimation={null}>
+              {activeDragItem ? <AppointmentPreview apt={activeDragItem} /> : null}
+            </DragOverlay>
+          </DndContext>
         </div>
-
-        <DragOverlay dropAnimation={null}>
-          {activeDragItem ? <AppointmentPreview apt={activeDragItem} /> : null}
-        </DragOverlay>
-      </DndContext>
+      </div>
 
       {selectedDate && <AppointmentModal event={{ date: selectedDate }} onClose={closeModals} />}
       {selectedAppointment && (
