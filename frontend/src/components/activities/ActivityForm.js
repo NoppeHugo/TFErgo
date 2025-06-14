@@ -204,7 +204,7 @@ const ActivityForm = ({ onCreated, showToast }) => {
       {toast && (
         <Toast message={toast.message} onClose={() => setToast(null)} type={toast.type} persistent={toast.persistent} />
       )}
-      <form onSubmit={handleSubmit} className="w-full bg-white p-6 rounded-2xl shadow-md space-y-4 animate-fade-in max-w-5xl mx-auto">
+      <form onSubmit={handleSubmit} className="w-full bg-white p-3 sm:p-6 rounded-2xl shadow-md space-y-4 animate-fade-in max-w-5xl mx-auto">
         {/* Nom */}
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Nom de l’activité :</label>

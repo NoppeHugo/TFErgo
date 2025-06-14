@@ -18,7 +18,7 @@ const ActivityCard = ({ activity, onEdit, onDelete, onOpen }) => {
 
   return (
     <div
-      className="relative bg-white rounded-2xl border border-gray-200 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between p-6"
+      className="relative bg-white rounded-2xl border border-gray-200 shadow hover:shadow-lg transition cursor-pointer flex flex-col justify-between p-4 sm:p-6 w-full max-w-full"
       onClick={() => onOpen(activity)}
     >
       <div className="absolute top-2 right-2 z-20" ref={menuRef} onClick={(e) => e.stopPropagation()}>

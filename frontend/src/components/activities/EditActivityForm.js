@@ -182,7 +182,7 @@ const EditActivityForm = ({ activity, onClose, onUpdated }) => {
       {toast && (
         <Toast message={toast.message} onClose={() => setToast(null)} type={toast.type} persistent={toast.persistent} />
       )}
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded border shadow space-y-4 animate-fade-in">
+      <form onSubmit={handleSubmit} className="bg-white p-3 sm:p-6 rounded border shadow space-y-4 animate-fade-in w-full">
         <h2 className="text-xl font-semibold text-purple-700">Modifier l’activité</h2>
 
         <input

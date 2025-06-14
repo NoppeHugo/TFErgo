@@ -68,7 +68,7 @@ const ActivityList = ({ filters, refresh }) => {
       ) : (
         <div className="columns-1 sm:columns-2 gap-6 space-y-6">
           {activities.map(activity => (
-            <div key={activity.id} className="break-inside-avoid">
+            <div key={activity.id} className="break-inside-avoid w-full max-w-full">
               <ActivityCard
                 activity={activity}
                 onEdit={() => setEditingActivity(activity)}

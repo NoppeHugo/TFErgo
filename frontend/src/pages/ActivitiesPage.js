@@ -48,10 +48,10 @@ const ActivitiesPage = () => {
 
       {/* Corps 3 colonnes */}
       <div className="flex-1 overflow-hidden">
-        <div className="max-w-[1800px] mx-auto p-6 flex gap-6 h-full">
+        <div className="max-w-[1800px] mx-auto p-2 sm:p-4 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 h-full">
 
           {/* Colonne 1 : Filtres */}
-          <div className="w-[20%] min-w-[260px]">
+          <div className="w-full md:w-[20%] min-w-[260px] mb-4 md:mb-0">
             <div className="bg-white rounded-2xl shadow-md p-4 sticky top-28">
               <ActivityFilters filters={filters} setFilters={setFilters} onCreated={refresh} />
             </div>
