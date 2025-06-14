@@ -26,3 +26,8 @@ export const deleteEvaluationItem = async (id) => {
   const res = await API.delete(`/appointments/evaluation-items/${id}`);
   return res.data;
 };
+
+export const updateEvaluationItem = async (id, title) => {
+  const res = await API.patch(`/appointments/evaluation-items/${id}`, { title });
+  return res.data;
+};

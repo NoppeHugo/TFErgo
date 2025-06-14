@@ -6,3 +6,5 @@ const API = axios.create({
 });
 
 export default API;
+
+export const patch = (url, data, config) => API.patch(url, data, config);

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { getAppointmentsByPatient } from "../../api/appointmentAPI.js";
 import PatientAppointmentFeedback from "./PatientAppointmentFeedback.js";
-import { createEvaluationItem, getEvaluationItemsByPatient, deleteEvaluationItem } from "../../api/evaluationAPI.js";
+import { createEvaluationItem, getEvaluationItemsByPatient, deleteEvaluationItem, updateEvaluationItem } from "../../api/evaluationAPI.js";
 import Toast, { showSuccessToast, showErrorToast, showConfirmToast } from "../common/Toast.js";
 import Spinner from '../common/Spinner.js';
+import { FiEdit2 } from "react-icons/fi";
 
 const PatientAppointmentsTab = ({ patient }) => {
   const [appointments, setAppointments] = useState([]);
@@ -12,6 +13,8 @@ const PatientAppointmentsTab = ({ patient }) => {
   const [items, setItems] = useState([]); // ✅ éléments à évaluer
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
     if (patient?.id) {
@@ -65,6 +68,29 @@ const PatientAppointmentsTab = ({ patient }) => {
     );
   };
 
+  const handleEditClick = (item) => {
+    setEditingItemId(item.id);
+    setEditTitle(item.title);
+  };
+
+  const handleEditSave = async (item) => {
+    if (!editTitle.trim()) return;
+    try {
+      await updateEvaluationItem(item.id, editTitle);
+      setEditingItemId(null);
+      setEditTitle("");
+      setReload((r) => !r);
+      showSuccessToast(setToast, "Nom modifié !");
+    } catch (err) {
+      showErrorToast(setToast, "Erreur lors de la modification.");
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditingItemId(null);
+    setEditTitle("");
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-40"><Spinner size={40} /></div>;
   }
@@ -100,7 +126,7 @@ const PatientAppointmentsTab = ({ patient }) => {
           </button>
         </div>
 
-        {/* ✅ Liste des éléments avec bouton suppression */}
+        {/* ✅ Liste des éléments avec bouton suppression et édition */}
         {items.length > 0 && (
           <ul className="space-y-2 text-sm text-gray-700">
             {items.map((item) => (
@@ -108,13 +134,46 @@ const PatientAppointmentsTab = ({ patient }) => {
                 key={item.id}
                 className="flex justify-between items-center bg-gray-100 px-3 py-2 rounded"
               >
-                <span>{item.title}</span>
-                <button
-                  className="text-red-600 hover:text-red-800"
-                  onClick={() => handleDeleteItem(item.id)}
-                >
-                  🗑️
-                </button>
+                {editingItemId === item.id ? (
+                  <>
+                    <input
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      className="border rounded px-2 py-1 mr-2"
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleEditSave(item);
+                        if (e.key === 'Escape') handleEditCancel();
+                      }}
+                    />
+                    <button className="text-green-600 mr-2" onClick={() => handleEditSave(item)} title="Enregistrer">
+                      ✔️
+                    </button>
+                    <button className="text-gray-500" onClick={handleEditCancel} title="Annuler">
+                      ✖️
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span>{item.title}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => handleEditClick(item)}
+                        title="Modifier"
+                      >
+                        <FiEdit2 />
+                      </button>
+                      <button
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteItem(item.id)}
+                        title="Supprimer"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>

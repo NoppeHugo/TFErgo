@@ -236,10 +236,20 @@ async function addAppointmentFeedbacks(req, res) {
   const { feedbacks } = req.body;
 
   try {
+    await prisma.appointmentFeedback.deleteMany({
+      where: { appointmentId: parseInt(appointmentId) },
+    });
+
+    if (!feedbacks || feedbacks.length === 0) {
+      return res.status(201).json({ count: 0 });
+    }
+
+    // Correction : cast evaluationItemId et rating en Int
     const newFeedbacks = await prisma.appointmentFeedback.createMany({
       data: feedbacks.map((feedback) => ({
         appointmentId: parseInt(appointmentId),
-        ...feedback,
+        evaluationItemId: parseInt(feedback.evaluationItemId),
+        rating: parseInt(feedback.rating),
       })),
     });
     res.status(201).json(newFeedbacks);
@@ -341,7 +351,23 @@ async function deleteEvaluationItem(req, res) {
   }
 }
 
-
+async function updateEvaluationItem(req, res) {
+  const { id } = req.params;
+  const { title } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: "Le titre est obligatoire." });
+  }
+  try {
+    const updated = await prisma.evaluationItem.update({
+      where: { id: parseInt(id) },
+      data: { title },
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ updateEvaluationItem error:", err);
+    res.status(500).json({ error: "Erreur mise à jour de l'élément à évaluer" });
+  }
+}
 
 module.exports = {
   getAppointments,
@@ -358,4 +384,5 @@ module.exports = {
   createEvaluationItem,
   getAppointmentsByMonth, 
   deleteEvaluationItem,
+  updateEvaluationItem,
 };
