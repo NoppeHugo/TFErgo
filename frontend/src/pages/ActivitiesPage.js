@@ -17,17 +17,40 @@ const ActivitiesPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let ticking = false;
+    let lastDirection = 'up';
+    const threshold = 30; // pixels
     const handleScroll = () => {
-      // Cible uniquement les écrans mobiles (< 768px)
       if (window.innerWidth >= 768) {
         setShowFilters(true);
         return;
       }
-      const scrollY = document.querySelector('.activities-scrollable')?.scrollTop || window.scrollY;
-      if (scrollY > lastScrollY.current && scrollY > 40) {
-        setShowFilters(false); // Scroll vers le bas : cache
+      const scrollable = document.querySelector('.activities-scrollable');
+      const scrollY = scrollable?.scrollTop || window.scrollY;
+      const maxScroll = scrollable ? scrollable.scrollHeight - scrollable.clientHeight : 0;
+      const diff = scrollY - lastScrollY.current;
+      // Si on est en bas, ne pas réafficher le header
+      if (scrollable && scrollY >= maxScroll - 2) {
+        setShowFilters(false);
+        lastScrollY.current = scrollY;
+        return;
+      }
+      // Ignore les micro-mouvements
+      if (Math.abs(diff) < threshold) {
+        return;
+      }
+      if (diff > 0) {
+        // Scroll vers le bas
+        if (lastDirection !== 'down') {
+          setShowFilters(false);
+          lastDirection = 'down';
+        }
       } else {
-        setShowFilters(true); // Scroll vers le haut : affiche
+        // Scroll vers le haut
+        if (lastDirection !== 'up') {
+          setShowFilters(true);
+          lastDirection = 'up';
+        }
       }
       lastScrollY.current = scrollY;
     };
