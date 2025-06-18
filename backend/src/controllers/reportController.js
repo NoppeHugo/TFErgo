@@ -35,7 +35,7 @@ const generatePatientReport = async (req, res) => {
       where: { patientId: patient.id },
       include: {
         activities: { include: { activity: true } },
-        feedbacks: true,
+        feedbacks: { include: { evaluationItem: true } },
       },
       orderBy: { date: 'asc' }
     });
@@ -114,7 +114,7 @@ const generatePatientReport = async (req, res) => {
         const feedbacks = apt.feedbacks.length
           ? apt.feedbacks.map(
               (fb) =>
-                `<p>${"★".repeat(fb.rating)}${"☆".repeat(5 - fb.rating)} — ${fb.objective} ${fb.completed ? "(✅ terminé)" : ""}</p>`
+                `<p>${"★".repeat(fb.rating)}${"☆".repeat(5 - fb.rating)} — ${fb.evaluationItem?.title || "Non précisé"} ${fb.completed ? "(✅ terminé)" : ""}</p>`
             ).join("")
           : "<em>Aucun retour</em>";
 
